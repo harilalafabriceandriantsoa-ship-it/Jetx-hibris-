@@ -1,22 +1,14 @@
 import streamlit as st
 import numpy as np
 import hashlib
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 import pandas as pd
 
-# Mba tsy hisian'ny fahadisoana 'sklearn' dia apetraho ao amin'ny requirements.txt ireto
-try:
-    from sklearn.ensemble import RandomForestClassifier
-    from sklearn.preprocessing import StandardScaler
-except ImportError:
-    st.error("⚠️ Mila apetraka ny 'scikit-learn'. Ampidiro ao amin'ny requirements.txt izy.")
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.preprocessing import StandardScaler
 
 # ---------------- CONFIG ----------------
 st.set_page_config(page_title="ANDR-X AI V3 ⚡ TERMINAL", layout="centered")
-
-# Ora Madagasikara (UTC+3)
-madagasikara_tz = timezone(timedelta(hours=3))
-ora_izao = datetime.now(madagasikara_tz).strftime("%H:%M:%S")
 
 st.markdown("""
 <style>
@@ -52,8 +44,8 @@ if not st.session_state.auth:
 def build_dataset(history):
     data = []
     for h in history:
-        # Tsy ampiasaina ny andrana tsy misy signal
-        if "signal" not in h:
+        # Fanamarinana raha misy ny fepetra hianarana
+        if "ai_score" in h and (h["ai_score"] is None or h["ai_score"] == "None"):
             continue
 
         data.append([
@@ -65,11 +57,11 @@ def build_dataset(history):
             1 if "BUY" in h["signal"] else 0
         ])
 
-    # Mila andrana 5 farafahakeliny vao mianatra ny AI
     if len(data) < 5:
         return None
 
     return pd.DataFrame(data, columns=["prob","moy","max","ref","conf","label"])
+
 
 def train_ai():
     df = build_dataset(st.session_state.pred_log)
@@ -89,18 +81,17 @@ def train_ai():
         st.session_state.ml_model = model
         st.session_state.scaler = scaler
         st.session_state.ml_ready = True
-    except Exception as e:
-        st.error(f"Erreur Training: {e}")
+    except:
+        pass
+
 
 def ai_predict(features):
-    # Raha mbola tsy ready ny AI (latsaky ny 5 tours), miverina None
     if not st.session_state.ml_ready or "scaler" not in st.session_state:
         return None
 
     try:
         X = np.array(features).reshape(1, -1)
         X = st.session_state.scaler.transform(X)
-        # Isan-jato (probability)
         return round(st.session_state.ml_model.predict_proba(X)[0][1] * 100, 1)
     except:
         return None
@@ -109,9 +100,11 @@ def ai_predict(features):
 def run_prediction(hash_str, h_act, last_cote):
 
     try:
+        # Mamadika ny ora napetrakao ho lasa format azo kajiana
         t_obj = datetime.strptime(h_act, "%H:%M:%S")
     except:
-        t_obj = datetime.now(madagasikara_tz)
+        # Raha misy hadisoana ny ora napetraka dia ny ora izao no ampiasaina
+        t_obj = datetime.now()
 
     seed_global = int(hashlib.sha256((hash_str + h_act).encode()).hexdigest(), 16) % (2**32)
     np.random.seed(seed_global)
@@ -123,7 +116,7 @@ def run_prediction(hash_str, h_act, last_cote):
     t_seconds = t_obj.hour*3600 + t_obj.minute*60 + t_obj.second
     time_factor = (t_seconds % 300) / 300
 
-    # cycle lojika
+    # cycle
     if last_cote < 1.5:
         cycle = 0.8
     elif last_cote < 1.8:
@@ -135,23 +128,33 @@ def run_prediction(hash_str, h_act, last_cote):
     else:
         cycle = 0.7
 
+    # reference
     ref_val = 2.1 if hash_norm < 2 else 2.2 if hash_norm < 3 else 2.3
     ref_val += time_factor * 0.2
 
     base = hash_norm * ref_val * cycle * (1 + time_factor)
+
     sigma = 0.25 + (hash_norm / 10)
 
-    sims = np.random.lognormal(mean=np.log(base), sigma=sigma, size=15000)
+    sims = np.random.lognormal(
+        mean=np.log(base),
+        sigma=sigma,
+        size=15000
+    )
+
     success = [s for s in sims if s >= 3.0]
+
     prob = round(len(success)/15000 * 100, 1)
 
     # ---------------- NORMALISATION ----------------
     log_sims = np.log(sims + 1)
+
     moy_raw = np.exp(np.mean(log_sims))
     max_raw = np.exp(np.percentile(log_sims, 95))
 
     moy = round(moy_raw / 1.4, 2)
     maxv = round(max_raw / 1.2, 2)
+
     confidence = round((prob * moy)/10, 1)
 
     delay = int(50 + (hash_norm * 10) + (time_factor * 30) + (cycle * 10))
@@ -159,15 +162,20 @@ def run_prediction(hash_str, h_act, last_cote):
 
     # ---------------- SIGNAL ----------------
     if last_cote > 3:
-        signal, emoji = "❌ SKIP", "❌"
+        signal = "❌ SKIP"
+        emoji = "❌"
     elif prob < 40 or moy < 2.3:
-        signal, emoji = "❌ SKIP", "❌"
+        signal = "❌ SKIP"
+        emoji = "❌"
     elif prob < 55:
-        signal, emoji = "⏳ WAIT", "⏳"
+        signal = "⏳ WAIT"
+        emoji = "⏳"
     elif confidence > 12:
-        signal, emoji = "🔥 STRONG BUY", "🔥🎯"
+        signal = "🔥 STRONG BUY"
+        emoji = "🔥🎯"
     else:
-        signal, emoji = "✅ BUY", "🎯"
+        signal = "✅ BUY"
+        emoji = "🎯"
 
     features = [prob, moy, maxv, ref_val, confidence]
     ai_score = ai_predict(features)
@@ -187,51 +195,83 @@ def run_prediction(hash_str, h_act, last_cote):
     }
 
 # ---------------- UI ----------------
-st.title("🚀 ANDR-X AI V3 ⚡ Madagasikara")
+st.title("🚀 ANDR-X AI V3 ⚡ TERMINAL")
 
 tab1, tab2, tab3 = st.tabs(["📊 ANALYSE", "📜 HISTORIQUE", "📖 GUIDE"])
 
+# ---------------- ANALYSE ----------------
 with tab1:
+
     hash_in = st.text_input("🔑 HASH")
-    h_in = st.text_input("⏰ HEURE (MADAGASCAR)", value=ora_izao)
+    # Case HEURE natao vide (value="") araka ny fangatahanao
+    h_in = st.text_input("⏰ HEURE (HH:MM:SS)", value="", placeholder="Ohatra: 13:15:48")
     last_cote = st.number_input("📉 CÔTE PRÉCÉDENTE", value=1.5)
 
     if st.button("🚀 RUN ANALYSIS"):
-        if hash_in:
+        if hash_in and h_in:
             res = run_prediction(hash_in, h_in, last_cote)
             st.session_state.pred_log.append(res)
-            train_ai() # Mianatra isaky ny misy andrana vaovao
+            train_ai()
             st.rerun()
+        else:
+            st.warning("Fenoy ny HASH sy ny HEURE azafady!")
 
     if st.session_state.pred_log:
         r = st.session_state.pred_log[-1]
-        
-        # Raha None ny ai_score dia mampiseho hafatra
-        ai_display = f"{r['ai_score']}%" if r['ai_score'] is not None else "Learning... (Mila 5 tours)"
+
+        # Fampisehoana AI SCORE mazava kokoa
+        score_display = f"{r['ai_score']}%" if r['ai_score'] is not None else "Learning..."
 
         st.markdown(f"""
         # {r['emoji']} SIGNAL: {r['signal']}
-        🎯 PROB X3+: **{r['prob']}%** 🧠 CONFIDENCE: **{r['confidence']}** 🤖 AI SCORE: **{ai_display}** ⏰ HEURE D’ENTRÉE: **{r['h_ent']}**
-        """)
 
+        🎯 PROB X3+: **{r['prob']}%** 🧠 CONFIDENCE: **{r['confidence']}** 🤖 AI SCORE: **{score_display}** ⏰ HEURE D’ENTRÉE: **{r['h_ent']}** """)
+
+        # ---------------- CÔTE STYLE ----------------
         m1, m2, m3 = st.columns(3)
+
         with m1:
-            st.markdown(f"📉 MIN\n**{round(r['moy']/1.5,2)}x**")
+            st.markdown(f"📉 MIN\n**{round(r['moy']/1.5, 2)}x**")
+
         with m2:
             st.markdown(f"📊 MOYEN\n**{r['moy']}x**")
+
         with m3:
             st.markdown(f"🚀 MAX\n**{r['max']}x**")
 
+# ---------------- HISTORIQUE ----------------
 with tab2:
-    st.write("📜 TANTARAN'NY ANALYSE")
+    st.write("📜 HISTORIQUE")
     if st.session_state.pred_log:
-        st.dataframe(pd.DataFrame(st.session_state.pred_log)[::-1])
+        df_hist = pd.DataFrame(st.session_state.pred_log)
+        st.dataframe(df_hist[::-1], use_container_width=True)
     else:
-        st.info("Mbola tsisy andrana natao.")
+        st.info("Mbola tsisy historique.")
 
+# ---------------- GUIDE ----------------
 with tab3:
-    st.markdown("### 📖 TOROLÀLANA\n1. Ampidiro ny HASH farany.\n2. Jereo raha mifanaraka ny ORA.\n3. Andraso ho feno 5 ny tantara vao hiseho ny AI SCORE.")
+    st.markdown("""
+# 📖 ANDR-X AI V3 GUIDE 🎯
+
+## 🎯 CÔTE RÉFÉRENCE
+- 🔥 1.80 → 2.50 = BEST ZONE X3+
+
+## ⏰ HEURE D’ENTRÉE
+- ⏳ Miankina amin'ny ora nampidirinao
+- ⏰ Window: -5s → +10s
+
+## 📊 SIGNAL
+- ❌ SKIP: Aza milalao
+- ⏳ WAIT: Andraso kely
+- 🎯 BUY: Afaka milalao
+- 🔥 STRONG BUY: Tena tsara
+
+## 🤖 AI SCORE
+- Mila **5 tours** farafahakeliny ao amin'ny Historique vao miseho ny isan-jato.
+""")
 
 # ---------------- SIDEBAR ----------------
-st.sidebar.markdown(f"⚡ **ANDR-X AI V3**\nOra Madagasikara: {ora_izao}")
-st.sidebar.markdown(f"📅 {datetime.now(madagasikara_tz).strftime('%d/%m/%Y')}")
+st.sidebar.markdown("⚡ ANDR-X AI V3")
+st.sidebar.markdown("🔐 SECURE TERMINAL")
+# Ny daty eto Madagasikara
+st.sidebar.markdown(datetime.now().strftime("%d/%m/%Y"))
