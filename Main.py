@@ -4,156 +4,143 @@ import statistics
 from datetime import datetime, timedelta
 
 # ---------------- CONFIGURATION & STYLE ----------------
-st.set_page_config(page_title="HUBRIS V1: ANDR-X EDITION", layout="wide")
+st.set_page_config(page_title="ANDR-X TERMINAL v1.4", layout="centered")
 
 st.markdown("""
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto:wght@300;500&display=swap');
-    
+    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
     .stApp {background: #020202; color:#00ffcc; font-family: 'Orbitron', sans-serif;}
     
-    /* Login Design */
-    .login-card {
-        background: rgba(0, 255, 204, 0.05);
-        padding: 40px; border-radius: 20px;
-        border: 2px solid #00ffcc; text-align: center;
-        box-shadow: 0 0 30px rgba(0, 255, 204, 0.2);
-    }
-
-    /* Prediction Card */
-    .main-card {
-        background: linear-gradient(145deg, rgba(0, 255, 204, 0.15) 0%, rgba(0, 0, 0, 1) 100%);
+    /* Bloc Analyse Tokana */
+    .terminal-box {
+        background: linear-gradient(180deg, rgba(0, 255, 204, 0.15) 0%, rgba(0, 0, 0, 0.9) 100%);
         padding: 20px; border-radius: 20px;
-        border: 1px solid #00ffcc; text-align: center;
-        box-shadow: 0 10px 20px rgba(0,0,0,0.5);
-        margin-bottom: 20px;
+        border: 2px solid #00ffcc; text-align: center;
+        box-shadow: 0 0 20px rgba(0, 255, 204, 0.2);
     }
-
-    /* History Style */
-    .hist-item {
-        background: #111; padding: 10px; border-radius: 10px;
-        border-left: 4px solid #00ffcc; margin-bottom: 5px;
-        font-family: 'Roboto', sans-serif; font-size: 13px;
+    
+    .status-line { font-size: 11px; color: #888; margin-bottom: 10px; border-bottom: 1px solid #333; padding-bottom: 5px; }
+    .label-mise { font-size: 13px; color: #fff; text-transform: uppercase; margin: 0; }
+    .heure-big { font-size: 65px; font-weight: bold; color: #00ffcc; line-height: 1; margin: 5px 0; }
+    .prob-text { font-size: 18px; color: #ffcc00; font-weight: bold; margin-bottom: 15px; }
+    
+    /* Grid ho an'ny Cotes */
+    .cote-grid {
+        display: grid; grid-template-columns: 1fr 1fr 1fr;
+        gap: 8px; margin-top: 10px;
     }
+    .cote-box { background: rgba(255,255,255,0.05); padding: 8px; border-radius: 10px; border: 1px solid #222; }
+    .cote-lab { font-size: 10px; color: #00ffcc; display: block; }
+    .cote-num { font-size: 15px; font-weight: bold; color: white; }
 
+    /* Buttons */
     .stButton>button {
         background: linear-gradient(135deg, #00ffcc 0%, #0066ff 100%);
-        color: white; border: none; border-radius: 12px; height: 50px;
-        font-weight: bold; width: 100%; transition: 0.3s;
+        color: white; border: none; border-radius: 10px; height: 45px; font-weight: bold; width: 100%;
     }
-    .stButton>button:hover { transform: translateY(-3px); box-shadow: 0 0 20px #00ffcc; }
-    
-    h1, h2, h3 {text-align: center; color: #00ffcc; text-transform: uppercase;}
 </style>
 """, unsafe_allow_html=True)
 
-# ---------------- STATE MANAGEMENT ----------------
-if "auth" not in st.session_state: st.session_state.auth = False
+# ---------------- INITIALIZATION ----------------
 if "history" not in st.session_state: st.session_state.history = []
-if "full_preds" not in st.session_state: st.session_state.full_preds = []
+if "logs" not in st.session_state: st.session_state.logs = []
+if "auth" not in st.session_state: st.session_state.auth = False
 
-# ---------------- LOGIN SYSTEM ----------------
+# ---------------- LOGIN ----------------
 if not st.session_state.auth:
-    st.markdown("<br><br>", unsafe_allow_html=True)
-    _, col_log, _ = st.columns([1, 2, 1])
-    with col_log:
-        st.markdown("<div class='login-card'><h1>⚡ HUBRIS V1</h1><p>ANDR-X SECURITY ACCESS</p></div><br>", unsafe_allow_html=True)
-        pwd = st.text_input("PASSWORD:", type="password")
-        if st.button("ACTIVATE SYSTEM"):
-            if pwd == "2026":
-                st.session_state.auth = True
-                st.rerun()
-            else: st.error("Access Denied")
+    st.markdown("<br><h1 style='text-align:center;'>🔐 ACCESS CONTROL</h1>", unsafe_allow_html=True)
+    pwd = st.text_input("SECURITY CODE:", type="password")
+    if st.button("UNLOCK TERMINAL"):
+        if pwd == "2026":
+            st.session_state.auth = True
+            st.rerun()
     st.stop()
 
 # ---------------- ENGINE ----------------
-def calculate_all(data):
+def get_analysis(data):
     avg = statistics.mean(data) if data else 1.8
     dev = statistics.stdev(data) if len(data) > 1 else 0.6
-    sims = np.random.lognormal(mean=np.log(avg), sigma=dev * 0.42, size=15000)
-    
-    target_sims = [s for s in sims if s >= 3.0]
-    prob = (len(target_sims) / len(sims)) * 100
-    
+    sims = np.random.lognormal(mean=np.log(avg), sigma=dev * 0.4, size=15000)
+    success = [s for s in sims if s >= 3.0]
+    prob = (len(success) / len(sims)) * 100
     now = datetime.now()
     delay = 1 if (data and data[-1] < 2.0) else 2
     h_entree = (now + timedelta(minutes=delay)).strftime("%H:%M")
     
     return {
-        "heure": h_entree,
-        "vintana": round(prob, 2),
-        "moy": round(statistics.mean(target_sims), 2) if target_sims else 3.0,
-        "max": round(np.percentile(sims, 95), 2),
-        "ref": data[-1] if data else 0
+        "ora_izao": now.strftime("%H:%M:%S"),
+        "ora_mise": h_entree,
+        "prob": round(prob, 2),
+        "ref": data[-1] if data else 0,
+        "min": "2.00",
+        "moy": round(statistics.mean(success), 2) if success else 3.0,
+        "max": round(np.percentile(sims, 95), 2)
     }
 
-# ---------------- UI DASHBOARD ----------------
-st.markdown("<h1>⚡ TERMINAL ANDR-X V1</h1>", unsafe_allow_html=True)
+# ---------------- UI ----------------
+st.markdown("<h2 style='text-align:center;'>⚡ TERMINAL ANDR-X</h2>", unsafe_allow_html=True)
 
-tab_main, tab_guide = st.tabs(["🚀 ANALYSEUR", "📖 GUIDE & INFO"])
+t1, t2, t3 = st.tabs(["🚀 ANALYSE", "📜 LOGS", "📖 GUIDE"])
 
-with tab_main:
-    c1, c2 = st.columns([1, 1.2])
+with t1:
+    val = st.number_input("Crash farany nivoaka:", min_value=1.0, step=0.01, format="%.2f")
     
-    with c1:
-        st.subheader("📡 INPUT")
-        val = st.number_input("Crash tour farany:", min_value=1.0, step=0.01, format="%.2f")
-        if st.button("RUN ANALYSIS"):
-            st.session_state.history.append(val)
-            res = calculate_all(st.session_state.history)
-            # Tehirizina ny prédiction rehetra
-            st.session_state.full_preds.append(res)
-            
-            if len(st.session_state.history) > 15: st.session_state.history.pop(0)
-            if len(st.session_state.full_preds) > 10: st.session_state.full_preds.pop(0)
-            st.rerun()
-        
-        if st.button("RESET MEMORY"):
-            st.session_state.history = []
-            st.session_state.full_preds = []
-            st.rerun()
+    if st.button("EXECUTE PREDICTION"):
+        st.session_state.history.append(val)
+        res = get_analysis(st.session_state.history)
+        st.session_state.logs.append(res)
+        if len(st.session_state.history) > 15: st.session_state.history.pop(0)
+        st.rerun()
 
-    with c2:
-        st.subheader("🧠 RESULTATS")
-        if st.session_state.full_preds:
-            current = st.session_state.full_preds[-1]
-            st.markdown(f"""
-                <div class='main-card'>
-                    <p style='color:#00ffcc; font-size:12px; margin:0;'>ORA IZAO: {datetime.now().strftime("%H:%M:%S")}</p>
-                    <p style='color:#aaa; font-size:11px; margin:0;'>REFERENCE COTE: {current['ref']}x</p>
-                    <p style='color:white; margin:10px 0 0 0;'>HEURE D'ENTRÉE PREVUE</p>
-                    <h1 style='font-size:60px; margin:0;'>{current['heure']}</h1>
-                    <p style='color:#ffcc00; font-size:22px;'>PROBABILITÉ X3+: <b>{current['vintana']}%</b></p>
+    if st.session_state.logs:
+        cur = st.session_state.logs[-1]
+        st.markdown(f"""
+            <div class='terminal-box'>
+                <div class='status-line'>
+                    TIME: {cur['ora_izao']} | REF CRASH: {cur['ref']}x
                 </div>
-            """, unsafe_allow_html=True)
-            
-            m1, m2, m3 = st.columns(3)
-            m1.metric("MIN", "2.00x")
-            m2.metric("MOYEN", f"{current['moy']}x")
-            m3.metric("MAX", f"{current['max']}x")
-        else:
-            st.info("Miandry data hanombohana ny analyse...")
+                <p class='label-mise'>HEURE D'ENTRÉE (MISE)</p>
+                <div class='heure-big'>{cur['ora_mise']}</div>
+                <div class='prob-text'>VINTANA X3+: {cur['prob']}%</div>
+                
+                <div class='cote-grid'>
+                    <div class='cote-box'>
+                        <span class='cote-lab'>MIN</span>
+                        <span class='cote-num'>{cur['min']}x</span>
+                    </div>
+                    <div class='cote-box'>
+                        <span class='cote-lab'>MOYEN</span>
+                        <span class='cote-num'>{cur['moy']}x</span>
+                    </div>
+                    <div class='cote-box'>
+                        <span class='cote-lab'>MAX</span>
+                        <span class='cote-num'>{cur['max']}x</span>
+                    </div>
+                </div>
+            </div>
+        """, unsafe_allow_html=True)
+    
+    if st.button("RESET MEMORY"):
+        st.session_state.history = []
+        st.session_state.logs = []
+        st.rerun()
 
-    st.write("---")
-    st.subheader("📜 HISTORIQUE DES PRÉDICTIONS")
-    if st.session_state.full_preds:
-        # Asehoy ny 5 farany
-        for p in reversed(st.session_state.full_preds):
+with t2:
+    st.subheader("📜 Historique de Prédiction")
+    if st.session_state.logs:
+        for l in reversed(st.session_state.logs):
             st.markdown(f"""
-            <div class='hist-item'>
-                <b>Ora: {p['heure']}</b> | Vintana: {p['vintana']}% | Ref: {p['ref']}x | Target: {p['moy']}x
+            <div style='background:#111; padding:8px; border-radius:8px; margin-bottom:5px; border-left:3px solid #00ffcc;'>
+                <small>{l['ora_izao']} | Ref: {l['ref']}x</small><br>
+                <b>MISE: {l['ora_mise']}</b> | Prob: {l['prob']}% | Target: {l['moy']}x
             </div>
             """, unsafe_allow_html=True)
 
-with tab_guide:
+with t3:
     st.markdown("""
-    ### 📘 GUIDE D'UTILISATION
-    1. **Ampidiro ny Crash:** Soraty eo amin'ny 'Input' ny isa nivoaka farany eo amin'ny lalao.
-    2. **Tsindrio Run:** Isaky ny manindry ianao dia misy analyse vaovao miforona.
-    3. **Heure d'entrée:** Io no ora tokony hidiranao (Mise). Miandrasa vao miova io minitra io ny findainao.
-    4. **Cote Reference:** Io no nampiasain'ny AI hanaovana ny kajy farany.
-    5. **Historique:** Azonao jerena eo ambany ny tantaran'ny prédiction rehetra nataonao mba hahitana ny "Trend".
+    ### 📖 Torolalana:
+    1. **Input:** Ampidiro ny crash farany teo amin'ny JetX.
+    2. **Analyse:** Ny 'Heure d'entrée' no ora hidiranao mise.
+    3. **Target:** Mivoaha (Cashout) araka ny cotes **Min** na **Moyen**.
+    4. **Logs:** Jereo ny tantaran'ny prédiction teo aloha.
     """)
-
-# Sidebar
-st.sidebar.markdown(f"**USER:** ANDR-X  \n**VERSION:** 1.1.0  \n**STATUS:** ONLINE")
