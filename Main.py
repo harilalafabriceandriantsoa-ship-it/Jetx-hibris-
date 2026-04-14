@@ -11,30 +11,20 @@ st.markdown("""
     @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
     .stApp {background: #000000; color:#00ffcc; font-family: 'Orbitron', sans-serif;}
     
+    /* Bloc tokana ho an'ny valiny rehetra */
     .terminal-card {
         background: linear-gradient(180deg, rgba(0, 255, 204, 0.15) 0%, rgba(0, 0, 0, 0.9) 100%);
         padding: 20px; border-radius: 20px; border: 2px solid #00ffcc;
         text-align: center; margin-bottom: 15px;
+        box-shadow: 0 0 25px rgba(0, 255, 204, 0.3);
     }
     
     .main-time { font-size: 50px; font-weight: bold; color: #fff; line-height: 1; margin: 10px 0; }
     .status-line { font-size: 11px; color: #aaa; text-transform: uppercase; margin-bottom: 10px; border-bottom: 1px solid #333; padding-bottom: 5px; }
     .note-box { background: rgba(255, 0, 0, 0.15); border: 1px solid #ff4444; color: #ff4444; padding: 10px; border-radius: 10px; font-size: 13px; margin-top: 10px; font-weight: bold; }
     
-    /* Grid ho an'ny Cotes */
-    .grid-container {
-        display: flex;
-        justify-content: space-around;
-        margin-top: 20px;
-        gap: 10px;
-    }
-    .grid-item {
-        background: rgba(255, 255, 255, 0.08);
-        padding: 12px;
-        border-radius: 12px;
-        flex: 1;
-        border: 1px solid #333;
-    }
+    .grid-container { display: flex; justify-content: space-around; margin-top: 20px; gap: 10px; }
+    .grid-item { background: rgba(255, 255, 255, 0.08); padding: 12px; border-radius: 12px; flex: 1; border: 1px solid #333; }
     .label-x { font-size: 10px; color: #00ffcc; display: block; margin-bottom: 5px; }
     .val-x { font-size: 18px; font-weight: bold; color: white; }
 
@@ -49,12 +39,12 @@ st.markdown("""
 if "pred_log" not in st.session_state: st.session_state.pred_log = []
 if "auth" not in st.session_state: st.session_state.auth = False
 
-# ---------------- LOGIN ----------------
+# ---------------- LOGIN (SECURITY CODE) ----------------
 if not st.session_state.auth:
     st.markdown("<br><br><h1 style='text-align:center;'>⚡ ANDR-X SYSTEM</h1>", unsafe_allow_html=True)
-    pwd = st.text_input("SECURITY CODE:", type="password")
+    pwd = st.text_input("SECURITY CODE:", type="password") # Araka ny sary v1.8
     if st.button("ACTIVATE"):
-        if pwd == "2026":
+        if pwd == "2026": # Tenimiafina raikitra
             st.session_state.auth = True
             st.rerun()
     st.stop()
@@ -66,9 +56,9 @@ def run_prediction(crash, h_tour, ref_val):
     except:
         t_obj = datetime.now()
         
-    # Algorithm Predictive
+    # Algorithm Predictive (Simple Ref)
     base_val = (crash * ref_val) + 1.3
-    sims = np.random.lognormal(mean=np.log(base_val), sigma=0.42, size=10000)
+    sims = np.random.lognormal(mean=np.log(base_val), sigma=0.42, size=15000)
     success_3x = [s for s in sims if s >= 3.0]
     
     # Fanamarihana (Note Box)
@@ -89,7 +79,7 @@ def run_prediction(crash, h_tour, ref_val):
         "h_ent": h_entree,
         "ref": ref_val,
         "crash": crash,
-        "prob": round((len(success_3x)/10000)*100, 1),
+        "prob": round((len(success_3x)/15000)*100, 1),
         "note": note,
         "min": "2.00",
         "moy": round(statistics.mean(sims), 2),
@@ -126,18 +116,9 @@ with t1:
                 <div class='note-box'>{curr['note']}</div>
                 
                 <div class='grid-container'>
-                    <div class='grid-item'>
-                        <span class='label-x'>MIN</span>
-                        <span class='val-x'>{curr['min']}x</span>
-                    </div>
-                    <div class='grid-item'>
-                        <span class='label-x'>MOYEN</span>
-                        <span class='val-x'>{curr['moy']}x</span>
-                    </div>
-                    <div class='grid-item'>
-                        <span class='label-x'>MAX</span>
-                        <span class='val-x'>{curr['max']}x</span>
-                    </div>
+                    <div class='grid-item'><span class='label-x'>MIN</span><span class='val-x'>{curr['min']}x</span></div>
+                    <div class='grid-item'><span class='label-x'>MOYEN</span><span class='val-x'>{curr['moy']}x</span></div>
+                    <div class='grid-item'><span class='label-x'>MAX</span><span class='val-x'>{curr['max']}x</span></div>
                 </div>
             </div>
         """, unsafe_allow_html=True)
@@ -145,21 +126,10 @@ with t1:
 with t2:
     if st.session_state.pred_log:
         for p in reversed(st.session_state.pred_log):
-            st.markdown(f"""
-            <div style='border-left:3px solid #00ffcc; padding:10px; margin-bottom:10px; background:rgba(255,255,255,0.05); border-radius:10px;'>
-                <b>ORA FIDIRANA: {p['h_ent']}</b><br>
-                <small>Tour: {p['h_act']} | Crash: {p['crash']}x | {p['note']}</small>
-            </div>
-            """, unsafe_allow_html=True)
+            st.markdown(f"🕒 **{p['h_ent']}** | Crash: {p['crash']}x | {p['note']}")
     else: st.info("Tsy misy tantara.")
 
 with t3:
-    st.markdown("""
-    ### 📖 Torolàlana
-    1. **Crash tour**: Ampidiro ny isa farany mipoaka eo amin'ny lalao.
-    2. **Ora**: Ataovy azo antoka fa misy segondra (HH:mm:ss).
-    3. **Référence**: Ampidiro ny isa référence mifanaraka amin'ny cycle.
-    4. **Fanamarihana**: Raha mena ny boaty (**Note Box**), tandremo tsara ny filalaovana.
-    """)
+    st.write("1. Ampidiro ny **Crash** farany.  \n2. Soraty ny **Ora** (HH:mm:ss).  \n3. Ampidiro ny **Référence** tokana.  \n4. Jereo ny **Note Box** mena raha misy loza.")
 
 st.sidebar.markdown(f"**USER**: ANDR-X  \n**STATUS**: ONLINE  \n**VERSION**: 1.8")
