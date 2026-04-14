@@ -1,6 +1,7 @@
 import streamlit as st
 import numpy as np
 import hashlib
+import statistics
 from datetime import datetime, timedelta
 import pandas as pd
 
@@ -8,7 +9,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import StandardScaler
 
 # ---------------- CONFIG ----------------
-st.set_page_config(page_title="ANDR-X AI V3 FIXED", layout="centered")
+st.set_page_config(page_title="ANDR-X AI V3 ⚡ TERMINAL", layout="centered")
 
 st.markdown("""
 <style>
@@ -17,44 +18,43 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ---------------- SESSION ----------------
-if "log" not in st.session_state:
-    st.session_state.log = []
+if "pred_log" not in st.session_state:
+    st.session_state.pred_log = []
 
 if "auth" not in st.session_state:
     st.session_state.auth = False
 
-if "model" not in st.session_state:
-    st.session_state.model = RandomForestClassifier(n_estimators=120)
+if "ml_model" not in st.session_state:
+    st.session_state.ml_model = RandomForestClassifier(n_estimators=100)
 
-if "ready" not in st.session_state:
-    st.session_state.ready = False
+if "ml_ready" not in st.session_state:
+    st.session_state.ml_ready = False
 
 # ---------------- LOGIN ----------------
 if not st.session_state.auth:
-    st.title("⚡ ANDR-X SYSTEM")
-    pwd = st.text_input("SECURITY", type="password")
+    st.title("⚡ ANDR-X AI V3 TERMINAL")
+    pwd = st.text_input("SECURITY CODE", type="password")
 
-    if st.button("ENTER"):
+    if st.button("ACTIVATE SYSTEM"):
         if pwd == "2026":
             st.session_state.auth = True
             st.rerun()
     st.stop()
 
 # ---------------- AI TRAIN ----------------
-def build_data(log):
+def build_dataset(history):
     data = []
-
-    for x in log:
-        if "ai" in x:
+    for h in history:
+        if "ai_score" in h:
             continue
 
         data.append([
-            x["prob"],
-            x["moy"],
-            x["max"],
-            x["ref"],
-            x["conf"],
-            1 if "BUY" in x["signal"] else 0
+            h["prob"],
+            h["moy"],
+            h["max"],
+            float(h["ref"]),
+            h["confidence"],
+            1 if "BUY" in h["signal"] else 0
         ])
 
     if len(data) < 5:
@@ -63,8 +63,8 @@ def build_data(log):
     return pd.DataFrame(data, columns=["prob","moy","max","ref","conf","label"])
 
 
-def train():
-    df = build_data(st.session_state.log)
+def train_ai():
+    df = build_dataset(st.session_state.pred_log)
     if df is None:
         return
 
@@ -72,168 +72,193 @@ def train():
     y = df["label"]
 
     scaler = StandardScaler()
-    Xs = scaler.fit_transform(X)
+    X_scaled = scaler.fit_transform(X)
 
     model = RandomForestClassifier(n_estimators=150)
-    model.fit(Xs, y)
+    model.fit(X_scaled, y)
 
-    st.session_state.model = model
+    st.session_state.ml_model = model
     st.session_state.scaler = scaler
-    st.session_state.ready = True
+    st.session_state.ml_ready = True
 
 
-def ai_score(features):
-    if not st.session_state.ready:
+def ai_predict(features):
+    if not st.session_state.ml_ready:
         return None
 
     X = np.array(features).reshape(1, -1)
     X = st.session_state.scaler.transform(X)
 
-    return round(st.session_state.model.predict_proba(X)[0][1] * 100, 1)
+    return round(st.session_state.ml_model.predict_proba(X)[0][1] * 100, 1)
 
-# ---------------- ENGINE ----------------
-def predict(hash_str, time_str, last_cote):
+# ---------------- ENGINE (NON FIXE) ----------------
+def run_prediction(hash_str, h_act, last_cote):
 
     try:
-        t = datetime.strptime(time_str, "%H:%M:%S")
+        t_obj = datetime.strptime(h_act, "%H:%M:%S")
     except:
-        t = datetime.now()
+        t_obj = datetime.now()
 
-    # seed dynamique (NO FIXED)
-    seed = int(hashlib.sha256((hash_str + time_str).encode()).hexdigest(), 16) % (2**32)
-    np.random.seed(seed)
+    # seed dynamique (hash + heure)
+    seed_global = int(hashlib.sha256((hash_str + h_act).encode()).hexdigest(), 16) % (2**32)
+    np.random.seed(seed_global)
 
-    # hash feature
-    h = hashlib.sha256(hash_str.encode()).hexdigest()
-    hnum = int(h[:8], 16) % 1000
-    hash_norm = (hnum / 100) + 1.0
+    # HASH ENGINE
+    hash_hex = hashlib.sha256(hash_str.encode()).hexdigest()
+    hash_int = int(hash_hex[:8], 16) % 1000
+    hash_norm = (hash_int / 100) + 1.1
 
-    # time factor
-    sec = t.hour*3600 + t.minute*60 + t.second
-    tf = (sec % 300) / 300
+    # TIME FACTOR (tsy fixe)
+    t_seconds = t_obj.hour*3600 + t_obj.minute*60 + t_obj.second
+    time_factor = (t_seconds % 300) / 300
 
-    # cycle
+    # CYCLE ENGINE
     if last_cote < 1.5:
-        cycle = 0.85
+        cycle = 0.8
     elif last_cote < 1.8:
         cycle = 1.0
     elif last_cote <= 2.5:
-        cycle = 1.25
+        cycle = 1.3
     elif last_cote <= 3:
         cycle = 1.1
     else:
-        cycle = 0.75
+        cycle = 0.7
 
-    # reference dynamic (NO FIXED RANGE)
-    ref = 2.0 + (hash_norm * 0.15) + (tf * 0.25)
+    # REFERENCE DYNAMIQUE
+    if hash_norm < 2:
+        ref_val = 2.1
+    elif hash_norm < 3:
+        ref_val = 2.2
+    else:
+        ref_val = 2.3
 
-    base = hash_norm * ref * cycle * (1 + tf)
+    ref_val += time_factor * 0.2
 
-    sigma = 0.2 + (hash_norm / 12)
+    base = hash_norm * ref_val * cycle * (1 + time_factor)
 
-    # ---------------- SIMULATION ----------------
+    sigma = 0.25 + (hash_norm / 10)
+
+    # ---------------- MONTE CARLO (NON FIXE) ----------------
     sims = np.random.lognormal(
         mean=np.log(base),
         sigma=sigma,
         size=15000
     )
 
-    prob = round(np.mean(sims >= 3.0) * 100, 1)
+    success = [s for s in sims if s >= 3.0]
 
+    prob = round(len(success)/15000 * 100, 1)
+
+    # IMPORTANT: TSY FIXE INTSONY
     moy = round(np.mean(sims), 2)
     maxv = round(np.percentile(sims, 95), 2)
 
-    conf = round((prob * moy) / 10, 1)
+    confidence = round((prob * moy)/10, 1)
 
-    # ---------------- ENTRY TIME ----------------
-    delay = int(40 + (hash_norm * 12) + (tf * 25) + (cycle * 10))
-    entry = (t + timedelta(seconds=delay)).strftime("%H:%M:%S")
+    # HEURE D’ENTRÉE (dynamic)
+    delay = int(50 + (hash_norm * 10) + (time_factor * 30) + (cycle * 10))
+    h_ent = (t_obj + timedelta(seconds=delay)).strftime("%H:%M:%S")
 
-    # ---------------- SIGNAL ----------------
-    if prob < 40:
+    # SIGNAL SYSTEM
+    if last_cote > 3:
+        signal = "❌ SKIP"
+    elif prob < 40 or moy < 2.3:
         signal = "❌ SKIP"
     elif prob < 55:
         signal = "⏳ WAIT"
-    elif conf > 12:
+    elif confidence > 12:
         signal = "🔥 STRONG BUY"
     else:
         signal = "✅ BUY"
 
-    features = [prob, moy, maxv, ref, conf]
-    ai = ai_score(features)
+    features = [prob, moy, maxv, ref_val, confidence]
+    ai_score = ai_predict(features)
 
     return {
+        "h_act": h_act,
+        "h_ent": h_ent,
         "hash": hash_str[:10]+"...",
+        "ref": round(ref_val,2),
         "prob": prob,
         "moy": moy,
         "max": maxv,
-        "ref": round(ref,2),
-        "conf": conf,
+        "confidence": confidence,
         "signal": signal,
-        "entry": entry,
-        "ai": ai
+        "ai_score": ai_score
     }
 
 # ---------------- UI ----------------
-st.title("🚀 ANDR-X AI V3 (NO FIXED VALUES)")
+st.title("🚀 ANDR-X AI V3 ⚡ TERMINAL")
 
 tab1, tab2, tab3 = st.tabs(["📊 ANALYSE", "📜 HISTORIQUE", "📖 GUIDE"])
 
 # ---------------- TAB 1 ----------------
 with tab1:
 
-    h = st.text_input("HASH")
-    t = st.text_input("HEURE", value=datetime.now().strftime("%H:%M:%S"))
-    c = st.number_input("CÔTE PRÉCÉDENTE", value=1.5)
+    hash_in = st.text_input("HASH")
+    h_in = st.text_input("HEURE", value=datetime.now().strftime("%H:%M:%S"))
+    last_cote = st.number_input("CÔTE PRÉCÉDENTE", value=1.5)
 
-    if st.button("RUN"):
-        if h:
-            r = predict(h, t, c)
-            st.session_state.log.append(r)
-            train()
+    if st.button("RUN ENGINE"):
+        if hash_in:
+            res = run_prediction(hash_in, h_in, last_cote)
+            st.session_state.pred_log.append(res)
+            train_ai()
             st.rerun()
 
-    if st.session_state.log:
-        r = st.session_state.log[-1]
+    if st.session_state.pred_log:
+        r = st.session_state.pred_log[-1]
 
         st.markdown(f"""
-### 🔥 {r['signal']}
-PROB X3+: **{r['prob']}%**  
-CONF: **{r['conf']}**  
-AI: **{r['ai']}**  
-⏱ ENTRY: **{r['entry']}**
-""")
+        ### 🔥 SIGNAL: {r['signal']}
+        **PROB X3+:** {r['prob']}%  
+        **CONFIDENCE:** {r['confidence']}  
+        **AI SCORE:** {r['ai_score']}  
+        **HEURE D’ENTRÉE:** {r['h_ent']}
+        """)
 
-        st.write("📊 MIN / MOY / MAX")
-        st.write("MIN: 2.00x (base)")
-        st.write(f"MOY: {r['moy']}x")
-        st.write(f"MAX: {r['max']}x")
+        # ---------------- CÔTE (NON FIXE AFFICHAGE) ----------------
+        m1, m2, m3 = st.columns(3)
 
-# ---------------- TAB 2 ----------------
+        with m1:
+            st.markdown(f"📉 MIN\n**{round(base/1.3,2)}x**")
+
+        with m2:
+            st.markdown(f"📊 MOYEN\n**{r['moy']}x**")
+
+        with m3:
+            st.markdown(f"🚀 MAX\n**{r['max']}x**")
+
+# ---------------- HISTORIQUE ----------------
 with tab2:
-    st.write(st.session_state.log)
+    st.write("📜 HISTORIQUE")
+    st.write(st.session_state.pred_log)
 
-# ---------------- TAB 3 ----------------
+# ---------------- GUIDE ----------------
 with tab3:
     st.markdown("""
-# 📖 GUIDE
+# 📖 ANDR-X AI V3 GUIDE
 
 ## 🎯 CÔTE RÉFÉRENCE
-- BEST: 1.80 → 2.50
-- OK: 1.50 → 1.80
-- BAD: <1.50 or >3
+👉 1.80 → 2.50 = BEST ZONE X3+
 
-## ⏱ ENTRY
-- dynamique (hash + heure + cycle)
-- window 5–10 sec
+## ⏱ HEURE
+- Tsy fixe
+- Cycle + hash + time factor
+- Window -5s → +10s
 
 ## ⚠️ SIGNAL
-- SKIP = aza miditra
-- WAIT = miandrasa
-- BUY = azo idirana
-- STRONG BUY = tsara indrindra
+- SKIP ❌
+- WAIT ⏳
+- BUY ✅
+- STRONG BUY 🔥
+
+## 🤖 AI
+- Mianatra amin’ny historique
+- manatsara signal
 """)
 
 # ---------------- SIDEBAR ----------------
-st.sidebar.write("VERSION V3 FIXED REMOVED")
+st.sidebar.write("ANDR-X AI V3 ⚡")
+st.sidebar.write("STATUS: LIVE ENGINE")
 st.sidebar.write(datetime.now().strftime("%d/%m/%Y"))
