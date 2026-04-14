@@ -45,7 +45,7 @@ if not st.session_state.auth:
 def build_dataset(history):
     data = []
     for h in history:
-        if "ai_score" in h and h["ai_score"] is None:
+        if "ai_score" in h:
             continue
 
         data.append([
@@ -60,8 +60,7 @@ def build_dataset(history):
     if len(data) < 5:
         return None
 
-    df = pd.DataFrame(data, columns=["prob","moy","max","ref","conf","label"])
-    return df
+    return pd.DataFrame(data, columns=["prob","moy","max","ref","conf","label"])
 
 
 def train_ai():
@@ -69,33 +68,28 @@ def train_ai():
     if df is None:
         return
 
-    try:
-        X = df.drop("label", axis=1)
-        y = df["label"]
+    X = df.drop("label", axis=1)
+    y = df["label"]
 
-        scaler = StandardScaler()
-        X_scaled = scaler.fit_transform(X)
+    scaler = StandardScaler()
+    X_scaled = scaler.fit_transform(X)
 
-        model = RandomForestClassifier(n_estimators=150)
-        model.fit(X_scaled, y)
+    model = RandomForestClassifier(n_estimators=150)
+    model.fit(X_scaled, y)
 
-        st.session_state.ml_model = model
-        st.session_state.scaler = scaler
-        st.session_state.ml_ready = True
-    except:
-        pass
+    st.session_state.ml_model = model
+    st.session_state.scaler = scaler
+    st.session_state.ml_ready = True
 
 
 def ai_predict(features):
-    if not st.session_state.ml_ready or "scaler" not in st.session_state:
+    if not st.session_state.ml_ready:
         return None
 
-    try:
-        X = np.array(features).reshape(1, -1)
-        X = st.session_state.scaler.transform(X)
-        return round(st.session_state.ml_model.predict_proba(X)[0][1] * 100, 1)
-    except:
-        return None
+    X = np.array(features).reshape(1, -1)
+    X = st.session_state.scaler.transform(X)
+
+    return round(st.session_state.ml_model.predict_proba(X)[0][1] * 100, 1)
 
 # ---------------- ENGINE ----------------
 def run_prediction(hash_str, h_act, last_cote):
@@ -105,17 +99,20 @@ def run_prediction(hash_str, h_act, last_cote):
     except:
         t_obj = datetime.now()
 
+    # seed stable (heure + hash)
     seed_global = int(hashlib.sha256((hash_str + h_act).encode()).hexdigest(), 16) % (2**32)
     np.random.seed(seed_global)
 
+    # hash
     hash_hex = hashlib.sha256(hash_str.encode()).hexdigest()
     hash_int = int(hash_hex[:8], 16) % 1000
     hash_norm = (hash_int / 100) + 1.1
 
+    # time cycle
     t_seconds = t_obj.hour*3600 + t_obj.minute*60 + t_obj.second
     time_factor = (t_seconds % 300) / 300
 
-    # ---------------- CYCLE (LAST COTE) ----------------
+    # cycle côte
     if last_cote < 1.5:
         cycle = 0.8
     elif last_cote < 1.8:
@@ -127,7 +124,7 @@ def run_prediction(hash_str, h_act, last_cote):
     else:
         cycle = 0.7
 
-    # ---------------- AUTO REFERENCE ----------------
+    # reference auto
     if hash_norm < 2:
         ref_val = 2.1
     elif hash_norm < 3:
@@ -146,8 +143,13 @@ def run_prediction(hash_str, h_act, last_cote):
     success = [s for s in sims if s >= 3.0]
 
     prob = round(len(success)/15000 * 100, 1)
-    moy = round(np.mean(sims), 2)
-    maxv = round(np.percentile(sims, 95), 2)
+
+    # ---------------- NORMALISATION MOY/MAX ----------------
+    raw_moy = np.mean(sims)
+    raw_max = np.percentile(sims, 95)
+
+    moy = round(min(raw_moy, 5.0), 2)
+    maxv = round(min(raw_max, 8.0), 2)
 
     confidence = round((prob * moy)/10, 1)
 
@@ -187,7 +189,7 @@ st.title("🚀 ANDR-X AI PREDICTOR V2")
 
 tab1, tab2, tab3 = st.tabs(["📊 ANALYSE", "📜 HISTORIQUE", "📖 GUIDE"])
 
-# ---------------- TAB 1 ----------------
+# ---------------- ANALYSE ----------------
 with tab1:
 
     hash_in = st.text_input("HASH")
@@ -204,7 +206,6 @@ with tab1:
     if st.session_state.pred_log:
         r = st.session_state.pred_log[-1]
 
-        # ---------------- SIGNAL ----------------
         st.markdown(f"""
         ### 🔥 SIGNAL: {r['signal']}
         **PROB X3+:** {r['prob']}%  
@@ -217,55 +218,45 @@ with tab1:
         m1, m2, m3 = st.columns(3)
 
         with m1:
-            st.markdown("""
-            <div style='background:#001a14;padding:15px;border-radius:15px;text-align:center;'>
-            📉 MIN<br><b>2.00x</b>
-            </div>
-            """, unsafe_allow_html=True)
+            st.markdown("📉 MIN\n**2.00x**")
 
         with m2:
-            st.markdown(f"""
-            <div style='background:#002b22;padding:15px;border-radius:15px;text-align:center;'>
-            📊 MOYEN<br><b>{r['moy']}x</b>
-            </div>
-            """, unsafe_allow_html=True)
+            st.markdown(f"📊 MOYEN\n**{r['moy']}x**")
 
         with m3:
-            st.markdown(f"""
-            <div style='background:#2b0010;padding:15px;border-radius:15px;text-align:center;'>
-            🚀 MAX<br><b>{r['max']}x</b>
-            </div>
-            """, unsafe_allow_html=True)
+            st.markdown(f"🚀 MAX\n**{r['max']}x**")
 
-# ---------------- TAB 2 ----------------
+# ---------------- HISTORIQUE ----------------
 with tab2:
     st.write("📜 HISTORIQUE")
-    for i in reversed(st.session_state.pred_log):
-        st.write(i)
+    st.write(st.session_state.pred_log)
 
-# ---------------- TAB 3 (GUIDE + ASTUCE) ----------------
+# ---------------- GUIDE ----------------
 with tab3:
     st.markdown("""
-# 📖 GUIDE ANDR-X AI V2
+# 📖 GUIDE
 
-## 🔐 INPUT
-- HASH → avy amin'ny jeu
-- HEURE → fotoana round
-- CÔTE PRÉCÉDENTE → résultat farany
+## 🎯 CÔTE RÉFÉRENCE (IMPORTANT)
+👉 **1.80 → 2.50 = BEST ZONE X3+**
 
----
+- < 1.50 ❌ Skip
+- 1.50–1.80 ⏳ Moyen
+- 1.80–2.50 🔥 BEST
+- > 3 ❌ Risk
 
-## 🎯 SIGNAL
-- ❌ SKIP → aza miditra
-- ⏳ WAIT → miandrasa
-- ✅ BUY → azo idirana
-- 🔥 STRONG BUY → fotoana tsara indrindra
+## ⏱ HEURE D’ENTRÉE
+- Tsy fixe
+- Cycle 5 min + hash + côte
+- Window: -5s → +10s
 
----
-
-## 📊 CÔTE RÉFÉRENCE (ASTUCE ⭐)
-👉 Io no tena zava-dehibe:
-### 🔥 BEST INTERVAL:
-- Reference 2.10 - 2.40
-- Raha mihoatra an'izay dia mitandrina.
+## ⚠️ SIGNAL
+- SKIP = aza miditra
+- WAIT = miandrasa
+- BUY = azo idirana
+- STRONG BUY = tsara indrindra
 """)
+
+# ---------------- SIDEBAR ----------------
+st.sidebar.write("ADMIN: ANDR-X")
+st.sidebar.write("VERSION: V2 FINAL STABLE")
+st.sidebar.write(datetime.now().strftime("%d/%m/%Y"))
