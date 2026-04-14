@@ -102,7 +102,6 @@ def run_prediction(hash_str, h_act, last_cote):
     try:
         t_obj = datetime.strptime(h_act, "%H:%M:%S")
     except:
-        # Heure normale Madagascar (EAT)
         tz_mg = pytz.timezone('Indian/Antananarivo')
         t_obj = datetime.now(tz_mg)
 
@@ -157,7 +156,15 @@ def run_prediction(hash_str, h_act, last_cote):
 
     confidence = round((prob * moy)/10, 1)
 
-    delay = int(50 + (hash_norm * 10) + (time_factor * 30) + (cycle * 10))
+    # ---------------- SMART HASH TIME (FIXED) ----------------
+    hash_time = int(hash_hex[8:16], 16)
+
+    dynamic_base = (hash_time % 45)        # 0 → 44 sec
+    cycle_boost = int(cycle * 8)           # 6 → 10 sec
+    micro_adjust = int((hash_norm % 1) * 10)  # 0 → 9 sec
+
+    delay = 15 + dynamic_base + cycle_boost + micro_adjust
+
     h_ent = (t_obj + timedelta(seconds=delay)).strftime("%H:%M:%S")
 
     # ---------------- SIGNAL ----------------
@@ -203,7 +210,6 @@ tab1, tab2, tab3 = st.tabs(["📊 ANALYSE", "📜 HISTORIQUE", "📖 GUIDE"])
 with tab1:
 
     hash_in = st.text_input("🔑 HASH")
-    # Case vide ho an'ny ora
     h_in = st.text_input("⏰ HEURE (HH:MM:SS)", value="", placeholder="Ohatra: 13:15:00")
     last_cote = st.number_input("📉 CÔTE PRÉCÉDENTE", value=1.5)
 
@@ -222,9 +228,12 @@ with tab1:
         st.markdown(f"""
         # {r['emoji']} SIGNAL: {r['signal']}
 
-        🎯 PROB X3+: **{r['prob']}%** 🧠 CONFIDENCE: **{r['confidence']}** 🤖 AI SCORE: **{r['ai_score']}%** ⏰ HEURE D’ENTRÉE: **{r['h_ent']}** """)
+        🎯 PROB X3+: **{r['prob']}%**  
+        🧠 CONFIDENCE: **{r['confidence']}**  
+        🤖 AI SCORE: **{r['ai_score']}%**  
+        ⏰ HEURE D’ENTRÉE: **{r['h_ent']}**  
+        """)
 
-        # ---------------- CÔTE STYLE ----------------
         m1, m2, m3 = st.columns(3)
 
         with m1:
@@ -254,8 +263,8 @@ with tab3:
 - 🔥 1.80 → 2.50 = BEST ZONE X3+
 
 ## ⏰ HEURE D’ENTRÉE
-- ⏳ dynamic (hash + cycle + time)
-- ⏰ window: -5s → +10s
+- 🎯 mifototra amin’ny HASH (tsy fixe)
+- ⏳ 20s → 70s delay
 
 ## 📊 SIGNAL
 - ❌ SKIP
@@ -271,6 +280,6 @@ with tab3:
 # ---------------- SIDEBAR ----------------
 st.sidebar.markdown("⚡ ANDR-X AI V3")
 st.sidebar.markdown("🔐 SECURE TERMINAL")
-# Heure normale Madagascar (EAT) ho an'ny sidebar
+
 tz_mg = pytz.timezone('Indian/Antananarivo')
 st.sidebar.markdown(datetime.now(tz_mg).strftime("%d/%m/%Y %H:%M:%S"))
