@@ -44,7 +44,8 @@ if not st.session_state.auth:
 def build_dataset(history):
     data = []
     for h in history:
-        if "ai_score" in h:
+        # Tsy maintsy jerena raha efa misy sanda ny AI predict vao ampiasaina
+        if "ai_score" in h and h["ai_score"] is None:
             continue
 
         data.append([
@@ -67,28 +68,33 @@ def train_ai():
     if df is None:
         return
 
-    X = df.drop("label", axis=1)
-    y = df["label"]
+    try:
+        X = df.drop("label", axis=1)
+        y = df["label"]
 
-    scaler = StandardScaler()
-    X_scaled = scaler.fit_transform(X)
+        scaler = StandardScaler()
+        X_scaled = scaler.fit_transform(X)
 
-    model = RandomForestClassifier(n_estimators=150)
-    model.fit(X_scaled, y)
+        model = RandomForestClassifier(n_estimators=150)
+        model.fit(X_scaled, y)
 
-    st.session_state.ml_model = model
-    st.session_state.scaler = scaler
-    st.session_state.ml_ready = True
+        st.session_state.ml_model = model
+        st.session_state.scaler = scaler
+        st.session_state.ml_ready = True
+    except:
+        pass
 
 
 def ai_predict(features):
-    if not st.session_state.ml_ready:
+    if not st.session_state.ml_ready or "scaler" not in st.session_state:
         return None
 
-    X = np.array(features).reshape(1, -1)
-    X = st.session_state.scaler.transform(X)
-
-    return round(st.session_state.ml_model.predict_proba(X)[0][1] * 100, 1)
+    try:
+        X = np.array(features).reshape(1, -1)
+        X = st.session_state.scaler.transform(X)
+        return round(st.session_state.ml_model.predict_proba(X)[0][1] * 100, 1)
+    except:
+        return None
 
 # ---------------- ENGINE ----------------
 def run_prediction(hash_str, h_act, last_cote):
@@ -211,18 +217,14 @@ with tab1:
         st.markdown(f"""
         # {r['emoji']} SIGNAL: {r['signal']}
 
-        🎯 PROB X3+: **{r['prob']}%**  
-        🧠 CONFIDENCE: **{r['confidence']}**  
-        🤖 AI SCORE: **{r['ai_score']}**  
-
-        ⏰ HEURE D’ENTRÉE: **{r['h_ent']}**  
-        """)
+        🎯 PROB X3+: **{r['prob']}%** 🧠 CONFIDENCE: **{r['confidence']}** 🤖 AI SCORE: **{r['ai_score']}%** ⏰ HEURE D’ENTRÉE: **{r['h_ent']}** """)
 
         # ---------------- CÔTE STYLE ----------------
         m1, m2, m3 = st.columns(3)
 
         with m1:
-            st.markdown(f"📉 MIN\n**{round(moy/1.5,2)}x**")
+            # Nahitsy: r['moy'] no ampiasaina fa tsy moy intsony
+            st.markdown(f"📉 MIN\n**{round(r['moy']/1.5, 2)}x**")
 
         with m2:
             st.markdown(f"📊 MOYEN\n**{r['moy']}x**")
@@ -233,7 +235,11 @@ with tab1:
 # ---------------- HISTORIQUE ----------------
 with tab2:
     st.write("📜 HISTORIQUE")
-    st.write(st.session_state.pred_log)
+    if st.session_state.pred_log:
+        df_hist = pd.DataFrame(st.session_state.pred_log)
+        st.dataframe(df_hist[::-1], use_container_width=True)
+    else:
+        st.info("Mbola tsisy historique.")
 
 # ---------------- GUIDE ----------------
 with tab3:
