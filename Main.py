@@ -3,6 +3,7 @@ import numpy as np
 import hashlib
 from datetime import datetime, timedelta
 import pandas as pd
+import pytz
 
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import StandardScaler
@@ -44,8 +45,7 @@ if not st.session_state.auth:
 def build_dataset(history):
     data = []
     for h in history:
-        # Fanamarinana raha misy ny fepetra hianarana
-        if "ai_score" in h and (h["ai_score"] is None or h["ai_score"] == "None"):
+        if "ai_score" in h and h["ai_score"] is None:
             continue
 
         data.append([
@@ -100,11 +100,11 @@ def ai_predict(features):
 def run_prediction(hash_str, h_act, last_cote):
 
     try:
-        # Mamadika ny ora napetrakao ho lasa format azo kajiana
         t_obj = datetime.strptime(h_act, "%H:%M:%S")
     except:
-        # Raha misy hadisoana ny ora napetraka dia ny ora izao no ampiasaina
-        t_obj = datetime.now()
+        # Heure normale Madagascar (EAT)
+        tz_mg = pytz.timezone('Indian/Antananarivo')
+        t_obj = datetime.now(tz_mg)
 
     seed_global = int(hashlib.sha256((hash_str + h_act).encode()).hexdigest(), 16) % (2**32)
     np.random.seed(seed_global)
@@ -203,8 +203,8 @@ tab1, tab2, tab3 = st.tabs(["📊 ANALYSE", "📜 HISTORIQUE", "📖 GUIDE"])
 with tab1:
 
     hash_in = st.text_input("🔑 HASH")
-    # Case HEURE natao vide (value="") araka ny fangatahanao
-    h_in = st.text_input("⏰ HEURE (HH:MM:SS)", value="", placeholder="Ohatra: 13:15:48")
+    # Case vide ho an'ny ora
+    h_in = st.text_input("⏰ HEURE (HH:MM:SS)", value="", placeholder="Ohatra: 13:15:00")
     last_cote = st.number_input("📉 CÔTE PRÉCÉDENTE", value=1.5)
 
     if st.button("🚀 RUN ANALYSIS"):
@@ -219,13 +219,10 @@ with tab1:
     if st.session_state.pred_log:
         r = st.session_state.pred_log[-1]
 
-        # Fampisehoana AI SCORE mazava kokoa
-        score_display = f"{r['ai_score']}%" if r['ai_score'] is not None else "Learning..."
-
         st.markdown(f"""
         # {r['emoji']} SIGNAL: {r['signal']}
 
-        🎯 PROB X3+: **{r['prob']}%** 🧠 CONFIDENCE: **{r['confidence']}** 🤖 AI SCORE: **{score_display}** ⏰ HEURE D’ENTRÉE: **{r['h_ent']}** """)
+        🎯 PROB X3+: **{r['prob']}%** 🧠 CONFIDENCE: **{r['confidence']}** 🤖 AI SCORE: **{r['ai_score']}%** ⏰ HEURE D’ENTRÉE: **{r['h_ent']}** """)
 
         # ---------------- CÔTE STYLE ----------------
         m1, m2, m3 = st.columns(3)
@@ -257,21 +254,23 @@ with tab3:
 - 🔥 1.80 → 2.50 = BEST ZONE X3+
 
 ## ⏰ HEURE D’ENTRÉE
-- ⏳ Miankina amin'ny ora nampidirinao
-- ⏰ Window: -5s → +10s
+- ⏳ dynamic (hash + cycle + time)
+- ⏰ window: -5s → +10s
 
 ## 📊 SIGNAL
-- ❌ SKIP: Aza milalao
-- ⏳ WAIT: Andraso kely
-- 🎯 BUY: Afaka milalao
-- 🔥 STRONG BUY: Tena tsara
+- ❌ SKIP
+- ⏳ WAIT
+- 🎯 BUY
+- 🔥 STRONG BUY
 
-## 🤖 AI SCORE
-- Mila **5 tours** farafahakeliny ao amin'ny Historique vao miseho ny isan-jato.
+## 🤖 AI
+- learning automatique
+- historique analysis
 """)
 
 # ---------------- SIDEBAR ----------------
 st.sidebar.markdown("⚡ ANDR-X AI V3")
 st.sidebar.markdown("🔐 SECURE TERMINAL")
-# Ny daty eto Madagasikara
-st.sidebar.markdown(datetime.now().strftime("%d/%m/%Y"))
+# Heure normale Madagascar (EAT) ho an'ny sidebar
+tz_mg = pytz.timezone('Indian/Antananarivo')
+st.sidebar.markdown(datetime.now(tz_mg).strftime("%d/%m/%Y %H:%M:%S"))
