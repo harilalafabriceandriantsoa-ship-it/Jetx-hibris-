@@ -41,20 +41,21 @@ if not st.session_state.auth:
             st.rerun()
     st.stop()
 
-# ---------------- AI TRAIN ----------------
+# ---------------- AI DATASET ----------------
 def build_dataset(history):
     data = []
     for h in history:
-        # Tsy maintsy misy an'ireto features ireto vao azo ampiasaina ny data
-        if all(k in h for k in ["prob", "moy", "max", "ref", "confidence", "signal"]):
-            data.append([
-                h["prob"],
-                h["moy"],
-                h["max"],
-                float(h["ref"]),
-                h["confidence"],
-                1 if "BUY" in h["signal"] else 0
-            ])
+        if "ai_score" in h:
+            continue
+
+        data.append([
+            h["prob"],
+            h["moy"],
+            h["max"],
+            float(h["ref"]),
+            h["confidence"],
+            1 if "BUY" in h["signal"] else 0
+        ])
 
     if len(data) < 5:
         return None
@@ -62,40 +63,38 @@ def build_dataset(history):
     return pd.DataFrame(data, columns=["prob","moy","max","ref","conf","label"])
 
 
+# ---------------- TRAIN AI ----------------
 def train_ai():
     df = build_dataset(st.session_state.pred_log)
     if df is None:
         return
 
-    try:
-        X = df.drop("label", axis=1)
-        y = df["label"]
+    X = df.drop("label", axis=1)
+    y = df["label"]
 
-        scaler = StandardScaler()
-        X_scaled = scaler.fit_transform(X)
+    scaler = StandardScaler()
+    X_scaled = scaler.fit_transform(X)
 
-        model = RandomForestClassifier(n_estimators=150)
-        model.fit(X_scaled, y)
+    model = RandomForestClassifier(n_estimators=150)
+    model.fit(X_scaled, y)
 
-        st.session_state.ml_model = model
-        st.session_state.scaler = scaler
-        st.session_state.ml_ready = True
-    except:
-        pass
+    st.session_state.ml_model = model
+    st.session_state.scaler = scaler
+    st.session_state.ml_ready = True
 
 
+# ---------------- AI PREDICT ----------------
 def ai_predict(features):
-    if not st.session_state.ml_ready or "scaler" not in st.session_state:
+    if not st.session_state.ml_ready:
         return None
 
-    try:
-        X = np.array(features).reshape(1, -1)
-        X = st.session_state.scaler.transform(X)
-        return round(st.session_state.ml_model.predict_proba(X)[0][1] * 100, 1)
-    except:
-        return None
+    X = np.array(features).reshape(1, -1)
+    X = st.session_state.scaler.transform(X)
 
-# ---------------- ENGINE (NON FIXE) ----------------
+    return round(st.session_state.ml_model.predict_proba(X)[0][1] * 100, 1)
+
+
+# ---------------- ENGINE ----------------
 def run_prediction(hash_str, h_act, last_cote):
 
     try:
@@ -103,20 +102,20 @@ def run_prediction(hash_str, h_act, last_cote):
     except:
         t_obj = datetime.now()
 
-    # seed dynamique (hash + heure)
+    # seed stable
     seed_global = int(hashlib.sha256((hash_str + h_act).encode()).hexdigest(), 16) % (2**32)
     np.random.seed(seed_global)
 
-    # HASH ENGINE
+    # HASH
     hash_hex = hashlib.sha256(hash_str.encode()).hexdigest()
     hash_int = int(hash_hex[:8], 16) % 1000
     hash_norm = (hash_int / 100) + 1.1
 
-    # TIME FACTOR (tsy fixe)
+    # TIME FACTOR
     t_seconds = t_obj.hour*3600 + t_obj.minute*60 + t_obj.second
     time_factor = (t_seconds % 300) / 300
 
-    # CYCLE ENGINE
+    # CYCLE
     if last_cote < 1.5:
         cycle = 0.8
     elif last_cote < 1.8:
@@ -128,7 +127,7 @@ def run_prediction(hash_str, h_act, last_cote):
     else:
         cycle = 0.7
 
-    # REFERENCE DYNAMIQUE
+    # REFERENCE
     if hash_norm < 2:
         ref_val = 2.1
     elif hash_norm < 3:
@@ -138,13 +137,13 @@ def run_prediction(hash_str, h_act, last_cote):
 
     ref_val += time_factor * 0.2
 
-    base_val = hash_norm * ref_val * cycle * (1 + time_factor)
+    base = hash_norm * ref_val * cycle * (1 + time_factor)
 
     sigma = 0.25 + (hash_norm / 10)
 
-    # ---------------- MONTE CARLO (NON FIXE) ----------------
+    # MONTE CARLO
     sims = np.random.lognormal(
-        mean=np.log(base_val),
+        mean=np.log(base),
         sigma=sigma,
         size=15000
     )
@@ -153,17 +152,19 @@ def run_prediction(hash_str, h_act, last_cote):
 
     prob = round(len(success)/15000 * 100, 1)
 
-    # IMPORTANT: TSY FIXE INTSONY
-    moy = round(np.mean(sims), 2)
-    maxv = round(np.percentile(sims, 95), 2)
+    # NORMALISATION (stable)
+    log_sims = np.log(sims + 1)
+
+    moy = round(np.exp(np.mean(log_sims)) / 1.5, 2)
+    maxv = round(np.exp(np.percentile(log_sims, 95)) / 1.2, 2)
 
     confidence = round((prob * moy)/10, 1)
 
-    # HEURE D’ENTRÉE (dynamic)
+    # HEURE D’ENTRÉE
     delay = int(50 + (hash_norm * 10) + (time_factor * 30) + (cycle * 10))
     h_ent = (t_obj + timedelta(seconds=delay)).strftime("%H:%M:%S")
 
-    # SIGNAL SYSTEM
+    # SIGNAL
     if last_cote > 3:
         signal = "❌ SKIP"
     elif prob < 40 or moy < 2.3:
@@ -186,11 +187,11 @@ def run_prediction(hash_str, h_act, last_cote):
         "prob": prob,
         "moy": moy,
         "max": maxv,
-        "base": base_val,
         "confidence": confidence,
         "signal": signal,
         "ai_score": ai_score
     }
+
 
 # ---------------- UI ----------------
 st.title("🚀 ANDR-X AI V3 ⚡ TERMINAL")
@@ -215,18 +216,18 @@ with tab1:
         r = st.session_state.pred_log[-1]
 
         st.markdown(f"""
-        ### 🔥 SIGNAL: {r['signal']}
-        **PROB X3+:** {r['prob']}%  
-        **CONFIDENCE:** {r['confidence']}  
-        **AI SCORE:** {r['ai_score']}%  
-        **HEURE D’ENTRÉE:** {r['h_ent']}
-        """)
+### 🔥 SIGNAL: {r['signal']}
+PROB X3+: {r['prob']}%  
+CONFIDENCE: {r['confidence']}  
+AI SCORE: {r['ai_score']}  
+HEURE D’ENTRÉE: {r['h_ent']}
+""")
 
-        # ---------------- CÔTE (NON FIXE AFFICHAGE) ----------------
+        # CÔTE DISPLAY
         m1, m2, m3 = st.columns(3)
 
         with m1:
-            st.markdown(f"📉 MIN\n**{round(r['base']/1.3, 2)}x**")
+            st.markdown(f"📉 MIN\n**{round(r['moy']/1.3,2)}x**")
 
         with m2:
             st.markdown(f"📊 MOYEN\n**{r['moy']}x**")
@@ -234,14 +235,12 @@ with tab1:
         with m3:
             st.markdown(f"🚀 MAX\n**{r['max']}x**")
 
+
 # ---------------- HISTORIQUE ----------------
 with tab2:
-    st.write("📜 HISTORIQUE")
-    if st.session_state.pred_log:
-        df_hist = pd.DataFrame(st.session_state.pred_log)
-        st.dataframe(df_hist[::-1], use_container_width=True)
-    else:
-        st.info("Mbola tsisy historique.")
+    st.write("📜 HISTORIQUE COMPLET")
+    st.write(st.session_state.pred_log)
+
 
 # ---------------- GUIDE ----------------
 with tab3:
@@ -249,12 +248,14 @@ with tab3:
 # 📖 ANDR-X AI V3 GUIDE
 
 ## 🎯 CÔTE RÉFÉRENCE
-👉 1.80 → 2.50 = BEST ZONE X3+
+🔥 BEST: 1.80 → 2.50  
+⏳ MED: 1.50 → 1.80  
+❌ BAD: <1.50 ou >3
 
-## ⏱ HEURE
-- Tsy fixe
-- Cycle + hash + time factor
-- Window -5s → +10s
+## ⏱ HEURE D’ENTRÉE
+- dynamique
+- hash + cycle + time factor
+- window -5s → +10s
 
 ## ⚠️ SIGNAL
 - SKIP ❌
@@ -263,11 +264,11 @@ with tab3:
 - STRONG BUY 🔥
 
 ## 🤖 AI
-- Mianatra amin’ny historique
-- Manatsara signal (Mila 5 tours farafahakeliny)
+- machine learning historique
+- amélioration automatique
 """)
 
 # ---------------- SIDEBAR ----------------
-st.sidebar.write("ANDR-X AI V3 ⚡")
-st.sidebar.write("STATUS: LIVE ENGINE")
+st.sidebar.write("ANDR-X AI V3 ⚡ FINAL")
+st.sidebar.write("STATUS: STABLE ENGINE")
 st.sidebar.write(datetime.now().strftime("%d/%m/%Y"))
