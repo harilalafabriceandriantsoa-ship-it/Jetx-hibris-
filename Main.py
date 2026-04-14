@@ -45,17 +45,16 @@ if not st.session_state.auth:
 def build_dataset(history):
     data = []
     for h in history:
-        if "ai_score" in h:
-            continue
-
-        data.append([
-            h["prob"],
-            h["moy"],
-            h["max"],
-            float(h["ref"]),
-            h["confidence"],
-            1 if "BUY" in h["signal"] else 0
-        ])
+        # Tsy maintsy misy an'ireto features ireto vao azo ampiasaina ny data
+        if all(k in h for k in ["prob", "moy", "max", "ref", "confidence", "signal"]):
+            data.append([
+                h["prob"],
+                h["moy"],
+                h["max"],
+                float(h["ref"]),
+                h["confidence"],
+                1 if "BUY" in h["signal"] else 0
+            ])
 
     if len(data) < 5:
         return None
@@ -68,28 +67,33 @@ def train_ai():
     if df is None:
         return
 
-    X = df.drop("label", axis=1)
-    y = df["label"]
+    try:
+        X = df.drop("label", axis=1)
+        y = df["label"]
 
-    scaler = StandardScaler()
-    X_scaled = scaler.fit_transform(X)
+        scaler = StandardScaler()
+        X_scaled = scaler.fit_transform(X)
 
-    model = RandomForestClassifier(n_estimators=150)
-    model.fit(X_scaled, y)
+        model = RandomForestClassifier(n_estimators=150)
+        model.fit(X_scaled, y)
 
-    st.session_state.ml_model = model
-    st.session_state.scaler = scaler
-    st.session_state.ml_ready = True
+        st.session_state.ml_model = model
+        st.session_state.scaler = scaler
+        st.session_state.ml_ready = True
+    except:
+        pass
 
 
 def ai_predict(features):
-    if not st.session_state.ml_ready:
+    if not st.session_state.ml_ready or "scaler" not in st.session_state:
         return None
 
-    X = np.array(features).reshape(1, -1)
-    X = st.session_state.scaler.transform(X)
-
-    return round(st.session_state.ml_model.predict_proba(X)[0][1] * 100, 1)
+    try:
+        X = np.array(features).reshape(1, -1)
+        X = st.session_state.scaler.transform(X)
+        return round(st.session_state.ml_model.predict_proba(X)[0][1] * 100, 1)
+    except:
+        return None
 
 # ---------------- ENGINE (NON FIXE) ----------------
 def run_prediction(hash_str, h_act, last_cote):
@@ -134,13 +138,13 @@ def run_prediction(hash_str, h_act, last_cote):
 
     ref_val += time_factor * 0.2
 
-    base = hash_norm * ref_val * cycle * (1 + time_factor)
+    base_val = hash_norm * ref_val * cycle * (1 + time_factor)
 
     sigma = 0.25 + (hash_norm / 10)
 
     # ---------------- MONTE CARLO (NON FIXE) ----------------
     sims = np.random.lognormal(
-        mean=np.log(base),
+        mean=np.log(base_val),
         sigma=sigma,
         size=15000
     )
@@ -182,6 +186,7 @@ def run_prediction(hash_str, h_act, last_cote):
         "prob": prob,
         "moy": moy,
         "max": maxv,
+        "base": base_val,
         "confidence": confidence,
         "signal": signal,
         "ai_score": ai_score
@@ -213,7 +218,7 @@ with tab1:
         ### 🔥 SIGNAL: {r['signal']}
         **PROB X3+:** {r['prob']}%  
         **CONFIDENCE:** {r['confidence']}  
-        **AI SCORE:** {r['ai_score']}  
+        **AI SCORE:** {r['ai_score']}%  
         **HEURE D’ENTRÉE:** {r['h_ent']}
         """)
 
@@ -221,7 +226,7 @@ with tab1:
         m1, m2, m3 = st.columns(3)
 
         with m1:
-            st.markdown(f"📉 MIN\n**{round(base/1.3,2)}x**")
+            st.markdown(f"📉 MIN\n**{round(r['base']/1.3, 2)}x**")
 
         with m2:
             st.markdown(f"📊 MOYEN\n**{r['moy']}x**")
@@ -232,7 +237,11 @@ with tab1:
 # ---------------- HISTORIQUE ----------------
 with tab2:
     st.write("📜 HISTORIQUE")
-    st.write(st.session_state.pred_log)
+    if st.session_state.pred_log:
+        df_hist = pd.DataFrame(st.session_state.pred_log)
+        st.dataframe(df_hist[::-1], use_container_width=True)
+    else:
+        st.info("Mbola tsisy historique.")
 
 # ---------------- GUIDE ----------------
 with tab3:
@@ -255,7 +264,7 @@ with tab3:
 
 ## 🤖 AI
 - Mianatra amin’ny historique
-- manatsara signal
+- Manatsara signal (Mila 5 tours farafahakeliny)
 """)
 
 # ---------------- SIDEBAR ----------------
