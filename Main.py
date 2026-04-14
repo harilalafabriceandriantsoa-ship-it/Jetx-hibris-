@@ -45,7 +45,7 @@ if not st.session_state.auth:
 def build_dataset(history):
     data = []
     for h in history:
-        if "ai_score" in h:
+        if "ai_score" in h and h["ai_score"] is None:
             continue
 
         data.append([
@@ -69,28 +69,33 @@ def train_ai():
     if df is None:
         return
 
-    X = df.drop("label", axis=1)
-    y = df["label"]
+    try:
+        X = df.drop("label", axis=1)
+        y = df["label"]
 
-    scaler = StandardScaler()
-    X_scaled = scaler.fit_transform(X)
+        scaler = StandardScaler()
+        X_scaled = scaler.fit_transform(X)
 
-    model = RandomForestClassifier(n_estimators=150)
-    model.fit(X_scaled, y)
+        model = RandomForestClassifier(n_estimators=150)
+        model.fit(X_scaled, y)
 
-    st.session_state.ml_model = model
-    st.session_state.scaler = scaler
-    st.session_state.ml_ready = True
+        st.session_state.ml_model = model
+        st.session_state.scaler = scaler
+        st.session_state.ml_ready = True
+    except:
+        pass
 
 
 def ai_predict(features):
-    if not st.session_state.ml_ready:
+    if not st.session_state.ml_ready or "scaler" not in st.session_state:
         return None
 
-    X = np.array(features).reshape(1, -1)
-    X = st.session_state.scaler.transform(X)
-
-    return round(st.session_state.ml_model.predict_proba(X)[0][1] * 100, 1)
+    try:
+        X = np.array(features).reshape(1, -1)
+        X = st.session_state.scaler.transform(X)
+        return round(st.session_state.ml_model.predict_proba(X)[0][1] * 100, 1)
+    except:
+        return None
 
 # ---------------- ENGINE ----------------
 def run_prediction(hash_str, h_act, last_cote):
@@ -240,7 +245,6 @@ with tab2:
 
 # ---------------- TAB 3 (GUIDE + ASTUCE) ----------------
 with tab3:
-
     st.markdown("""
 # 📖 GUIDE ANDR-X AI V2
 
@@ -260,7 +264,8 @@ with tab3:
 ---
 
 ## 📊 CÔTE RÉFÉRENCE (ASTUCE ⭐)
-
 👉 Io no tena zava-dehibe:
-
 ### 🔥 BEST INTERVAL:
+- Reference 2.10 - 2.40
+- Raha mihoatra an'izay dia mitandrina.
+""")
