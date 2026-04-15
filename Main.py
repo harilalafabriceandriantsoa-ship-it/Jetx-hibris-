@@ -45,17 +45,16 @@ if not st.session_state.auth:
 def build_dataset(history):
     data = []
     for h in history:
-        if "ai_score" in h and h["ai_score"] is None:
-            continue
-
-        data.append([
-            h["prob"],
-            h["moy"],
-            h["max"],
-            float(h["ref"]),
-            h["confidence"],
-            1 if "BUY" in h["signal"] else 0
-        ])
+        # Fiarovana amin'ny KeyError: jerena raha misy ny keys ilaina
+        if all(k in h for k in ["prob", "moy", "max", "ref", "confidence", "signal"]):
+            data.append([
+                h["prob"],
+                h["moy"],
+                h["max"],
+                float(h["ref"]),
+                h["confidence"],
+                1 if "BUY" in h["signal"] else 0
+            ])
 
     if len(data) < 5:
         return None
@@ -115,7 +114,6 @@ def run_prediction(hash_str, h_act, last_cote):
     t_seconds = t_obj.hour*3600 + t_obj.minute*60 + t_obj.second
     time_factor = (t_seconds % 300) / 300
 
-    # cycle
     if last_cote < 1.5:
         cycle = 0.8
     elif last_cote < 1.8:
@@ -127,75 +125,49 @@ def run_prediction(hash_str, h_act, last_cote):
     else:
         cycle = 0.7
 
-    # reference
     ref_val = 2.1 if hash_norm < 2 else 2.2 if hash_norm < 3 else 2.3
     ref_val += time_factor * 0.2
 
     base = hash_norm * ref_val * cycle * (1 + time_factor)
-
     sigma = 0.25 + (hash_norm / 10)
 
-    sims = np.random.lognormal(
-        mean=np.log(base),
-        sigma=sigma,
-        size=15000
-    )
-
+    sims = np.random.lognormal(mean=np.log(base), sigma=sigma, size=15000)
     success = [s for s in sims if s >= 3.0]
-
     prob = round(len(success)/15000 * 100, 1)
 
-    # ---------------- NORMALISATION ----------------
     log_sims = np.log(sims + 1)
-
     moy_raw = np.exp(np.mean(log_sims))
     max_raw = np.exp(np.percentile(log_sims, 95))
 
     moy = round(moy_raw / 1.4, 2)
     maxv = round(max_raw / 1.2, 2)
-
     confidence = round((prob * moy)/10, 1)
 
-    # ---------------- ULTRA STABLE HEURE D'ENTRÉE ----------------
+    # --- HEURE D'ENTRÉE LOJIKA ---
     hash_time = int(hash_hex[8:16], 16)
     hash_time2 = int(hash_hex[16:24], 16)
     hash_time3 = int(hash_hex[24:32], 16)
 
-    # stable range (tsy mi-explode)
-    layer1 = hash_time % 30
-    layer2 = hash_time2 % 15
-    layer3 = hash_time3 % 8
-
+    layer1, layer2, layer3 = hash_time % 30, hash_time2 % 15, hash_time3 % 8
     cycle_boost = int(cycle * 5)
-
     micro_precision = int((hash_norm % 1) * 8)
-
     time_sync = (t_seconds % 60) // 10
 
     delay = 20 + layer1 + layer2 + layer3 + cycle_boost + micro_precision + time_sync
-
-    # anti repetition smoothing (toy ilay stable version teo aloha)
-    if delay % 2 == 0:
-        delay += 1
+    if delay % 2 == 0: delay += 1
 
     h_ent = (t_obj + timedelta(seconds=delay)).strftime("%H:%M:%S")
 
-    # ---------------- SIGNAL ----------------
     if last_cote > 3:
-        signal = "❌ SKIP"
-        emoji = "❌"
+        signal, emoji = "❌ SKIP", "❌"
     elif prob < 40 or moy < 2.3:
-        signal = "❌ SKIP"
-        emoji = "❌"
+        signal, emoji = "❌ SKIP", "❌"
     elif prob < 55:
-        signal = "⏳ WAIT"
-        emoji = "⏳"
+        signal, emoji = "⏳ WAIT", "⏳"
     elif confidence > 12:
-        signal = "🔥 STRONG BUY"
-        emoji = "🔥🎯"
+        signal, emoji = "🔥 STRONG BUY", "🔥🎯"
     else:
-        signal = "✅ BUY"
-        emoji = "🎯"
+        signal, emoji = "✅ BUY", "🎯"
 
     features = [prob, moy, maxv, ref_val, confidence]
     ai_score = ai_predict(features)
@@ -219,9 +191,7 @@ st.title("🚀 ANDR-X AI V3 ⚡ TERMINAL")
 
 tab1, tab2, tab3 = st.tabs(["📊 ANALYSE", "📜 HISTORIQUE", "📖 GUIDE"])
 
-# ---------------- ANALYSE ----------------
 with tab1:
-
     hash_in = st.text_input("🔑 HASH")
     h_in = st.text_input("⏰ HEURE (HH:MM:SS)", value="", placeholder="Ohatra: 13:15:00")
     last_cote = st.number_input("📉 CÔTE PRÉCÉDENTE", value=1.5)
@@ -237,62 +207,38 @@ with tab1:
 
     if st.session_state.pred_log:
         r = st.session_state.pred_log[-1]
+        
+        # FIAROVANA AMIN'NY KEYERROR ETO
+        try:
+            st.markdown(f"""
+            # {r.get('emoji', '🎯')} SIGNAL: {r.get('signal', 'ANALYSE...')}
 
-        st.markdown(f"""
-        # {r['emoji']} SIGNAL: {r['signal']}
+            🎯 PROB X3+: **{r.get('prob', 0)}%** 🧠 CONFIDENCE: **{r.get('confidence', 0)}** 🤖 AI SCORE: **{r.get('ai_score', 'None')}%** ⏰ HEURE D’ENTRÉE: **{r.get('h_ent', '--:--:--')}** """)
 
-        🎯 PROB X3+: **{r['prob']}%**  
-        🧠 CONFIDENCE: **{r['confidence']}**  
-        🤖 AI SCORE: **{r['ai_score']}%**  
-        ⏰ HEURE D’ENTRÉE: **{r['h_ent']}**  
-        """)
+            m1, m2, m3 = st.columns(3)
+            with m1: st.markdown(f"📉 MIN\n**{round(r.get('moy', 0)/1.5, 2)}x**")
+            with m2: st.markdown(f"📊 MOYEN\n**{r.get('moy', 0)}x**")
+            with m3: st.markdown(f"🚀 MAX\n**{r.get('max', 0)}x**")
+        except:
+            st.error("Nisy fiovana ny rafitra. Kitiho indray ny RUN ANALYSIS.")
 
-        m1, m2, m3 = st.columns(3)
-
-        with m1:
-            st.markdown(f"📉 MIN\n**{round(r['moy']/1.5, 2)}x**")
-
-        with m2:
-            st.markdown(f"📊 MOYEN\n**{r['moy']}x**")
-
-        with m3:
-            st.markdown(f"🚀 MAX\n**{r['max']}x**")
-
-# ---------------- HISTORIQUE ----------------
 with tab2:
     st.write("📜 HISTORIQUE")
     if st.session_state.pred_log:
-        df_hist = pd.DataFrame(st.session_state.pred_log)
-        st.dataframe(df_hist[::-1], use_container_width=True)
+        st.write(st.session_state.pred_log[::-1])
     else:
         st.info("Mbola tsisy historique.")
 
-# ---------------- GUIDE ----------------
 with tab3:
     st.markdown("""
 # 📖 ANDR-X AI V3 GUIDE 🎯
-
 ## 🎯 CÔTE RÉFÉRENCE
 - 🔥 1.80 → 2.50 = BEST ZONE X3+
-
 ## ⏰ HEURE D’ENTRÉE
 - 🎯 stable hash-based timing
-- ⏳ 25s → 65s range normalisé
-
-## 📊 SIGNAL
-- ❌ SKIP
-- ⏳ WAIT
-- 🎯 BUY
-- 🔥 STRONG BUY
-
-## 🤖 AI
-- learning automatique
-- historique analysis
+- ⏳ 25s → 65s range
 """)
 
-# ---------------- SIDEBAR ----------------
 st.sidebar.markdown("⚡ ANDR-X AI V3")
-st.sidebar.markdown("🔐 SECURE TERMINAL")
-
 tz_mg = pytz.timezone('Indian/Antananarivo')
 st.sidebar.markdown(datetime.now(tz_mg).strftime("%d/%m/%Y %H:%M:%S"))
