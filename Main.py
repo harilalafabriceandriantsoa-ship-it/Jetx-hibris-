@@ -1,4 +1,4 @@
-import streamlit as st
+import streamlit as st  
 import numpy as np
 import hashlib
 from datetime import datetime, timedelta
@@ -68,33 +68,27 @@ def train_ai():
     if df is None:
         return
 
-    try:
-        X = df.drop("label", axis=1)
-        y = df["label"]
+    X = df.drop("label", axis=1)
+    y = df["label"]
 
-        scaler = StandardScaler()
-        X_scaled = scaler.fit_transform(X)
+    scaler = StandardScaler()
+    X_scaled = scaler.fit_transform(X)
 
-        model = RandomForestClassifier(n_estimators=150)
-        model.fit(X_scaled, y)
+    model = RandomForestClassifier(n_estimators=150)
+    model.fit(X_scaled, y)
 
-        st.session_state.ml_model = model
-        st.session_state.scaler = scaler
-        st.session_state.ml_ready = True
-    except:
-        pass
+    st.session_state.ml_model = model
+    st.session_state.scaler = scaler
+    st.session_state.ml_ready = True
 
 
 def ai_predict(features):
     if not st.session_state.ml_ready or "scaler" not in st.session_state:
         return None
 
-    try:
-        X = np.array(features).reshape(1, -1)
-        X = st.session_state.scaler.transform(X)
-        return round(st.session_state.ml_model.predict_proba(X)[0][1] * 100, 1)
-    except:
-        return None
+    X = np.array(features).reshape(1, -1)
+    X = st.session_state.scaler.transform(X)
+    return round(st.session_state.ml_model.predict_proba(X)[0][1] * 100, 1)
 
 # ---------------- ENGINE ----------------
 def run_prediction(hash_str, h_act, last_cote):
@@ -115,7 +109,6 @@ def run_prediction(hash_str, h_act, last_cote):
     t_seconds = t_obj.hour*3600 + t_obj.minute*60 + t_obj.second
     time_factor = (t_seconds % 300) / 300
 
-    # cycle
     if last_cote < 1.5:
         cycle = 0.8
     elif last_cote < 1.8:
@@ -127,62 +120,44 @@ def run_prediction(hash_str, h_act, last_cote):
     else:
         cycle = 0.7
 
-    # reference
     ref_val = 2.1 if hash_norm < 2 else 2.2 if hash_norm < 3 else 2.3
     ref_val += time_factor * 0.2
 
     base = hash_norm * ref_val * cycle * (1 + time_factor)
-
     sigma = 0.25 + (hash_norm / 10)
 
-    sims = np.random.lognormal(
-        mean=np.log(base),
-        sigma=sigma,
-        size=15000
-    )
-
+    sims = np.random.lognormal(mean=np.log(base), sigma=sigma, size=15000)
     success = [s for s in sims if s >= 3.0]
 
     prob = round(len(success)/15000 * 100, 1)
 
-    # ---------------- NORMALISATION ----------------
     log_sims = np.log(sims + 1)
-
-    moy_raw = np.exp(np.mean(log_sims))
-    max_raw = np.exp(np.percentile(log_sims, 95))
-
-    moy = round(moy_raw / 1.4, 2)
-    maxv = round(max_raw / 1.2, 2)
+    moy = round(np.exp(np.mean(log_sims)) / 1.4, 2)
+    maxv = round(np.exp(np.percentile(log_sims, 95)) / 1.2, 2)
 
     confidence = round((prob * moy)/10, 1)
 
-    # ---------------- SMART HASH TIME (ULTRA FIX) ----------------
-    hash_time = int(hash_hex[8:16], 16)
+    # ---------------- LEVEL GOD ENGINE 🔥 ----------------
+    entry_score = round(
+        (prob * 0.4) +
+        (confidence * 3) +
+        (moy * 10) +
+        (50 if last_cote < 2.5 else 20), 1
+    )
 
-    dynamic_base = (hash_time % 35)        # tighter range
-    cycle_boost = int(cycle * 6)           # stable boost
-    micro_adjust = int((hash_norm % 1) * 6)  # precision
+    entry_score = min(100, entry_score)
 
-    delay = 18 + dynamic_base + cycle_boost + micro_adjust
+    countdown = max(5, int(60 - entry_score))
 
-    h_ent = (t_obj + timedelta(seconds=delay)).strftime("%H:%M:%S")
-
-    # ---------------- SIGNAL ----------------
-    if last_cote > 3:
-        signal = "❌ SKIP"
-        emoji = "❌"
-    elif prob < 40 or moy < 2.3:
-        signal = "❌ SKIP"
-        emoji = "❌"
-    elif prob < 55:
-        signal = "⏳ WAIT"
-        emoji = "⏳"
-    elif confidence > 12:
-        signal = "🔥 STRONG BUY"
-        emoji = "🔥🎯"
+    decision = "❌ NO TRADE"
+    if entry_score >= 75:
+        decision = "🔥 STRONG ENTRY"
+    elif entry_score >= 55:
+        decision = "⏳ WAIT"
     else:
-        signal = "✅ BUY"
-        emoji = "🎯"
+        decision = "❌ SKIP"
+
+    h_ent = (t_obj + timedelta(seconds=countdown)).strftime("%H:%M:%S")
 
     features = [prob, moy, maxv, ref_val, confidence]
     ai_score = ai_predict(features)
@@ -196,8 +171,9 @@ def run_prediction(hash_str, h_act, last_cote):
         "moy": moy,
         "max": maxv,
         "confidence": confidence,
-        "signal": signal,
-        "emoji": emoji,
+        "signal": decision,
+        "entry_score": entry_score,
+        "countdown": countdown,
         "ai_score": ai_score
     }
 
@@ -206,80 +182,40 @@ st.title("🚀 ANDR-X AI V3 ⚡ TERMINAL")
 
 tab1, tab2, tab3 = st.tabs(["📊 ANALYSE", "📜 HISTORIQUE", "📖 GUIDE"])
 
-# ---------------- ANALYSE ----------------
 with tab1:
 
     hash_in = st.text_input("🔑 HASH")
-    h_in = st.text_input("⏰ HEURE (HH:MM:SS)", value="", placeholder="Ohatra: 13:15:00")
+    h_in = st.text_input("⏰ HEURE (HH:MM:SS)", value="")
     last_cote = st.number_input("📉 CÔTE PRÉCÉDENTE", value=1.5)
 
     if st.button("🚀 RUN ANALYSIS"):
-        if hash_in and h_in:
-            res = run_prediction(hash_in, h_in, last_cote)
-            st.session_state.pred_log.append(res)
-            train_ai()
-            st.rerun()
-        else:
-            st.warning("Fenoy ny HASH sy ny HEURE azafady!")
+        res = run_prediction(hash_in, h_in, last_cote)
+        st.session_state.pred_log.append(res)
+        train_ai()
+        st.rerun()
 
     if st.session_state.pred_log:
         r = st.session_state.pred_log[-1]
 
         st.markdown(f"""
-        # {r['emoji']} SIGNAL: {r['signal']}
-
-        🎯 PROB X3+: **{r['prob']}%**  
-        🧠 CONFIDENCE: **{r['confidence']}**  
-        🤖 AI SCORE: **{r['ai_score']}%**  
-        ⏰ HEURE D’ENTRÉE: **{r['h_ent']}**  
-        """)
-
-        m1, m2, m3 = st.columns(3)
-
-        with m1:
-            st.markdown(f"📉 MIN\n**{round(r['moy']/1.5, 2)}x**")
-
-        with m2:
-            st.markdown(f"📊 MOYEN\n**{r['moy']}x**")
-
-        with m3:
-            st.markdown(f"🚀 MAX\n**{r['max']}x**")
-
-# ---------------- HISTORIQUE ----------------
-with tab2:
-    st.write("📜 HISTORIQUE")
-    if st.session_state.pred_log:
-        df_hist = pd.DataFrame(st.session_state.pred_log)
-        st.dataframe(df_hist[::-1], use_container_width=True)
-    else:
-        st.info("Mbola tsisy historique.")
-
-# ---------------- GUIDE ----------------
-with tab3:
-    st.markdown("""
-# 📖 ANDR-X AI V3 GUIDE 🎯
-
-## 🎯 CÔTE RÉFÉRENCE
-- 🔥 1.80 → 2.50 = BEST ZONE X3+
-
-## ⏰ HEURE D’ENTRÉE
-- 🎯 mifototra amin’ny HASH (tsy fixe)
-- ⏳ 20s → 60s (ULTRA STABLE)
-
-## 📊 SIGNAL
-- ❌ SKIP
-- ⏳ WAIT
-- 🎯 BUY
-- 🔥 STRONG BUY
-
-## 🤖 AI
-- learning automatique
-- historique analysis
+🔥 SIGNAL: {r['signal']}  
+🎯 ENTRY SCORE: {r['entry_score']}/100  
+⏳ COUNTDOWN: {r['countdown']}s  
+⏰ ENTRY TIME: {r['h_ent']}  
+🧠 AI SCORE: {r['ai_score']}%
 """)
 
-# ---------------- SIDEBAR ----------------
-st.sidebar.markdown("⚡ ANDR-X AI V3")
-st.sidebar.markdown("🔐 SECURE TERMINAL")
+with tab2:
+    st.dataframe(pd.DataFrame(st.session_state.pred_log))
 
-tz_mg = pytz.timezone('Indian/Antananarivo')
-st.sidebar.markdown(datetime.now(tz_mg).strftime("%d/%m/%Y %H:%M:%S"))
+with tab3:
+    st.markdown("""
+# 🔥 LEVEL GOD SYSTEM
+
+✔ Entry Score 0-100  
+✔ Countdown dynamique  
+✔ Signal intelligent  
+✔ AI filter  
+
+⚠️ Tsy prediction 100% fa probabilistic system
+""")
