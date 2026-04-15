@@ -156,14 +156,14 @@ def run_prediction(hash_str, h_act, last_cote):
 
     confidence = round((prob * moy)/10, 1)
 
-    # ---------------- SMART HASH TIME (FIXED) ----------------
+    # ---------------- SMART HASH TIME (ULTRA FIX) ----------------
     hash_time = int(hash_hex[8:16], 16)
 
-    dynamic_base = (hash_time % 45)        # 0 → 44 sec
-    cycle_boost = int(cycle * 8)           # 6 → 10 sec
-    micro_adjust = int((hash_norm % 1) * 10)  # 0 → 9 sec
+    dynamic_base = (hash_time % 35)        # tighter range
+    cycle_boost = int(cycle * 6)           # stable boost
+    micro_adjust = int((hash_norm % 1) * 6)  # precision
 
-    delay = 15 + dynamic_base + cycle_boost + micro_adjust
+    delay = 18 + dynamic_base + cycle_boost + micro_adjust
 
     h_ent = (t_obj + timedelta(seconds=delay)).strftime("%H:%M:%S")
 
@@ -264,7 +264,7 @@ with tab3:
 
 ## ⏰ HEURE D’ENTRÉE
 - 🎯 mifototra amin’ny HASH (tsy fixe)
-- ⏳ 20s → 70s delay
+- ⏳ 20s → 60s (ULTRA STABLE)
 
 ## 📊 SIGNAL
 - ❌ SKIP
