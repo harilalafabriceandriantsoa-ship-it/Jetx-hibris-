@@ -9,7 +9,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import StandardScaler
 
 # ---------------- CONFIG ----------------
-st.set_page_config(page_title="JET X ANDR V7.1 ⚡ GOD MODE", layout="wide")
+st.set_page_config(page_title="JET X ANDR V8 ⚡ RISK INTELLIGENCE", layout="wide")
 
 st.markdown("""
 <style>
@@ -58,7 +58,7 @@ if "ready" not in st.session_state:
 
 # ---------------- LOGIN ----------------
 if not st.session_state.auth:
-    st.title("🔐 JET X ANDR LOGIN")
+    st.title("🔐 JET X ANDR V8 LOGIN")
     pwd = st.text_input("PASSWORD", type="password")
 
     if st.button("ENTER"):
@@ -69,7 +69,7 @@ if not st.session_state.auth:
             st.error("ACCESS DENIED")
     st.stop()
 
-# ---------------- TRAIN ----------------
+# ---------------- ML TRAIN ----------------
 def train():
     data = []
     for h in st.session_state.log:
@@ -105,11 +105,16 @@ def predict(hash_str, h_act, last_cote):
     np.random.seed(seed % (2**32))
 
     norm = (int(h[12:20], 16) % 1000) / 100 + 1.2
+
     sec = t.hour*3600 + t.minute*60 + t.second
+
+    # ---------------- RISK INTELLIGENCE ----------------
+    risk = 1 + (last_cote - 1.5) * 0.35
+    risk = max(0.6, min(risk, 1.8))
 
     cycle = 1.2 if last_cote < 1.6 else 1.0 if last_cote < 2.5 else 0.9
 
-    base = norm * cycle
+    base = norm * cycle / risk   # 🔥 risk affects engine
 
     sims = np.random.lognormal(mean=np.log(base), sigma=0.20, size=12000)
 
@@ -119,9 +124,9 @@ def predict(hash_str, h_act, last_cote):
     maxv = round(np.percentile(sims, 95), 2)
     minv = round(moy * 0.55, 2)
 
-    conf = round((prob * moy) / 10, 1)
+    conf = round(((prob * moy) / 10) / risk, 1)
 
-    # ---------------- ENTRY ENGINE (STABLE NOT FIXED) ----------------
+    # ---------------- ENTRY ENGINE ----------------
     hash_time = int(h[20:28], 16)
 
     base_delay = (
@@ -138,19 +143,23 @@ def predict(hash_str, h_act, last_cote):
     win_start = (sniper - timedelta(seconds=2)).strftime("%H:%M:%S")
     win_end = (sniper + timedelta(seconds=2)).strftime("%H:%M:%S")
 
-    # ---------------- SIGNAL ----------------
-    if prob < 45 or moy < 1.8:
+    # ---------------- SIGNAL LOGIC (RISK AWARE) ----------------
+    if prob < (45 * risk) or moy < 1.8:
         signal = "❌ SKIP"
         god_mode = False
-    elif conf > 22 and prob > 65 and moy > 2.5:
-        signal = "🔥 TO GOD MODE 🚀⚡"
+
+    elif conf > (35 * risk) and prob > (75 * risk) and moy > (2.4 * risk):
+        signal = "🚀 ULTRA GOD MODE"
         god_mode = True
-    elif conf > 20:
+
+    elif conf > (28 * risk) and prob > (68 * risk) and moy > (2.1 * risk):
         signal = "🔥 GOD MODE"
         god_mode = True
-    elif prob > 60:
+
+    elif prob > (60 * risk):
         signal = "✅ BUY"
         god_mode = False
+
     else:
         signal = "⏳ WAIT"
         god_mode = False
@@ -176,20 +185,21 @@ def predict(hash_str, h_act, last_cote):
         "min": minv,
         "conf": conf,
         "signal": signal,
-        "god_mode": god_mode,   # FIX IMPORTANT
+        "god_mode": god_mode,
         "ai": ai,
         "ref": round(last_cote,2),
+        "risk": round(risk,2),
         "result": None
     }
 
 # ---------------- UI ----------------
-st.markdown("<h1>🚀 JET X ANDR V7.1 ⚡ GOD MODE</h1>", unsafe_allow_html=True)
+st.markdown("<h1>🚀 JET X ANDR V8 ⚡ RISK INTELLIGENCE</h1>", unsafe_allow_html=True)
 
 h = st.text_input("HASH")
 t = st.text_input("HEURE (HH:MM:SS)")
-c = st.number_input("COTE", value=1.5)
+c = st.number_input("COTE REF", value=1.5)
 
-if st.button("RUN"):
+if st.button("RUN RISK AI"):
     if h and t:
         r = predict(h,t,c)
         st.session_state.log.append(r)
@@ -201,21 +211,38 @@ if st.session_state.log:
 
     st.markdown(f"""
     <div class="card">
-    <h2>{r.get('signal','')}</h2>
-    <p>AI: {r.get('ai','')}</p>
 
-    {"<h3>🚀 GOD MODE ACTIVE ⚡</h3>" if r.get('god_mode', False) else ""}
+    <h2>{r['signal']}</h2>
+    <p>AI: {r['ai']} | RISK: {r['risk']}</p>
 
-    <h3>ENTRY: {r.get('entry','')}</h3>
-    <h4>SNIPER: {r.get('sniper','')}</h4>
-    <small>{r.get('window','')}</small>
+    {"<h3>🔥 GOD MODE ACTIVE</h3>" if r.get("god_mode", False) else ""}
+
+    <h3>ENTRY: {r['entry']}</h3>
+    <h4>SNIPER: {r['sniper']}</h4>
+    <small>{r['window']}</small>
 
     <div class="cotes">
-    <div>MIN<br>{r.get('min',0)}x</div>
-    <div>MOY<br>{r.get('moy',0)}x</div>
-    <div>MAX<br>{r.get('max',0)}x</div>
+        <div>MIN<br>{r['min']}x</div>
+        <div>MOY<br>{r['moy']}x</div>
+        <div>MAX<br>{r['max']}x</div>
     </div>
 
-    <p>Prob: {r.get('prob',0)}% | Conf: {r.get('conf',0)}</p>
+    <p>Prob: {r['prob']}% | Conf: {r['conf']}</p>
     </div>
     """, unsafe_allow_html=True)
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        if st.button("WIN"):
+            st.session_state.log[-1]["result"] = 1
+            train()
+            st.rerun()
+
+    with col2:
+        if st.button("LOSE"):
+            st.session_state.log[-1]["result"] = 0
+            train()
+            st.rerun()
+
+st.sidebar.write("JET X ANDR V8 ACTIVE ⚡ RISK INTELLIGENCE")
