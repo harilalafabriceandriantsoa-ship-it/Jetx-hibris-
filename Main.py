@@ -9,7 +9,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import StandardScaler
 
 # ---------------- CONFIG & PREMIUM DESIGN ----------------
-st.set_page_config(page_title="JET X ANDR V5.8 ⚡ ELITE MODE", layout="wide")
+st.set_page_config(page_title="JET X ANDR V6 ⚡ GOD MODE", layout="wide")
 
 st.markdown("""
 <style>
@@ -42,15 +42,14 @@ st.markdown("""
         border-radius: 10px;
     }
     .cote-item { text-align: center; }
-    .cote-label { font-size: 12px; color: #aaa; text-transform: uppercase; }
+    .cote-label { font-size: 12px; color: #aaa; }
     .cote-val { font-size: 22px; font-weight: bold; color: #00ffcc; }
 
     .stButton>button {
         width: 100%; background: linear-gradient(90deg, #004e4e, #00ffcc);
         color: black; font-weight: bold; border: none;
-        height: 50px; border-radius: 10px; transition: 0.3s;
+        height: 50px; border-radius: 10px;
     }
-    .stButton>button:hover { box-shadow: 0 0 20px #00ffcc; transform: translateY(-2px); }
 </style>
 """, unsafe_allow_html=True)
 
@@ -70,18 +69,16 @@ if "ml_ready" not in st.session_state:
 # ---------------- LOGIN ----------------
 if not st.session_state.auth:
     st.markdown("<h1>🔐 SECURITY ACCESS</h1>", unsafe_allow_html=True)
-    _, col2, _ = st.columns([1, 1.5, 1])
-    with col2:
-        pwd = st.text_input("ENTER SYSTEM PASSWORD", type="password")
-        if st.button("ACTIVATE"):
-            if pwd == "2026":
-                st.session_state.auth = True
-                st.rerun()
-            else:
-                st.error("ACCESS DENIED")
+    pwd = st.text_input("ENTER PASSWORD", type="password")
+    if st.button("ACTIVATE"):
+        if pwd == "2026":
+            st.session_state.auth = True
+            st.rerun()
+        else:
+            st.error("ACCESS DENIED")
     st.stop()
 
-# ---------------- AI TRAIN ----------------
+# ---------------- ML TRAIN ----------------
 def train_ai():
     history = st.session_state.pred_log
     data = [
@@ -89,142 +86,123 @@ def train_ai():
         for h in history if h.get("result") is not None
     ]
 
-    if len(data) >= 5:
-        df = pd.DataFrame(data, columns=["prob","moy","max","ref","conf","label"])
+    if len(data) < 5:
+        return
 
-        if len(df["label"].unique()) > 1:
-            scaler = StandardScaler()
-            st.session_state.scaler = scaler
-            st.session_state.ml_model.fit(
-                scaler.fit_transform(df.drop("label", axis=1)),
-                df["label"]
-            )
-            st.session_state.ml_ready = True
+    df = pd.DataFrame(data, columns=["prob","moy","max","ref","conf","label"])
+
+    if len(df["label"].unique()) < 2:
+        return
+
+    scaler = StandardScaler()
+    X = scaler.fit_transform(df.drop("label", axis=1))
+    y = df["label"]
+
+    model = RandomForestClassifier(n_estimators=150)
+    model.fit(X, y)
+
+    st.session_state.scaler = scaler
+    st.session_state.ml_model = model
+    st.session_state.ml_ready = True
 
 # ---------------- ENGINE ----------------
 def run_prediction(hash_str, h_act, last_cote):
 
-    # 🔄 REAL TIME SYNC
-    now = datetime.now(pytz.timezone('Indian/Antananarivo'))
+    tz = pytz.timezone('Indian/Antananarivo')
 
     try:
-        t_input = datetime.strptime(h_act, "%H:%M:%S")
-        t_obj = now.replace(
-            hour=t_input.hour,
-            minute=t_input.minute,
-            second=t_input.second
-        )
+        t_obj = datetime.strptime(h_act, "%H:%M:%S")
     except:
-        t_obj = now
+        t_obj = datetime.now(tz)
 
-    hash_hex = hashlib.sha256(hash_str.encode()).hexdigest()
-    np.random.seed(int(hash_hex[:10], 16) % (2**32))
+    # 🔥 HASH ENGINE
+    full_hash = hashlib.sha256((hash_str + h_act).encode()).hexdigest()
+    seed = int(full_hash[:12], 16) % (2**32)
+    np.random.seed(seed)
 
-    hash_norm = (int(hash_hex[10:18], 16) % 1000 / 100) + 1.2
+    hash_norm = (int(full_hash[10:18], 16) % 1000) / 100 + 1.2
     t_sec = t_obj.hour*3600 + t_obj.minute*60 + t_obj.second
+
+    # 🔥 TIME FACTOR
     time_factor = (t_sec % 600) / 600
 
-    ref_val = 2.2 + (time_factor * 0.3)
+    # 🔥 CYCLE LOGIC
+    cycle = 1.2 if last_cote < 1.5 else 1.05 if last_cote < 2.5 else 0.9
 
-    cycle = (
-        0.9 if last_cote > 3.5 else
-        1.25 if last_cote < 1.4 else
-        1.05
-    )
+    ref_val = 2.2 + (time_factor * 0.25)
 
-    sims = np.random.lognormal(
-        mean=np.log(hash_norm * ref_val * cycle),
-        sigma=0.25,
-        size=20000
-    )
+    base = hash_norm * ref_val * cycle
+
+    # 🔥 SIMULATION
+    sims = np.random.lognormal(mean=np.log(base), sigma=0.25, size=20000)
 
     prob = round(len([s for s in sims if s >= 2.0]) / 20000 * 100, 1)
+
     moy = round(np.mean(sims) * 1.05, 2)
-    maxv = round(np.percentile(sims, 95) * 1.3, 2)
-    minv = round(max(1.5, moy * 0.45), 2)
+    maxv = round(np.percentile(sims, 95) * 1.25, 2)
+    minv = round(max(1.2, moy * 0.5), 2)
 
     conf = round((prob * moy) / 12, 1)
 
-    # ---------------- FIXED QUALITY ----------------
-    quality = ((prob * 0.6) + (moy * 25) + (conf * 1.2)) / 100
+    # 🔥 FIXED ENTRY TIME (NO RANDOM JITTER ANYMORE)
+    # 👉 stable + second-level precision (hash-based deterministic)
+    h_seed = int(full_hash[18:26], 16)
 
-    base_delay = 18 + (int(hash_hex[18:22], 16) % 22)
+    base_delay = (h_seed % 45) + 20
+    micro_shift = (h_seed % 10)
 
-    if quality > 2.2:
-        delay_ent = base_delay - 6
-    elif quality < 1.6:
-        delay_ent = base_delay + 6
-    else:
-        delay_ent = base_delay
+    delay_seconds = base_delay + micro_shift
 
-    delay_ent = int(max(14, min(delay_ent, 52)))
-    h_ent_obj = t_obj + timedelta(seconds=delay_ent)
+    entry_time = t_obj + timedelta(seconds=delay_seconds)
 
-    # ---------------- SNIPER PEAK ----------------
-    volatility = (maxv - moy)
-    peak_factor = int((volatility * 10 + prob) % 18)
+    # 🔥 SNIPER TIME (EXACT)
+    sniper_time = entry_time + timedelta(seconds=12)
 
-    delay_snipe = delay_ent + 6 + peak_factor
-    h_snipe_obj = t_obj + timedelta(seconds=delay_snipe)
+    window_start = sniper_time - timedelta(seconds=2)
+    window_end = sniper_time + timedelta(seconds=2)
 
-    win_s = (h_snipe_obj - timedelta(seconds=2)).strftime("%H:%M:%S")
-    win_e = (h_snipe_obj + timedelta(seconds=2)).strftime("%H:%M:%S")
-
-    # ---------------- SIGNAL FIX ----------------
-    if prob < 45 or moy < 1.9:
+    # 🔥 SIGNAL
+    if prob < 40 or moy < 1.8:
         signal, emoji = "❌ SKIP", "❌"
-    elif prob > 75 and moy > 2.5 and conf > 20:
+    elif conf > 18:
         signal, emoji = "🔥 GOD MODE", "⚡🎯"
-    elif prob > 60 and moy > 2.1:
-        signal, emoji = "✅ BUY", "🎯"
     else:
-        signal, emoji = "⏳ WAIT", "⏳"
-
-    ai_score = "N/A"
-    if st.session_state.ml_ready:
-        try:
-            feat = st.session_state.scaler.transform(
-                np.array([prob, moy, maxv, ref_val, conf]).reshape(1, -1)
-            )
-            ai_score = f"{round(st.session_state.ml_model.predict_proba(feat)[0][1] * 100, 1)}%"
-        except:
-            pass
+        signal, emoji = "🎯 BUY", "🎯"
 
     return {
         "h_act": h_act,
-        "h_ent": h_ent_obj.strftime("%H:%M:%S"),
-        "sniper_time": h_snipe_obj.strftime("%H:%M:%S"),
-        "sniper_window": f"{win_s} - {win_e}",
+        "h_ent": entry_time.strftime("%H:%M:%S"),
+        "sniper": sniper_time.strftime("%H:%M:%S"),
+        "window": f"{window_start.strftime('%H:%M:%S')} - {window_end.strftime('%H:%M:%S')}",
         "prob": prob,
-        "min": minv,
         "moy": moy,
         "max": maxv,
+        "min": minv,
         "confidence": conf,
         "signal": signal,
         "emoji": emoji,
-        "ai_score": ai_score,
-        "result": None,
-        "ref": round(ref_val, 2)
+        "ref": round(ref_val, 2),
+        "result": None
     }
 
 # ---------------- UI ----------------
-st.markdown("<h1>🚀 JET X ANDR V5.8 ⚡ ELITE MODE</h1>", unsafe_allow_html=True)
+st.markdown("<h1>🚀 JET X ANDR V6 ⚡ GOD MODE</h1>", unsafe_allow_html=True)
 
-tab1, tab2, tab3 = st.tabs(["📊 ANALYSE LIVE", "📜 HISTORIQUE", "📖 GUIDE"])
+tab1, tab2, tab3 = st.tabs(["📊 ANALYSE", "📜 HISTORY", "📖 GUIDE"])
 
 with tab1:
     c1, c2, c3 = st.columns(3)
 
     with c1:
-        h_in = st.text_input("🔑 HASH")
+        h_in = st.text_input("HASH")
 
     with c2:
-        t_in = st.text_input("⏰ HEURE (HH:MM:SS)")
+        t_in = st.text_input("TIME (HH:MM:SS)")
 
     with c3:
-        last_c = st.number_input("📉 LAST COTE", value=1.5)
+        last_c = st.number_input("LAST COTE", value=1.5)
 
-    if st.button("🚀 RUN ANALYSIS"):
+    if st.button("RUN"):
         if h_in and t_in:
             res = run_prediction(h_in, t_in, last_c)
             st.session_state.pred_log.append(res)
@@ -235,37 +213,37 @@ with tab1:
 
         st.markdown(f"""
         <div class="prediction-card">
-            <h1>{r['emoji']} {r['signal']}</h1>
 
-            <p><b>AI SCORE:</b> {r['ai_score']}</p>
+        <h2>{r['emoji']} {r['signal']}</h2>
 
-            <h2>⏰ ENTRY: {r['h_ent']}</h2>
-            <h3>🎯 SNIPER: {r['sniper_time']}</h3>
-            <small>{r['sniper_window']}</small>
+        <p><b>ENTRY:</b> {r['h_ent']}</p>
+        <p><b>SNIPER:</b> {r['sniper']}</p>
+        <p><b>WINDOW:</b> {r['window']}</p>
 
-            <div class="cote-container">
-                <div class="cote-item">MIN<br>{r['min']}x</div>
-                <div class="cote-item">MOY<br>{r['moy']}x</div>
-                <div class="cote-item">MAX<br>{r['max']}x</div>
-            </div>
+        <hr>
 
-            <p>Prob: {r['prob']}% | Conf: {r['confidence']}</p>
+        <div class="cote-container">
+            <div class="cote-item">MIN<br>{r['min']}x</div>
+            <div class="cote-item">MOY<br>{r['moy']}x</div>
+            <div class="cote-item">MAX<br>{r['max']}x</div>
+        </div>
+
+        <p>Prob: {r['prob']}% | Conf: {r['confidence']}</p>
+
         </div>
         """, unsafe_allow_html=True)
 
 with tab2:
-    st.dataframe(pd.DataFrame(st.session_state.pred_log[::-1]))
+    if st.session_state.pred_log:
+        st.dataframe(pd.DataFrame(st.session_state.pred_log[::-1]))
 
 with tab3:
     st.markdown("""
-### 📖 GUIDE V5.8
-✔ Entry: dynamique (quality-based)  
-✔ Sniper: volatility + peak detection  
-✔ Signal: strict filtering  
-✔ AI learning: WIN/LOSE active  
+### 📖 GUIDE
+- ENTRY = fotoana hidirana
+- SNIPER = peak cashout
+- WINDOW = 2 sec precision zone
+- GOD MODE = confidence > 18
 """)
 
-st.sidebar.markdown("🕒 LIVE SYSTEM")
-if st.sidebar.button("RESET"):
-    st.session_state.pred_log = []
-    st.rerun()
+st.sidebar.button("RESET", on_click=lambda: st.session_state.update(pred_log=[]))
