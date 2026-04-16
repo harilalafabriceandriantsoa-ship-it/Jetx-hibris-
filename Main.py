@@ -149,15 +149,21 @@ def predict(hash_str, h_act, last_cote):
     win_end = (sniper + timedelta(seconds=2)).strftime("%H:%M:%S")
 
     # SIGNAL
-    if prob < 45 or moy < 1.8:
-        signal = "❌ SKIP"
-    elif conf > 20:
-        signal = "🔥 GOD MODE"
-    elif prob > 60:
-        signal = "✅ BUY"
-    else:
-        signal = "⏳ WAIT"
-
+if prob < 45 or moy < 1.8:
+    signal = "❌ SKIP"
+    god_mode = False
+elif conf > 22 and prob > 65 and moy > 2.5:
+    signal = "🔥 TO GOD MODE 🚀⚡"
+    god_mode = True
+elif conf > 20:
+    signal = "🔥 GOD MODE"
+    god_mode = True
+elif prob > 60:
+    signal = "✅ BUY"
+    god_mode = False
+else:
+    signal = "⏳ WAIT"
+    god_mode = False
     # AI
     ai = "N/A"
     if st.session_state.ready:
