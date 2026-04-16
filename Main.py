@@ -130,7 +130,7 @@ with tab1:
     c_in1, c_in2, c_in3 = st.columns(3)
     with c_in1: h_in = st.text_input("🔑 CURRENT HASH")
     with c_in2: t_in = st.text_input("⏰ HEURE (HH:MM:SS)", placeholder="13:15:00")
-    with c_in3: last_c = st.number_input("📉 CÔTE PRÉCÉDENTE", value=1.5, step=0.1)
+    with col_in3 if 'col_in3' in locals() else c_in3: last_c = st.number_input("📉 CÔTE PRÉCÉDENTE", value=1.5, step=0.1)
 
     if st.button("🚀 EXECUTE AI ANALYSIS"):
         if h_in and t_in:
@@ -141,10 +141,12 @@ with tab1:
 
     if st.session_state.pred_log:
         r = st.session_state.pred_log[-1]
-        # Fampiasana .get() mba tsy hisy KeyError intsony
-        val_min = r.get('min', '---')
-        val_moy = r.get('moy', '---')
-        val_max = r.get('max', '---')
+        
+        # FIKAMBANANA AUTOMATIQUE NY COTE (MIN MOYEN MAX)
+        moyen_val = r.get('moy', 0)
+        # Raha tsisy ny 'min' dia kajiana avy hatrany (moy / 1.5)
+        min_display = r.get('min', round(moyen_val / 1.5, 2))
+        max_display = r.get('max', 0)
         
         st.markdown(f"""
         <div class="prediction-card">
@@ -155,11 +157,11 @@ with tab1:
                 <b style="font-size:35px; color:#fff;">{r.get('h_ent', '--:--:--')}</b>
             </div>
             <div class="cote-container">
-                <div class="cote-item"><div class="cote-label">📉 Min</div><div class="cote-val">{val_min}x</div></div>
+                <div class="cote-item"><div class="cote-label">📉 Min</div><div class="cote-val">{min_display}x</div></div>
                 <div class="cote-item" style="border-left:1px solid #333; border-right:1px solid #333; padding:0 20px;">
-                    <div class="cote-label">📊 Moyen</div><div class="cote-val" style="color:#fff;">{val_moy}x</div>
+                    <div class="cote-label">📊 Moyen</div><div class="cote-val" style="color:#fff;">{moyen_val}x</div>
                 </div>
-                <div class="cote-item"><div class="cote-label">🚀 Max</div><div class="cote-val">{val_max}x</div></div>
+                <div class="cote-item"><div class="cote-label">🚀 Max</div><div class="cote-val">{max_display}x</div></div>
             </div>
             <p style="margin-top:15px; font-size:13px;">Prob: {r.get('prob', 0)}% | Conf: {r.get('confidence', 0)}</p>
         </div>
@@ -177,10 +179,8 @@ with tab1:
 
 with tab2:
     if st.session_state.pred_log:
-        df_display = pd.DataFrame(st.session_state.pred_log[::-1])
-        # Alaina fotsiny izay column misy ao anaty dataframe
-        cols = [c for c in ['h_act', 'h_ent', 'signal', 'moy', 'result'] if c in df_display.columns]
-        st.dataframe(df_display[cols], use_container_width=True)
+        df_hist = pd.DataFrame(st.session_state.pred_log[::-1])
+        st.dataframe(df_hist, use_container_width=True)
 
 with tab3:
     st.markdown("""
