@@ -163,7 +163,8 @@ with tab1:
     if st.session_state.pred_log:
         r = st.session_state.pred_log[-1]
 
-        # Fanamarihana: Nesorina ny indentation (espace eo aloha) mba tsy hisy erreur intsony
+        # FIX: Left-aligned HTML variable to prevent Streamlit rendering it as a code block
+        # AND correctly terminated with """
         html_output = f"""
 <div class="prediction-card">
     <h1 style="border:none; font-size:40px; margin:0;">{r['emoji']} {r['signal']}</h1>
@@ -185,4 +186,36 @@ with tab1:
         <div class="cote-item" style="border-left:1px solid #333; border-right:1px solid #333; padding:0 15px;">
             <div class="cote-label">📊 TARGET</div><div class="cote-val" style="color:#fff;">{r['moy']}x</div>
         </div>
-        <div class="cote-item"><div class="cote-
+        <div class="cote-item"><div class="cote-label">🚀 MAX</div><div class="cote-val">{r['max']}x</div></div>
+    </div>
+    <p style="margin-top:10px; font-size:12px; color:#666;">Prob: {r['prob']}% | Conf: {r['confidence']}</p>
+</div>
+"""
+        st.markdown(html_output, unsafe_allow_html=True)
+
+        col_w, col_l = st.columns(2)
+        with col_w:
+            if st.button("✅ WIN"):
+                st.session_state.pred_log[-1]["result"] = 1
+                train_ai(); st.rerun()
+        with col_l:
+            if st.button("❌ LOSE"):
+                st.session_state.pred_log[-1]["result"] = 0
+                train_ai(); st.rerun()
+
+with tab2:
+    if st.session_state.pred_log:
+        st.dataframe(pd.DataFrame(st.session_state.pred_log[::-1]), use_container_width=True)
+
+with tab3:
+    st.markdown("""
+    ### 📖 V5.5 NOTES
+    - **Safe MIN**: Ity no vokatra azo antoka indrindra hivoahana (Cash out) nefa mbola misy tombony.
+    - **AI Reliability**: Mila 5 results farafahakeliny (misy WIN sy LOSE) vao tena miasa ny Machine Learning.
+    - **Sniper Peak**: Ny segondra tena mampiseho ny fara-tampon'ny côte.
+    """)
+
+st.sidebar.markdown(f"🕒 SERVER: {datetime.now(pytz.timezone('Indian/Antananarivo')).strftime('%H:%M:%S')}")
+if st.sidebar.button("🗑 RESET"):
+    st.session_state.pred_log = []
+    st.rerun()
