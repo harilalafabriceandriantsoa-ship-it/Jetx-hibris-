@@ -9,7 +9,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import StandardScaler
 
 # ---------------- CONFIG & ULTRA DESIGN ----------------
-st.set_page_config(page_title="JET X ANDR V10.1 ⚡ GOLDEN EDITION", layout="wide")
+st.set_page_config(page_title="JET X ANDR V10.2 ⚡ PATCH FIXED", layout="wide")
 
 st.markdown("""
 <style>
@@ -52,8 +52,6 @@ st.markdown("""
     }
     .val-main { font-size: 1.8rem; font-weight: bold; color: #00ffcc; }
     
-    /* Input & Button Styling */
-    .stTextInput>div>div>input { background: rgba(0,0,0,0.5) !important; color: #00ffcc !important; border: 1px solid #004d4d !important; }
     .stButton>button {
         background: linear-gradient(90deg, #004d4d, #00ffcc) !important;
         color: black !important; font-weight: bold !important;
@@ -64,18 +62,15 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ---------------- SESSION INITIALIZATION ----------------
-def init_session():
-    if "log" not in st.session_state: st.session_state.log = []
-    if "auth" not in st.session_state: st.session_state.auth = False
-    if "model" not in st.session_state: st.session_state.model = RandomForestClassifier(n_estimators=120)
-    if "scaler" not in st.session_state: st.session_state.scaler = StandardScaler()
-    if "ready" not in st.session_state: st.session_state.ready = False
-    if "rl_weight" not in st.session_state:
-        st.session_state.rl_weight = {"ultra": 0.5, "strong": 0.5, "wait": 0.5}
+if "log" not in st.session_state: st.session_state.log = []
+if "auth" not in st.session_state: st.session_state.auth = False
+if "model" not in st.session_state: st.session_state.model = RandomForestClassifier(n_estimators=120)
+if "scaler" not in st.session_state: st.session_state.scaler = StandardScaler()
+if "ready" not in st.session_state: st.session_state.ready = False
+if "rl_weight" not in st.session_state:
+    st.session_state.rl_weight = {"ultra": 0.5, "strong": 0.5, "wait": 0.5}
 
-init_session()
-
-# ---------------- MASTER RESET FUNCTION ----------------
+# ---------------- RESET FUNCTION ----------------
 def reset_system():
     for key in list(st.session_state.keys()):
         del st.session_state[key]
@@ -83,15 +78,15 @@ def reset_system():
 
 # ---------------- SECURITY LOGIN ----------------
 if not st.session_state.auth:
-    st.markdown("<h1>🔐 V10.1 ACCESS</h1>", unsafe_allow_html=True)
+    st.markdown("<h1>🔐 V10.2 ACCESS</h1>", unsafe_allow_html=True)
     _, col2, _ = st.columns([1,1.5,1])
     with col2:
-        pwd = st.text_input("ENTER SYSTEM KEY", type="password")
+        pwd = st.text_input("SYSTEM KEY", type="password")
         if st.button("ACTIVATE ENGINE"):
             if pwd == "2026":
                 st.session_state.auth = True
                 st.rerun()
-            else: st.error("ACCESS DENIED: WRONG KEY")
+            else: st.error("ACCESS DENIED")
     st.stop()
 
 # ---------------- CORE ENGINE ----------------
@@ -108,7 +103,7 @@ def train_ml():
 
 def update_rl(sig_type, result):
     change = 0.05 if result == 1 else -0.05
-    st.session_state.rl_weight[sig_type] = np.clip(st.session_state.rl_weight[sig_type] + change, 0.1, 1.0)
+    st.session_state.rl_weight[sig_type] = np.clip(st.session_state.rl_weight.get(sig_type, 0.5) + change, 0.1, 1.0)
 
 def predict_v10(hash_str, h_act, last_cote):
     tz = pytz.timezone("Indian/Antananarivo")
@@ -134,7 +129,7 @@ def predict_v10(hash_str, h_act, last_cote):
     elif conf >= 60 and moy >= 1.8: sig, s_type, color = "🟢 STRONG ENTRY ⚡", "strong", "#00ffcc"
     else: sig, s_type, color = "🟡 TIMING WAIT ⏳", "wait", "#ffcc00"
 
-    conf = round(conf * st.session_state.rl_weight[s_type], 1)
+    conf = round(conf * st.session_state.rl_weight.get(s_type, 0.5), 1)
     
     ai_score = "N/A"
     if st.session_state.ready:
@@ -149,19 +144,10 @@ def predict_v10(hash_str, h_act, last_cote):
         "signal": sig, "type": s_type, "color": color, "ai": ai_score, "result": None, "ref": last_cote
     }
 
-# ---------------- SIDEBAR ----------------
-with st.sidebar:
-    st.markdown("### ⚙️ SYSTEM CONTROL")
-    st.info(f"RL Weights:\n- Ultra: {round(st.session_state.rl_weight['ultra'],2)}\n- Strong: {round(st.session_state.rl_weight['strong'],2)}")
-    st.write("---")
-    if st.button("🚨 MASTER RESET DATA"):
-        reset_system()
-    st.write("---")
-    st.caption("JET X ANDR V10.1 © 2026")
-
 # ---------------- MAIN UI ----------------
-st.markdown("<h1>🚀 JET X ANDR V10.1 ⚡ RL GOLDEN</h1>", unsafe_allow_html=True)
-t1, t2, t3 = st.tabs(["📊 ANALYSE LIVE", "📜 HISTORY", "🧠 RL ENGINE"])
+st.sidebar.button("🚨 MASTER RESET DATA", on_click=reset_system)
+st.markdown("<h1>🚀 JET X ANDR V10.2 ⚡ RL PATCH</h1>", unsafe_allow_html=True)
+t1, t2 = st.tabs(["📊 LIVE ENGINE", "📜 HISTORY"])
 
 with t1:
     c1, c2, c3 = st.columns(3)
@@ -173,26 +159,29 @@ with t1:
         if h_in and t_in:
             st.session_state.log.append(predict_v10(h_in, t_in, c_ref))
             train_ml(); st.rerun()
-        else: st.warning("Fenoy ny HASH sy ny LERA!")
 
     if st.session_state.log:
         r = st.session_state.log[-1]
+        # FIX: Using .get() to prevent KeyError
+        card_color = r.get('color', '#00ffcc')
+        card_ai = r.get('ai', 'N/A')
+        card_sig = r.get('signal', 'WAITING')
+
         st.markdown(f"""
-        <div class="card" style="border-top: 5px solid {r['color']};">
-            <div style="background:{r['color']}; color:black; display:inline-block; padding:5px 15px; border-radius:20px; font-weight:bold; margin-bottom:15px;">
-                AI ADAPTIVE: {r['ai']}
+        <div class="card" style="border-top: 5px solid {card_color};">
+            <div style="background:{card_color}; color:black; display:inline-block; padding:5px 15px; border-radius:20px; font-weight:bold; margin-bottom:15px;">
+                AI ADAPTIVE: {card_ai}
             </div>
-            <h2 style="color:{r['color']}; margin:0;">{r['signal']}</h2>
+            <h2 style="color:{card_color}; margin:0;">{card_sig}</h2>
             <div style="display:flex; justify-content:center; gap:40px; margin:20px 0;">
-                <div><small style="color:#888;">ENTRY</small><br><b style="font-size:2rem;">{r['entry']}</b></div>
-                <div><small style="color:#888;">SNIPER</small><br><b style="font-size:2rem; color:#ff00cc;">{r['sniper']}</b></div>
+                <div><small style="color:#888;">ENTRY</small><br><b style="font-size:2rem;">{r.get('entry')}</b></div>
+                <div><small style="color:#888;">SNIPER</small><br><b style="font-size:2rem; color:#ff00cc;">{r.get('sniper')}</b></div>
             </div>
             <div class="cote-grid">
-                <div class="cote-box">MIN<br><span class="val-main" style="color:#777;">{r['min']}x</span></div>
-                <div class="cote-box">TARGET<br><span class="val-main">{r['moy']}x</span></div>
-                <div class="cote-box">MAX<br><span class="val-main" style="color:#ff00cc;">{r['max']}x</span></div>
+                <div class="cote-box">MIN<br><span class="val-main" style="color:#777;">{r.get('min')}x</span></div>
+                <div class="cote-box">TARGET<br><span class="val-main">{r.get('moy')}x</span></div>
+                <div class="cote-box">MAX<br><span class="val-main" style="color:#ff00cc;">{r.get('max')}x</span></div>
             </div>
-            <p style="font-size:0.9rem; color:#555;">PROBABILITY: {r['prob']}% | CONFIDENCE: {r['conf']}</p>
         </div>
         """, unsafe_allow_html=True)
 
@@ -200,22 +189,14 @@ with t1:
         with w:
             if st.button("✅ WIN"):
                 st.session_state.log[-1]["result"] = 1
-                update_rl(r["type"], 1); train_ml(); st.rerun()
+                update_rl(r.get("type", "wait"), 1); train_ml(); st.rerun()
         with l:
             if st.button("❌ LOSE"):
                 st.session_state.log[-1]["result"] = 0
-                update_rl(r["type"], 0); train_ml(); st.rerun()
+                update_rl(r.get("type", "wait"), 0); train_ml(); st.rerun()
 
 with t2:
     if st.session_state.log:
         for entry in reversed(st.session_state.log):
-            icon = "⚪" if entry['result'] is None else ("✅" if entry['result']==1 else "❌")
-            st.markdown(f"**{icon} {entry['entry']}** | Target: `{entry['moy']}x` | Signal: *{entry['signal']}*")
-
-with t3:
-    st.markdown("""
-    ### 🧠 Reinforcement Learning System
-    - **Self-Optimizing**: Mianatra avy amin'ny WIN/LOSE-nao ny milina.
-    - **Adaptive Signal**: Raha manao WIN matetika ianao amin'ny *Ultra*, dia vao mainka hadron'ny AI ny herin'ilay signal.
-    - **Master Reset**: Raha hitanao fa mikatso ny AI, tsindrio ny **Master Reset** ao amin'ny sidebar.
-    """)
+            icon = "⚪" if entry.get('result') is None else ("✅" if entry.get('result')==1 else "❌")
+            st.markdown(f"**{icon} {entry.get('entry')}** | Target: `{entry.get('moy')}x`")
