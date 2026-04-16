@@ -102,7 +102,7 @@ def run_prediction(hash_str, h_act, last_cote):
     prob = round(len([s for s in sims if s >= 3.0])/15000 * 100, 1)
     moy = round(np.exp(np.mean(np.log(sims+1)))/1.4, 2)
     maxv = round(np.exp(np.percentile(np.log(sims+1), 95))/1.2, 2)
-    minv = round(moy / 1.5, 2) # KAJY COTE MIN
+    minv = round(moy / 1.5, 2) 
     conf = round((prob * moy)/10, 1)
 
     delay = int(max(20, min(18 + (int(hash_hex[8:16], 16)%40) + (t_sec%60)//5 + np.random.uniform(-2,2), 65)))
@@ -114,17 +114,19 @@ def run_prediction(hash_str, h_act, last_cote):
 
     ai_score = "N/A"
     if st.session_state.ml_ready:
-        feat = st.session_state.scaler.transform(np.array([prob, moy, maxv, ref_val, conf]).reshape(1, -1))
-        ai_score = f"{round(st.session_state.ml_model.predict_proba(feat)[0][1] * 100, 1)}%"
+        try:
+            feat = st.session_state.scaler.transform(np.array([prob, moy, maxv, ref_val, conf]).reshape(1, -1))
+            ai_score = f"{round(st.session_state.ml_model.predict_proba(feat)[0][1] * 100, 1)}%"
+        except: pass
 
     return {"h_act": h_act, "h_ent": h_ent, "ref": round(ref_val,2), "prob": prob, "min": minv,
             "moy": moy, "max": maxv, "confidence": conf, "signal": signal, "emoji": emoji, "ai_score": ai_score, "result": None}
 
 # ---------------- UI ----------------
 st.markdown("<h1>🚀 JET X ANDR V4.1 ⚡ TERMINAL</h1>", unsafe_allow_html=True)
-t1, t2, t3 = st.tabs(["📊 ANALYSE LIVE", "📜 HISTORIQUE", "📖 GUIDE"])
+tab1, tab2, tab3 = st.tabs(["📊 ANALYSE LIVE", "📜 HISTORIQUE", "📖 GUIDE"])
 
-with t1:
+with tab1:
     c_in1, c_in2, c_in3 = st.columns(3)
     with c_in1: h_in = st.text_input("🔑 CURRENT HASH")
     with c_in2: t_in = st.text_input("⏰ HEURE (HH:MM:SS)", placeholder="13:15:00")
@@ -139,22 +141,27 @@ with t1:
 
     if st.session_state.pred_log:
         r = st.session_state.pred_log[-1]
+        # Fampiasana .get() mba tsy hisy KeyError intsony
+        val_min = r.get('min', '---')
+        val_moy = r.get('moy', '---')
+        val_max = r.get('max', '---')
+        
         st.markdown(f"""
         <div class="prediction-card">
-            <h1 style="border:none; font-size:40px; margin:0;">{r['emoji']} {r['signal']}</h1>
-            <p style="color:#ff00cc; font-weight:bold;">AI ACCURACY SCORE: {r['ai_score']}</p>
+            <h1 style="border:none; font-size:40px; margin:0;">{r.get('emoji', '🎯')} {r.get('signal', 'READY')}</h1>
+            <p style="color:#ff00cc; font-weight:bold;">AI ACCURACY SCORE: {r.get('ai_score', 'N/A')}</p>
             <div style="background:rgba(0,255,204,0.1); padding:15px; border-radius:15px; border:1px dashed #00ffcc; margin:15px 0;">
                 <span style="font-size:14px; color:#aaa;">🎯 ENTRY TIME (ANTI-FIXE)</span><br>
-                <b style="font-size:35px; color:#fff;">{r['h_ent']}</b>
+                <b style="font-size:35px; color:#fff;">{r.get('h_ent', '--:--:--')}</b>
             </div>
             <div class="cote-container">
-                <div class="cote-item"><div class="cote-label">📉 Min</div><div class="cote-val">{r['min']}x</div></div>
+                <div class="cote-item"><div class="cote-label">📉 Min</div><div class="cote-val">{val_min}x</div></div>
                 <div class="cote-item" style="border-left:1px solid #333; border-right:1px solid #333; padding:0 20px;">
-                    <div class="cote-label">📊 Moyen</div><div class="cote-val" style="color:#fff;">{r['moy']}x</div>
+                    <div class="cote-label">📊 Moyen</div><div class="cote-val" style="color:#fff;">{val_moy}x</div>
                 </div>
-                <div class="cote-item"><div class="cote-label">🚀 Max</div><div class="cote-val">{r['max']}x</div></div>
+                <div class="cote-item"><div class="cote-label">🚀 Max</div><div class="cote-val">{val_max}x</div></div>
             </div>
-            <p style="margin-top:15px; font-size:13px;">Prob: {r['prob']}% | Conf: {r['confidence']}</p>
+            <p style="margin-top:15px; font-size:13px;">Prob: {r.get('prob', 0)}% | Conf: {r.get('confidence', 0)}</p>
         </div>
         """, unsafe_allow_html=True)
 
@@ -168,11 +175,14 @@ with t1:
                 st.session_state.pred_log[-1]["result"] = 0
                 train_ai(); st.rerun()
 
-with tab2 if 'tab2' in locals() else t2:
+with tab2:
     if st.session_state.pred_log:
-        st.dataframe(pd.DataFrame(st.session_state.pred_log[::-1])[['h_act', 'h_ent', 'signal', 'moy', 'result']], use_container_width=True)
+        df_display = pd.DataFrame(st.session_state.pred_log[::-1])
+        # Alaina fotsiny izay column misy ao anaty dataframe
+        cols = [c for c in ['h_act', 'h_ent', 'signal', 'moy', 'result'] if c in df_display.columns]
+        st.dataframe(df_display[cols], use_container_width=True)
 
-with tab3 if 'tab3' in locals() else t3:
+with tab3:
     st.markdown("""
 # 📖 JET X ANDR V4.1 GUIDE
 ✔️ BEST COTE: 1.8 – 2.5 | ✔️ ENTRY: 20s – 65s (ANTI-FIXE)  
@@ -180,4 +190,6 @@ with tab3 if 'tab3' in locals() else t3:
 """)
 
 st.sidebar.markdown(f"**STATUS: ACTIVE**\n\n🕒 {datetime.now(pytz.timezone('Indian/Antananarivo')).strftime('%H:%M:%S')}")
-if st.sidebar.button("🗑️ RESET"): st.session_state.pred_log = []; st.rerun()
+if st.sidebar.button("🗑️ RESET SYSTEM"): 
+    st.session_state.pred_log = []
+    st.rerun()
