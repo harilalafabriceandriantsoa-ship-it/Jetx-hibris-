@@ -9,7 +9,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import StandardScaler
 
 # ---------------- CONFIG & PREMIUM DESIGN ----------------
-st.set_page_config(page_title="JET X ANDR V4.1 ⚡ TERMINAL", layout="wide")
+st.set_page_config(page_title="JET X ANDR V5 ⚡ GOD MODE", layout="wide")
 
 st.markdown("""
 <style>
@@ -73,6 +73,29 @@ if not st.session_state.auth:
             else: st.error("ACCESS DENIED")
     st.stop()
 
+# ---------------- GOD MODE TIMING ----------------
+def compute_sniper_timing(hash_hex, t_obj, prob, moy, conf):
+    t_sec = t_obj.hour*3600 + t_obj.minute*60 + t_obj.second
+
+    h1 = int(hash_hex[0:8], 16)
+    h2 = int(hash_hex[8:16], 16)
+    h3 = int(hash_hex[16:24], 16)
+    h4 = int(hash_hex[24:32], 16)
+
+    base_sec = (h1 ^ h2 ^ h3 ^ h4) % 60
+
+    quality_factor = (prob/100 + moy/3 + conf/20)
+    peak_shift = int((quality_factor * 7) % 10)
+
+    sync = (t_sec % 10)
+
+    sniper_sec = (base_sec + peak_shift + sync) % 60
+
+    window_start = (sniper_sec - 2) % 60
+    window_end = (sniper_sec + 2) % 60
+
+    return sniper_sec, window_start, window_end
+
 # ---------------- AI & ENGINE ----------------
 def train_ai():
     history = st.session_state.pred_log
@@ -106,7 +129,14 @@ def run_prediction(hash_str, h_act, last_cote):
     conf = round((prob * moy)/10, 1)
 
     delay = int(max(20, min(18 + (int(hash_hex[8:16], 16)%40) + (t_sec%60)//5 + np.random.uniform(-2,2), 65)))
+    
+    # EXISTING ENTRY
     h_ent = (t_obj + timedelta(seconds=delay)).strftime("%H:%M:%S")
+
+    # 🔥 GOD MODE SNIPER
+    sniper_sec, win_s, win_e = compute_sniper_timing(hash_hex, t_obj, prob, moy, conf)
+    h_base = t_obj + timedelta(seconds=delay)
+    h_sniper = h_base.replace(second=sniper_sec).strftime("%H:%M:%S")
 
     signal, emoji = ("❌ SKIP", "❌") if (last_cote > 3 or prob < 40 or moy < 2.3) else \
                     ("⏳ WAIT", "⏳") if prob < 55 else \
@@ -119,18 +149,32 @@ def run_prediction(hash_str, h_act, last_cote):
             ai_score = f"{round(st.session_state.ml_model.predict_proba(feat)[0][1] * 100, 1)}%"
         except: pass
 
-    return {"h_act": h_act, "h_ent": h_ent, "ref": round(ref_val,2), "prob": prob, "min": minv,
-            "moy": moy, "max": maxv, "confidence": conf, "signal": signal, "emoji": emoji, "ai_score": ai_score, "result": None}
+    return {
+        "h_act": h_act,
+        "h_ent": h_ent,
+        "sniper_time": h_sniper,
+        "sniper_window": f"{win_s}s - {win_e}s",
+        "ref": round(ref_val,2),
+        "prob": prob,
+        "min": minv,
+        "moy": moy,
+        "max": maxv,
+        "confidence": conf,
+        "signal": signal,
+        "emoji": emoji,
+        "ai_score": ai_score,
+        "result": None
+    }
 
 # ---------------- UI ----------------
-st.markdown("<h1>🚀 JET X ANDR V4.1 ⚡ TERMINAL</h1>", unsafe_allow_html=True)
+st.markdown("<h1>🚀 JET X ANDR V5 ⚡ GOD MODE</h1>", unsafe_allow_html=True)
 tab1, tab2, tab3 = st.tabs(["📊 ANALYSE LIVE", "📜 HISTORIQUE", "📖 GUIDE"])
 
 with tab1:
     c_in1, c_in2, c_in3 = st.columns(3)
     with c_in1: h_in = st.text_input("🔑 CURRENT HASH")
     with c_in2: t_in = st.text_input("⏰ HEURE (HH:MM:SS)", placeholder="13:15:00")
-    with col_in3 if 'col_in3' in locals() else c_in3: last_c = st.number_input("📉 CÔTE PRÉCÉDENTE", value=1.5, step=0.1)
+    with c_in3: last_c = st.number_input("📉 CÔTE PRÉCÉDENTE", value=1.5, step=0.1)
 
     if st.button("🚀 EXECUTE AI ANALYSIS"):
         if h_in and t_in:
@@ -141,55 +185,65 @@ with tab1:
 
     if st.session_state.pred_log:
         r = st.session_state.pred_log[-1]
-        
-        # FIKAMBANANA AUTOMATIQUE NY COTE (MIN MOYEN MAX)
+
         moyen_val = r.get('moy', 0)
-        # Raha tsisy ny 'min' dia kajiana avy hatrany (moy / 1.5)
         min_display = r.get('min', round(moyen_val / 1.5, 2))
         max_display = r.get('max', 0)
-        
+
         st.markdown(f"""
         <div class="prediction-card">
-            <h1 style="border:none; font-size:40px; margin:0;">{r.get('emoji', '🎯')} {r.get('signal', 'READY')}</h1>
-            <p style="color:#ff00cc; font-weight:bold;">AI ACCURACY SCORE: {r.get('ai_score', 'N/A')}</p>
-            <div style="background:rgba(0,255,204,0.1); padding:15px; border-radius:15px; border:1px dashed #00ffcc; margin:15px 0;">
-                <span style="font-size:14px; color:#aaa;">🎯 ENTRY TIME (ANTI-FIXE)</span><br>
-                <b style="font-size:35px; color:#fff;">{r.get('h_ent', '--:--:--')}</b>
+            <h1 style="border:none; font-size:40px;">{r.get('emoji')} {r.get('signal')}</h1>
+
+            <p style="color:#ff00cc;">AI SCORE: {r.get('ai_score')}</p>
+
+            <div>
+                <span>🎯 ENTRY</span><br>
+                <b>{r.get('h_ent')}</b>
             </div>
+
+            <br>
+
+            <div>
+                <span style="color:#ff00cc;">🎯 SNIPER (EXACT SECOND)</span><br>
+                <b style="color:#ff00cc;">{r.get('sniper_time')}</b><br>
+                <small>WINDOW ±2s ({r.get('sniper_window')})</small>
+            </div>
+
             <div class="cote-container">
-                <div class="cote-item"><div class="cote-label">📉 Min</div><div class="cote-val">{min_display}x</div></div>
-                <div class="cote-item" style="border-left:1px solid #333; border-right:1px solid #333; padding:0 20px;">
-                    <div class="cote-label">📊 Moyen</div><div class="cote-val" style="color:#fff;">{moyen_val}x</div>
-                </div>
-                <div class="cote-item"><div class="cote-label">🚀 Max</div><div class="cote-val">{max_display}x</div></div>
+                <div class="cote-item"><div class="cote-label">MIN</div><div class="cote-val">{min_display}x</div></div>
+                <div class="cote-item"><div class="cote-label">MOY</div><div class="cote-val">{moyen_val}x</div></div>
+                <div class="cote-item"><div class="cote-label">MAX</div><div class="cote-val">{max_display}x</div></div>
             </div>
-            <p style="margin-top:15px; font-size:13px;">Prob: {r.get('prob', 0)}% | Conf: {r.get('confidence', 0)}</p>
+
+            <p>Prob: {r.get('prob')}% | Conf: {r.get('confidence')}</p>
         </div>
         """, unsafe_allow_html=True)
 
         col_w, col_l = st.columns(2)
-        with col_w: 
-            if st.button("✅ WIN"): 
+        with col_w:
+            if st.button("✅ WIN"):
                 st.session_state.pred_log[-1]["result"] = 1
-                train_ai(); st.rerun()
-        with col_l: 
-            if st.button("❌ LOSE"): 
+                train_ai()
+                st.rerun()
+        with col_l:
+            if st.button("❌ LOSE"):
                 st.session_state.pred_log[-1]["result"] = 0
-                train_ai(); st.rerun()
+                train_ai()
+                st.rerun()
 
 with tab2:
     if st.session_state.pred_log:
-        df_hist = pd.DataFrame(st.session_state.pred_log[::-1])
-        st.dataframe(df_hist, use_container_width=True)
+        st.dataframe(pd.DataFrame(st.session_state.pred_log[::-1]), use_container_width=True)
 
 with tab3:
     st.markdown("""
-# 📖 JET X ANDR V4.1 GUIDE
-✔️ BEST COTE: 1.8 – 2.5 | ✔️ ENTRY: 20s – 65s (ANTI-FIXE)  
-✔️ AI LEARNS from WIN/LOSE | ✔️ Use STRONG / BUY only  
+# 📖 GUIDE V5 GOD MODE
+🔥 SNIPER SECOND ACTIVE  
+🎯 WINDOW ±2s  
+🤖 AI LEARNING (WIN/LOSE)  
 """)
 
-st.sidebar.markdown(f"**STATUS: ACTIVE**\n\n🕒 {datetime.now(pytz.timezone('Indian/Antananarivo')).strftime('%H:%M:%S')}")
-if st.sidebar.button("🗑️ RESET SYSTEM"): 
+st.sidebar.markdown(f"🕒 {datetime.now(pytz.timezone('Indian/Antananarivo')).strftime('%H:%M:%S')}")
+if st.sidebar.button("🗑 RESET"):
     st.session_state.pred_log = []
     st.rerun()
