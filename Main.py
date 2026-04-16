@@ -9,7 +9,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import StandardScaler
 
 # ---------------- CONFIG ----------------
-st.set_page_config(page_title="JET X ANDR V7 ⚡ GOD MODE", layout="wide")
+st.set_page_config(page_title="JET X ANDR V7.1 ⚡ GOD MODE", layout="wide")
 
 st.markdown("""
 <style>
@@ -58,7 +58,7 @@ if "ready" not in st.session_state:
 
 # ---------------- LOGIN ----------------
 if not st.session_state.auth:
-    st.title("🔐 JET X ANDR V7 LOGIN")
+    st.title("🔐 JET X ANDR LOGIN")
     pwd = st.text_input("PASSWORD", type="password")
 
     if st.button("ENTER"):
@@ -121,7 +121,7 @@ def predict(hash_str, h_act, last_cote):
 
     conf = round((prob * moy) / 10, 1)
 
-    # ---------------- EXACT SECOND LOCK ----------------
+    # ---------------- ENTRY ENGINE (STABLE NOT FIXED) ----------------
     hash_time = int(h[20:28], 16)
 
     base_delay = (
@@ -138,7 +138,7 @@ def predict(hash_str, h_act, last_cote):
     win_start = (sniper - timedelta(seconds=2)).strftime("%H:%M:%S")
     win_end = (sniper + timedelta(seconds=2)).strftime("%H:%M:%S")
 
-    # ---------------- SIGNAL (FIXED INDENTATION HERE) ----------------
+    # ---------------- SIGNAL ----------------
     if prob < 45 or moy < 1.8:
         signal = "❌ SKIP"
         god_mode = False
@@ -176,14 +176,14 @@ def predict(hash_str, h_act, last_cote):
         "min": minv,
         "conf": conf,
         "signal": signal,
-        "god_mode": god_mode,
+        "god_mode": god_mode,   # FIX IMPORTANT
         "ai": ai,
         "ref": round(last_cote,2),
         "result": None
     }
 
 # ---------------- UI ----------------
-st.title("🚀 JET X ANDR V7 ⚡ GOD MODE")
+st.markdown("<h1>🚀 JET X ANDR V7.1 ⚡ GOD MODE</h1>", unsafe_allow_html=True)
 
 h = st.text_input("HASH")
 t = st.text_input("HEURE (HH:MM:SS)")
@@ -201,20 +201,21 @@ if st.session_state.log:
 
     st.markdown(f"""
     <div class="card">
-    <h2>{r['signal']}</h2>
-    <p>AI: {r['ai']}</p>
+    <h2>{r.get('signal','')}</h2>
+    <p>AI: {r.get('ai','')}</p>
 
-    {"<h3>🚀 TO GOD MODE ACTIVATED ⚡</h3>" if r['god_mode'] else ""}
+    {"<h3>🚀 GOD MODE ACTIVE ⚡</h3>" if r.get('god_mode', False) else ""}
 
-    <h3>ENTRY: {r['entry']}</h3>
-    <h4>SNIPER: {r['sniper']}</h4>
+    <h3>ENTRY: {r.get('entry','')}</h3>
+    <h4>SNIPER: {r.get('sniper','')}</h4>
+    <small>{r.get('window','')}</small>
 
     <div class="cotes">
-    <div>MIN<br>{r['min']}x</div>
-    <div>MOY<br>{r['moy']}x</div>
-    <div>MAX<br>{r['max']}x</div>
+    <div>MIN<br>{r.get('min',0)}x</div>
+    <div>MOY<br>{r.get('moy',0)}x</div>
+    <div>MAX<br>{r.get('max',0)}x</div>
     </div>
 
-    <p>Prob: {r['prob']}% | Conf: {r['conf']}</p>
+    <p>Prob: {r.get('prob',0)}% | Conf: {r.get('conf',0)}</p>
     </div>
     """, unsafe_allow_html=True)
