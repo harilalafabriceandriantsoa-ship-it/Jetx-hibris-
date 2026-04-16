@@ -9,7 +9,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import StandardScaler
 
 # ---------------- CONFIG & PREMIUM DESIGN ----------------
-st.set_page_config(page_title="JET X ANDR V5.4 ⚡ GOD MODE", layout="wide")
+st.set_page_config(page_title="JET X ANDR V5.5 ⚡ GOD MODE", layout="wide")
 
 st.markdown("""
 <style>
@@ -80,7 +80,6 @@ def train_ai():
     
     if len(data) >= 5:
         df = pd.DataFrame(data, columns=["prob","moy","max","ref","conf","label"])
-        # Check if we have both classes (WIN and LOSE) to avoid training errors
         if len(df["label"].unique()) > 1:
             try:
                 scaler = StandardScaler()
@@ -101,36 +100,29 @@ def run_prediction(hash_str, h_act, last_cote):
     t_sec = t_obj.hour*3600 + t_obj.minute*60 + t_obj.second
     time_factor = (t_sec % 600) / 600
     
-    # ⚡ ENGINE CORE
     ref_val = 2.2 + (time_factor * 0.3)
     cycle = 0.9 if last_cote > 3.5 else 1.25 if last_cote < 1.4 else 1.05
     
     sims = np.random.lognormal(mean=np.log(hash_norm * ref_val * cycle), sigma=0.25, size=20000)
     
     prob = round(len([s for s in sims if s >= 2.0])/20000 * 100, 1)
-    # Konservativa kokoa ny Probability fa tsy 99% foana
     prob = min(prob, 98.4) if prob > 95 else prob
 
     moy = round(np.mean(sims) * 1.05, 2)
     maxv = round(np.percentile(sims, 95) * 1.3, 2)
-    
-    # 🔥 DYNAMIC SAFE MIN (No more 2.5x cap)
     minv = round(max(1.5, moy * 0.45), 2)
     
     conf = round((prob * moy)/12, 1)
 
-    # 🎯 TIMING (ENTRY & SNIPER)
     delay_ent = 25 + (int(hash_hex[18:22], 16) % 25)
     h_ent_obj = t_obj + timedelta(seconds=delay_ent)
     
-    # Sniper is 12-18 seconds after entry for God Mode
     delay_snipe = delay_ent + 12 + (int(hash_hex[22:26], 16) % 6)
     h_snipe_obj = t_obj + timedelta(seconds=delay_snipe)
 
     win_s = (h_snipe_obj - timedelta(seconds=2)).strftime("%H:%M:%S")
     win_e = (h_snipe_obj + timedelta(seconds=2)).strftime("%H:%M:%S")
 
-    # Signal Logic
     signal, emoji = ("❌ SKIP", "❌") if (prob < 45 or moy < 1.9) else \
                     ("🔥 GOD MODE", "⚡🎯") if conf > 18 else ("✅ BUY", "🎯")
 
@@ -152,7 +144,7 @@ def run_prediction(hash_str, h_act, last_cote):
     }
 
 # ---------------- USER INTERFACE ----------------
-st.markdown("<h1>🚀 JET X ANDR V5.4 ⚡ GOD MODE</h1>", unsafe_allow_html=True)
+st.markdown("<h1>🚀 JET X ANDR V5.5 ⚡ GOD MODE</h1>", unsafe_allow_html=True)
 tab1, tab2, tab3 = st.tabs(["📊 ANALYSE LIVE", "📜 HISTORIQUE", "📖 GUIDE"])
 
 with tab1:
@@ -171,56 +163,26 @@ with tab1:
     if st.session_state.pred_log:
         r = st.session_state.pred_log[-1]
 
-        st.markdown(f"""
-        <div class="prediction-card">
-            <h1 style="border:none; font-size:40px; margin:0;">{r['emoji']} {r['signal']}</h1>
-            <p style="color:#ff00cc; font-weight:bold; letter-spacing:1px;">AI RELIABILITY: {r['ai_score']}</p>
-            
-            <div style="background:rgba(0,255,204,0.1); padding:10px; border-radius:10px; margin-bottom:10px; border-left:5px solid #00ffcc;">
-                <span style="font-size:11px; color:#aaa;">🎯 ENTRY (PLACE BET)</span><br>
-                <b style="font-size:30px;">{r['h_ent']}</b>
-            </div>
+        # Fanamarihana: Nesorina ny indentation (espace eo aloha) mba tsy hisy erreur intsony
+        html_output = f"""
+<div class="prediction-card">
+    <h1 style="border:none; font-size:40px; margin:0;">{r['emoji']} {r['signal']}</h1>
+    <p style="color:#ff00cc; font-weight:bold; letter-spacing:1px;">AI RELIABILITY: {r['ai_score']}</p>
+    
+    <div style="background:rgba(0,255,204,0.1); padding:10px; border-radius:10px; margin-bottom:10px; border-left:5px solid #00ffcc;">
+        <span style="font-size:11px; color:#aaa;">🎯 ENTRY (PLACE BET)</span><br>
+        <b style="font-size:30px;">{r['h_ent']}</b>
+    </div>
 
-            <div style="background:rgba(255, 0, 204, 0.1); padding:10px; border-radius:10px; border:1px solid #ff00cc; margin-bottom:15px;">
-                <span style="font-size:11px; color:#ff00cc; font-weight:bold;">🎯 SNIPER PEAK (CASH OUT)</span><br>
-                <b style="font-size:30px; color:#fff;">{r['sniper_time']}</b><br>
-                <small style="color:#ff00cc; font-weight:bold;">WINDOW: {r['sniper_window']}</small>
-            </div>
+    <div style="background:rgba(255, 0, 204, 0.1); padding:10px; border-radius:10px; border:1px solid #ff00cc; margin-bottom:15px;">
+        <span style="font-size:11px; color:#ff00cc; font-weight:bold;">🎯 SNIPER PEAK (CASH OUT)</span><br>
+        <b style="font-size:30px; color:#fff;">{r['sniper_time']}</b><br>
+        <small style="color:#ff00cc; font-weight:bold;">WINDOW: {r['sniper_window']}</small>
+    </div>
 
-            <div class="cote-container">
-                <div class="cote-item"><div class="cote-label">📉 SAFE MIN</div><div class="cote-val">{r['min']}x</div></div>
-                <div class="cote-item" style="border-left:1px solid #333; border-right:1px solid #333; padding:0 15px;">
-                    <div class="cote-label">📊 TARGET</div><div class="cote-val" style="color:#fff;">{r['moy']}x</div>
-                </div>
-                <div class="cote-item"><div class="cote-label">🚀 MAX</div><div class="cote-val">{r['max']}x</div></div>
-            </div>
-            <p style="margin-top:10px; font-size:12px; color:#666;">Prob: {r['prob']}% | Conf: {r['confidence']}</p>
+    <div class="cote-container">
+        <div class="cote-item"><div class="cote-label">📉 SAFE MIN</div><div class="cote-val">{r['min']}x</div></div>
+        <div class="cote-item" style="border-left:1px solid #333; border-right:1px solid #333; padding:0 15px;">
+            <div class="cote-label">📊 TARGET</div><div class="cote-val" style="color:#fff;">{r['moy']}x</div>
         </div>
-        """, unsafe_allow_html=True)
-
-        col_w, col_l = st.columns(2)
-        with col_w:
-            if st.button("✅ WIN"):
-                st.session_state.pred_log[-1]["result"] = 1
-                train_ai(); st.rerun()
-        with col_l:
-            if st.button("❌ LOSE"):
-                st.session_state.pred_log[-1]["result"] = 0
-                train_ai(); st.rerun()
-
-with tab2:
-    if st.session_state.pred_log:
-        st.dataframe(pd.DataFrame(st.session_state.pred_log[::-1]), use_container_width=True)
-
-with tab3:
-    st.markdown("""
-    ### 📖 V5.4 NOTES
-    - **Safe MIN**: Ity no vokatra azo antoka indrindra hivoahana (Cash out) nefa mbola misy tombony.
-    - **AI Reliability**: Mila 5 results farafahakeliny (misy WIN sy LOSE) vao tena miasa ny Machine Learning.
-    - **Sniper Peak**: Ny segondra tena mampiseho ny fara-tampon'ny côte.
-    """)
-
-st.sidebar.markdown(f"🕒 SERVER: {datetime.now(pytz.timezone('Indian/Antananarivo')).strftime('%H:%M:%S')}")
-if st.sidebar.button("🗑 RESET"):
-    st.session_state.pred_log = []
-    st.rerun()
+        <div class="cote-item"><div class="cote-
