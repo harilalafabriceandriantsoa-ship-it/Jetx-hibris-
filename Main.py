@@ -37,13 +37,6 @@ h1 {
     justify-content:space-around;
     margin-top:10px;
 }
-.btn>button {
-    width:100%;
-    background:linear-gradient(90deg,#004e4e,#00ffcc);
-    color:black;
-    font-weight:bold;
-    height:45px;
-}
 </style>
 """, unsafe_allow_html=True)
 
@@ -76,7 +69,7 @@ if not st.session_state.auth:
             st.error("ACCESS DENIED")
     st.stop()
 
-# ---------------- ML TRAIN ----------------
+# ---------------- TRAIN ----------------
 def train():
     data = []
     for h in st.session_state.log:
@@ -96,7 +89,7 @@ def train():
     st.session_state.model.fit(Xs, y)
     st.session_state.ready = True
 
-# ---------------- ENGINE (STABLE EXACT SECOND LOCK) ----------------
+# ---------------- ENGINE ----------------
 def predict(hash_str, h_act, last_cote):
 
     tz = pytz.timezone("Indian/Antananarivo")
@@ -128,43 +121,41 @@ def predict(hash_str, h_act, last_cote):
 
     conf = round((prob * moy) / 10, 1)
 
-    # ---------------- EXACT SECOND LOCK SYSTEM ----------------
+    # ---------------- EXACT SECOND LOCK ----------------
     hash_time = int(h[20:28], 16)
 
-    # STEP 1: base delay deterministic
     base_delay = (
         hash_time % 60 +
         (sec % 30) // 5 +
         int(norm * 4)
     )
 
-    # STEP 2: LOCK to 5-second grid (IMPORTANT)
     locked_delay = round(base_delay / 5) * 5
 
     entry = t + timedelta(seconds=locked_delay)
-
     sniper = entry + timedelta(seconds=20)
 
     win_start = (sniper - timedelta(seconds=2)).strftime("%H:%M:%S")
     win_end = (sniper + timedelta(seconds=2)).strftime("%H:%M:%S")
 
-    # SIGNAL
-if prob < 45 or moy < 1.8:
-    signal = "❌ SKIP"
-    god_mode = False
-elif conf > 22 and prob > 65 and moy > 2.5:
-    signal = "🔥 TO GOD MODE 🚀⚡"
-    god_mode = True
-elif conf > 20:
-    signal = "🔥 GOD MODE"
-    god_mode = True
-elif prob > 60:
-    signal = "✅ BUY"
-    god_mode = False
-else:
-    signal = "⏳ WAIT"
-    god_mode = False
-    # AI
+    # ---------------- SIGNAL (FIXED INDENTATION HERE) ----------------
+    if prob < 45 or moy < 1.8:
+        signal = "❌ SKIP"
+        god_mode = False
+    elif conf > 22 and prob > 65 and moy > 2.5:
+        signal = "🔥 TO GOD MODE 🚀⚡"
+        god_mode = True
+    elif conf > 20:
+        signal = "🔥 GOD MODE"
+        god_mode = True
+    elif prob > 60:
+        signal = "✅ BUY"
+        god_mode = False
+    else:
+        signal = "⏳ WAIT"
+        god_mode = False
+
+    # ---------------- AI ----------------
     ai = "N/A"
     if st.session_state.ready:
         try:
@@ -185,78 +176,45 @@ else:
         "min": minv,
         "conf": conf,
         "signal": signal,
+        "god_mode": god_mode,
         "ai": ai,
         "ref": round(last_cote,2),
         "result": None
     }
 
 # ---------------- UI ----------------
-st.markdown("<h1>🚀 JET X ANDR V7 ⚡ GOD MODE</h1>", unsafe_allow_html=True)
+st.title("🚀 JET X ANDR V7 ⚡ GOD MODE")
 
-tab1, tab2, tab3 = st.tabs(["📊 LIVE", "📜 HISTORY", "📖 GUIDE"])
+h = st.text_input("HASH")
+t = st.text_input("HEURE (HH:MM:SS)")
+c = st.number_input("COTE", value=1.5)
 
-with tab1:
-    c1,c2,c3 = st.columns(3)
+if st.button("RUN"):
+    if h and t:
+        r = predict(h,t,c)
+        st.session_state.log.append(r)
+        train()
+        st.rerun()
 
-    with c1:
-        h = st.text_input("HASH")
+if st.session_state.log:
+    r = st.session_state.log[-1]
 
-    with c2:
-        t = st.text_input("HEURE (HH:MM:SS)")
+    st.markdown(f"""
+    <div class="card">
+    <h2>{r['signal']}</h2>
+    <p>AI: {r['ai']}</p>
 
-    with c3:
-        c = st.number_input("COTE", value=1.5)
+    {"<h3>🚀 TO GOD MODE ACTIVATED ⚡</h3>" if r['god_mode'] else ""}
 
-    if st.button("RUN GOD MODE"):
-        if h and t:
-            r = predict(h,t,c)
-            st.session_state.log.append(r)
-            train()
-            st.rerun()
+    <h3>ENTRY: {r['entry']}</h3>
+    <h4>SNIPER: {r['sniper']}</h4>
 
-    if st.session_state.log:
-        r = st.session_state.log[-1]
+    <div class="cotes">
+    <div>MIN<br>{r['min']}x</div>
+    <div>MOY<br>{r['moy']}x</div>
+    <div>MAX<br>{r['max']}x</div>
+    </div>
 
-        st.markdown(f"""
-        <div class="card">
-        <h2>{r['signal']}</h2>
-        <p>AI: {r['ai']}</p>
-
-        <h3>ENTRY: {r['entry']}</h3>
-        <h4>SNIPER: {r['sniper']}</h4>
-        <small>{r['window']}</small>
-
-        <div class="cotes">
-        <div>MIN<br>{r['min']}x</div>
-        <div>MOY<br>{r['moy']}x</div>
-        <div>MAX<br>{r['max']}x</div>
-        </div>
-
-        <p>Prob: {r['prob']}% | Conf: {r['conf']}</p>
-        </div>
-        """, unsafe_allow_html=True)
-
-        col1,col2 = st.columns(2)
-        with col1:
-            if st.button("WIN"):
-                st.session_state.log[-1]["result"]=1
-                train(); st.rerun()
-        with col2:
-            if st.button("LOSE"):
-                st.session_state.log[-1]["result"]=0
-                train(); st.rerun()
-
-with tab2:
-    st.dataframe(pd.DataFrame(st.session_state.log[::-1]))
-
-with tab3:
-    st.markdown("""
-### 📖 V7 GOD MODE
-✔ ENTRY locked (5-sec grid)  
-✔ SNIPER stable  
-✔ ML WIN/LOSE learning  
-✔ No randomness drift  
-✔ deterministic engine  
-""")
-
-st.sidebar.write("JET X ANDR V7 ACTIVE")
+    <p>Prob: {r['prob']}% | Conf: {r['conf']}</p>
+    </div>
+    """, unsafe_allow_html=True)
