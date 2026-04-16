@@ -4,12 +4,14 @@ import hashlib
 from datetime import datetime, timedelta
 import pandas as pd
 import pytz
+import sqlite3
 
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import LogisticRegression
 
 # ---------------- CONFIG ----------------
-st.set_page_config(page_title="JET X ANDR V8 ⚡ RISK INTELLIGENCE", layout="wide")
+st.set_page_config(page_title="JET X ANDR V9 ⚡ TRUE AI UPGRADE", layout="wide")
 
 st.markdown("""
 <style>
@@ -30,19 +32,53 @@ h1 {
     padding:20px;
     background:rgba(0,255,204,0.05);
 }
-.cotes {display:flex; justify-content:space-around;}
 </style>
 """, unsafe_allow_html=True)
 
+# ---------------- DATABASE (NEW AI MEMORY) ----------------
+DB = "jetx_v9_ai.db"
+
+def init_db():
+    conn = sqlite3.connect(DB)
+    c = conn.cursor()
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS history (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        prob REAL,
+        moy REAL,
+        max REAL,
+        ref REAL,
+        conf REAL,
+        result INTEGER
+    )
+    """)
+    conn.commit()
+    conn.close()
+
+init_db()
+
+def save_history(data):
+    conn = sqlite3.connect(DB)
+    c = conn.cursor()
+    c.execute("""
+    INSERT INTO history (prob,moy,max,ref,conf,result)
+    VALUES (?,?,?,?,?,?)
+    """, data)
+    conn.commit()
+    conn.close()
+
+def load_history():
+    conn = sqlite3.connect(DB)
+    df = pd.read_sql("SELECT * FROM history", conn)
+    conn.close()
+    return df
+
 # ---------------- SESSION ----------------
-if "log" not in st.session_state:
-    st.session_state.log = []
-
-if "auth" not in st.session_state:
-    st.session_state.auth = False
-
 if "model" not in st.session_state:
-    st.session_state.model = RandomForestClassifier(n_estimators=150)
+    st.session_state.model = RandomForestClassifier(n_estimators=200)
+
+if "meta_model" not in st.session_state:
+    st.session_state.meta_model = LogisticRegression()
 
 if "scaler" not in st.session_state:
     st.session_state.scaler = StandardScaler()
@@ -50,35 +86,27 @@ if "scaler" not in st.session_state:
 if "ready" not in st.session_state:
     st.session_state.ready = False
 
-# ---------------- LOGIN ----------------
-if not st.session_state.auth:
-    st.title("JET X ANDR V8 LOGIN")
-    pwd = st.text_input("PASSWORD", type="password")
+if "log" not in st.session_state:
+    st.session_state.log = []
 
-    if st.button("ENTER"):
-        if pwd == "2026":
-            st.session_state.auth = True
-            st.rerun()
-    st.stop()
+# ---------------- TRUE AI TRAIN ----------------
+def train_ai():
+    df = load_history()
 
-# ---------------- ML ----------------
-def train():
-    data = []
-    for h in st.session_state.log:
-        if h.get("result") is not None:
-            data.append([h["prob"], h["moy"], h["max"], h["ref"], h["conf"], h["result"]])
-
-    if len(data) < 6:
+    if len(df) < 10:
         return
 
-    df = pd.DataFrame(data, columns=["prob","moy","max","ref","conf","label"])
-    X = st.session_state.scaler.fit_transform(df.drop("label", axis=1))
-    y = df["label"]
+    X = df[["prob","moy","max","ref","conf"]]
+    y = df["result"]
 
-    st.session_state.model.fit(X, y)
+    Xs = st.session_state.scaler.fit_transform(X)
+
+    st.session_state.model.fit(Xs, y)
+    st.session_state.meta_model.fit(Xs, y)
+
     st.session_state.ready = True
 
-# ---------------- ENGINE (FIXED ENTRY + RISK CONTROL) ----------------
+# ---------------- ENGINE (IMPROVED + STABLE ENTRY) ----------------
 def predict(hash_str, h_act, last_cote):
 
     tz = pytz.timezone("Indian/Antananarivo")
@@ -90,65 +118,65 @@ def predict(hash_str, h_act, last_cote):
 
     h = hashlib.sha256(hash_str.encode()).hexdigest()
 
-    seed = int(h[:12], 16) % (2**32)
-    np.random.seed(seed)
+    seed = int(h[:12], 16)
+    np.random.seed(seed % (2**32))
 
-    norm = (int(h[12:20], 16) % 1000) / 100 + 1.1
+    norm = (int(h[12:20], 16) % 1000) / 100 + 1.2
+
     sec = t.hour*3600 + t.minute*60 + t.second
 
-    # ---------------- REF-BASED RISK CONTROL ----------------
-    if last_cote < 1.5:
-        risk_level = 0.25
-    elif last_cote < 2.2:
-        risk_level = 0.45
-    elif last_cote < 3.0:
-        risk_level = 0.65
-    else:
-        risk_level = 0.85
+    cycle = 1.3 if last_cote < 1.6 else 1.0 if last_cote < 2.5 else 0.85
 
-    cycle = 1.2 - risk_level
+    sims = np.random.lognormal(mean=np.log(norm * cycle), sigma=0.22, size=15000)
 
-    sims = np.random.lognormal(mean=np.log(norm * cycle), sigma=0.22, size=12000)
-
-    prob = round(len([x for x in sims if x >= 2.0]) / 12000 * 100, 1)
+    prob = round(len([x for x in sims if x >= 2.0]) / 15000 * 100, 1)
     moy = round(np.mean(sims), 2)
     maxv = round(np.percentile(sims, 95), 2)
-    minv = round(moy * 0.55, 2)
-
     conf = round((prob * moy) / 10, 1)
 
-    # ---------------- 🔒 FIXED ENTRY TIME (NO MORE NOISE) ----------------
+    # ---------------- FIXED ENTRY TIME ----------------
     hash_time = int(h[20:28], 16)
 
-    base_delay = (hash_time % 60) + (sec % 30)//10 + int(norm*3)
+    delay = (
+        (hash_time % 50) +
+        ((sec % 60)//10) +
+        int(norm*2)
+    )
 
-    # LOCK SYSTEM (IMPORTANT FIX)
-    locked = (base_delay // 5) * 5
+    delay = (delay // 5) * 5
+    entry = t + timedelta(seconds=delay)
 
-    entry = t + timedelta(seconds=locked)
-    sniper = entry + timedelta(seconds=18)
+    sniper = entry + timedelta(seconds=20)
 
-    # ---------------- RISK-BASED SIGNAL (NO MORE GOD MODE FOR EVERYTHING) ----------------
-    risk_score = round(risk_level * 100, 1)
+    # ---------------- TRUE AI PREDICTION ----------------
+    ai_score = None
+    if st.session_state.ready:
+        X = np.array([prob,moy,maxv,last_cote,conf]).reshape(1,-1)
+        Xs = st.session_state.scaler.transform(X)
 
-    if prob < 40 or moy < 1.7:
+        rf_pred = st.session_state.model.predict_proba(Xs)[0][1]
+        meta_pred = st.session_state.meta_model.predict_proba(Xs)[0][1]
+
+        ai_score = round((rf_pred*0.7 + meta_pred*0.3)*100, 1)
+
+    # ---------------- SIGNAL (RISK INTELLIGENT) ----------------
+    risk = 100 - prob + (3 - moy)*10
+
+    if risk > 70:
         signal = "❌ NO TRADE"
-    elif risk_level > 0.8:
-        signal = "🔥 HIGH RISK GOD MODE"
-    elif conf > 20 and prob > 60:
+        decision = 0
+    elif conf > 22 and prob > 65:
+        signal = "🔥 GOD MODE (RARE)"
+        decision = 1
+    elif conf > 18:
         signal = "⚡ STRONG ENTRY"
+        decision = 1
     elif prob > 50:
         signal = "✅ NORMAL ENTRY"
+        decision = 1
     else:
         signal = "⏳ WAIT"
-
-    ai = "N/A"
-    if st.session_state.ready:
-        try:
-            X = st.session_state.scaler.transform(np.array([prob,moy,maxv,last_cote,conf]).reshape(1,-1))
-            ai = f"{round(st.session_state.model.predict_proba(X)[0][1]*100,1)}%"
-        except:
-            ai = "ERR"
+        decision = None
 
     return {
         "entry": entry.strftime("%H:%M:%S"),
@@ -156,27 +184,28 @@ def predict(hash_str, h_act, last_cote):
         "prob": prob,
         "moy": moy,
         "max": maxv,
-        "min": minv,
         "conf": conf,
-        "risk": risk_score,
+        "risk": round(risk,1),
         "signal": signal,
-        "ai": ai,
+        "ai": ai_score,
         "ref": last_cote,
         "result": None,
-        "god_mode": "GOD" in signal
+        "decision": decision
     }
 
 # ---------------- UI ----------------
-st.title("🚀 JET X ANDR V8 ⚡ RISK INTELLIGENCE")
+st.title("🚀 JET X ANDR V9 ⚡ TRUE AI UPGRADE")
 
 h = st.text_input("HASH")
 t = st.text_input("HEURE")
 c = st.number_input("COTE REF", value=1.5)
 
-if st.button("RUN"):
+if st.button("RUN AI"):
     if h and t:
         r = predict(h,t,c)
         st.session_state.log.append(r)
+        save_history([r["prob"],r["moy"],r["max"],r["ref"],r["conf"],0])
+        train_ai()
         st.rerun()
 
 if st.session_state.log:
@@ -185,19 +214,14 @@ if st.session_state.log:
     st.markdown(f"""
     <div class="card">
         <h2>{r['signal']}</h2>
-        <p>AI: {r['ai']} | RISK: {r['risk']}%</p>
+        <p>AI SCORE: {r['ai']}% | RISK: {r['risk']}</p>
 
         <h3>ENTRY: {r['entry']}</h3>
         <h4>SNIPER: {r['sniper']}</h4>
-
-        <div class="cotes">
-            <div>MIN<br>{r['min']}x</div>
-            <div>MOY<br>{r['moy']}x</div>
-            <div>MAX<br>{r['max']}x</div>
-        </div>
 
         <p>Prob: {r['prob']}% | Conf: {r['conf']}</p>
     </div>
     """, unsafe_allow_html=True)
 
-st.sidebar.write("V8 ACTIVE")
+with st.sidebar:
+    st.write("V9 TRUE AI ACTIVE")
