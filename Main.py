@@ -9,7 +9,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import StandardScaler
 
 # ---------------- CONFIG & PREMIUM DESIGN ----------------
-st.set_page_config(page_title="JET X ANDR V5.5 ⚡ GOD MODE", layout="wide")
+st.set_page_config(page_title="JET X ANDR V5.6 ⚡ GOD MODE", layout="wide")
 
 st.markdown("""
 <style>
@@ -144,7 +144,7 @@ def run_prediction(hash_str, h_act, last_cote):
     }
 
 # ---------------- USER INTERFACE ----------------
-st.markdown("<h1>🚀 JET X ANDR V5.5 ⚡ GOD MODE</h1>", unsafe_allow_html=True)
+st.markdown("<h1>🚀 JET X ANDR V5.6 ⚡ GOD MODE</h1>", unsafe_allow_html=True)
 tab1, tab2, tab3 = st.tabs(["📊 ANALYSE LIVE", "📜 HISTORIQUE", "📖 GUIDE"])
 
 with tab1:
@@ -163,32 +163,40 @@ with tab1:
     if st.session_state.pred_log:
         r = st.session_state.pred_log[-1]
 
-        # FIX: Left-aligned HTML variable to prevent Streamlit rendering it as a code block
-        # AND correctly terminated with """
+        # FIX: Simplified f-string to avoid SyntaxError
+        h_ent = r['h_ent']
+        s_time = r['sniper_time']
+        s_win = r['sniper_window']
+        s_min = r['min']
+        s_moy = r['moy']
+        s_max = r['max']
+        s_prob = r['prob']
+        s_conf = r['confidence']
+        s_sig = r['signal']
+        s_emo = r['emoji']
+        s_ai = r['ai_score']
+
         html_output = f"""
 <div class="prediction-card">
-    <h1 style="border:none; font-size:40px; margin:0;">{r['emoji']} {r['signal']}</h1>
-    <p style="color:#ff00cc; font-weight:bold; letter-spacing:1px;">AI RELIABILITY: {r['ai_score']}</p>
-    
-    <div style="background:rgba(0,255,204,0.1); padding:10px; border-radius:10px; margin-bottom:10px; border-left:5px solid #00ffcc;">
-        <span style="font-size:11px; color:#aaa;">🎯 ENTRY (PLACE BET)</span><br>
-        <b style="font-size:30px;">{r['h_ent']}</b>
-    </div>
-
-    <div style="background:rgba(255, 0, 204, 0.1); padding:10px; border-radius:10px; border:1px solid #ff00cc; margin-bottom:15px;">
-        <span style="font-size:11px; color:#ff00cc; font-weight:bold;">🎯 SNIPER PEAK (CASH OUT)</span><br>
-        <b style="font-size:30px; color:#fff;">{r['sniper_time']}</b><br>
-        <small style="color:#ff00cc; font-weight:bold;">WINDOW: {r['sniper_window']}</small>
-    </div>
-
-    <div class="cote-container">
-        <div class="cote-item"><div class="cote-label">📉 SAFE MIN</div><div class="cote-val">{r['min']}x</div></div>
-        <div class="cote-item" style="border-left:1px solid #333; border-right:1px solid #333; padding:0 15px;">
-            <div class="cote-label">📊 TARGET</div><div class="cote-val" style="color:#fff;">{r['moy']}x</div>
-        </div>
-        <div class="cote-item"><div class="cote-label">🚀 MAX</div><div class="cote-val">{r['max']}x</div></div>
-    </div>
-    <p style="margin-top:10px; font-size:12px; color:#666;">Prob: {r['prob']}% | Conf: {r['confidence']}</p>
+<h1 style="border:none; font-size:40px; margin:0;">{s_emo} {s_sig}</h1>
+<p style="color:#ff00cc; font-weight:bold; letter-spacing:1px;">AI RELIABILITY: {s_ai}</p>
+<div style="background:rgba(0,255,204,0.1); padding:10px; border-radius:10px; margin-bottom:10px; border-left:5px solid #00ffcc;">
+<span style="font-size:11px; color:#aaa;">🎯 ENTRY (PLACE BET)</span><br>
+<b style="font-size:30px;">{h_ent}</b>
+</div>
+<div style="background:rgba(255, 0, 204, 0.1); padding:10px; border-radius:10px; border:1px solid #ff00cc; margin-bottom:15px;">
+<span style="font-size:11px; color:#ff00cc; font-weight:bold;">🎯 SNIPER PEAK (CASH OUT)</span><br>
+<b style="font-size:30px; color:#fff;">{s_time}</b><br>
+<small style="color:#ff00cc; font-weight:bold;">WINDOW: {s_win}</small>
+</div>
+<div class="cote-container">
+<div class="cote-item"><div class="cote-label">📉 SAFE MIN</div><div class="cote-val">{s_min}x</div></div>
+<div class="cote-item" style="border-left:1px solid #333; border-right:1px solid #333; padding:0 15px;">
+<div class="cote-label">📊 TARGET</div><div class="cote-val" style="color:#fff;">{s_moy}x</div>
+</div>
+<div class="cote-item"><div class="cote-label">🚀 MAX</div><div class="cote-val">{s_max}x</div></div>
+</div>
+<p style="margin-top:10px; font-size:12px; color:#666;">Prob: {s_prob}% | Conf: {s_conf}</p>
 </div>
 """
         st.markdown(html_output, unsafe_allow_html=True)
@@ -209,10 +217,10 @@ with tab2:
 
 with tab3:
     st.markdown("""
-    ### 📖 V5.5 NOTES
-    - **Safe MIN**: Ity no vokatra azo antoka indrindra hivoahana (Cash out) nefa mbola misy tombony.
-    - **AI Reliability**: Mila 5 results farafahakeliny (misy WIN sy LOSE) vao tena miasa ny Machine Learning.
-    - **Sniper Peak**: Ny segondra tena mampiseho ny fara-tampon'ny côte.
+    ### 📖 V5.6 NOTES
+    - **No More SyntaxError**: Namboarina ny fomba famakian'ny Python ny code HTML.
+    - **Fix UI**: Tsy misy intsony ny elanelana (spaces) mety hahatonga ny fond ho fotsy.
+    - **Safe MIN**: Mandeha tsara izao ny kajy rehetra.
     """)
 
 st.sidebar.markdown(f"🕒 SERVER: {datetime.now(pytz.timezone('Indian/Antananarivo')).strftime('%H:%M:%S')}")
