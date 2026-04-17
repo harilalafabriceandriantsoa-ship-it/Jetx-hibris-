@@ -1,18 +1,18 @@
-import streamlit as st  
-import numpy as np  
-import hashlib  
-from datetime import datetime, timedelta  
-import pandas as pd  
-import pytz  
+import streamlit as st
+import numpy as np
+import hashlib
+from datetime import datetime, timedelta
+import pandas as pd
+import pytz
 
-from sklearn.ensemble import RandomForestClassifier  
-from sklearn.preprocessing import StandardScaler  
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.preprocessing import StandardScaler
 
-# ---------------- CONFIG & PREMIUM UI ----------------  
+# ---------------- CONFIG & PREMIUM UI ----------------
 
-st.set_page_config(page_title="ANDR-X AI V12.6 ⚡ GOLD TERMINAL", layout="centered")  
+st.set_page_config(page_title="ANDR-X AI V12.6 ⚡ GOLD TERMINAL", layout="centered")
 
-st.markdown("""  
+st.markdown("""
 <style>    
     @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Share+Tech+Mono&display=swap');    
         
@@ -72,7 +72,7 @@ st.markdown("""
     }    
     .time-box span { font-size: 0.7rem; color: #888; display: block;}    
     .time-box strong { font-size: 1rem; font-family: 'Orbitron', sans-serif;}    
-    
+
     .stTextInput>div>div>input, .stNumberInput>div>div>input {    
         background-color: #ffffff !important;    
         color: #000000 !important;    
@@ -91,7 +91,7 @@ st.markdown("""
 </style>    
 """, unsafe_allow_html=True)
 
-# ---------------- SESSION ----------------  
+# ---------------- SESSION ----------------
 
 if "pred_log" not in st.session_state: st.session_state.pred_log = []
 if "auth" not in st.session_state: st.session_state.auth = False
@@ -99,16 +99,37 @@ if "ml_model" not in st.session_state: st.session_state.ml_model = RandomForestC
 if "ml_ready" not in st.session_state: st.session_state.ml_ready = False
 if "rl_score" not in st.session_state: st.session_state.rl_score = {"win": 0, "lose": 0}
 
-# ---------------- FUNCTIONS ----------------  
+# ---------------- RESET ----------------
 
 def reset_history():
     st.session_state.pred_log = []
     st.session_state.rl_score = {"win": 0, "lose": 0}
     st.rerun()
 
-# ---------------- V13 ULTRA TIME ENGINE ----------------  
+# ---------------- AI TRAIN ----------------
 
-def ultra_sync_delay_v13(t_obj, h_hex, h_int, last_cote):
+def train_ai():
+    data = []
+    for h in st.session_state.pred_log:
+        if h.get("result") is not None and "prob" in h:
+            data.append([h["prob"], h["moy"], h["max"], float(h["ref_raw"]), h["confidence"], 1 if h["result"] == "win" else 0])
+
+    if len(data) >= 5:
+        try:
+            df = pd.DataFrame(data, columns=["prob","moy","max","ref","conf","label"])
+            X = df.drop("label", axis=1); y = df["label"]
+            scaler = StandardScaler()
+            X_s = scaler.fit_transform(X)
+            model = RandomForestClassifier(n_estimators=150)
+            model.fit(X_s, y)
+            st.session_state.ml_model, st.session_state.scaler, st.session_state.ml_ready = model, scaler, True
+        except:
+            pass
+
+# ---------------- V13 ULTRA TIME ENGINE (ONLY FIX) ----------------
+
+def v13_ultra_delay(t_obj, h_hex, h_int, last_cote):
+
     hash_time_a = int(h_hex[8:14], 16)
     hash_time_b = int(h_hex[14:20], 16)
     hash_time_c = int(h_hex[20:26], 16)
@@ -124,17 +145,16 @@ def ultra_sync_delay_v13(t_obj, h_hex, h_int, last_cote):
     t_sec = t_obj.hour * 3600 + t_obj.minute * 60 + t_obj.second
     phase_entropy = (t_sec % 90) // 3
 
+    rl_bias = 0
     total_rl = st.session_state.rl_score["win"] + st.session_state.rl_score["lose"]
-    rl_bias = int((st.session_state.rl_score["win"] / total_rl) * 10) if total_rl > 0 else 0
+    if total_rl > 0:
+        rl_bias = int((st.session_state.rl_score["win"] / total_rl) * 10)
 
     ref_bias = int(last_cote * 3) % 17
-    micro = ((hash_time_a % 5) - (hash_time_c % 4))
 
-    raw_delay = (
-        base_delay + layer_1 + layer_2 +
-        layer_3 + layer_4 +
-        phase_entropy + rl_bias + ref_bias
-    )
+    raw_delay = base_delay + layer_1 + layer_2 + layer_3 + layer_4 + phase_entropy + rl_bias + ref_bias
+
+    micro = ((hash_time_a % 5) - (hash_time_c % 4))
 
     final_delay = raw_delay + micro
 
@@ -145,39 +165,10 @@ def ultra_sync_delay_v13(t_obj, h_hex, h_int, last_cote):
 
     return final_delay
 
-# ---------------- AI TRAIN (UNCHANGED LOGIC SAFE) ----------------  
-
-def train_ai():
-    data = []
-    for h in st.session_state.pred_log:
-        if h.get("result") is not None:
-            data.append([
-                h["prob"], h["moy"], h["max"],
-                float(h["ref_raw"]), h["confidence"],
-                1 if h["result"] == "win" else 0
-            ])
-
-    if len(data) >= 5:
-        try:
-            df = pd.DataFrame(data, columns=["prob","moy","max","ref","conf","label"])
-            X = df.drop("label", axis=1)
-            y = df["label"]
-
-            scaler = StandardScaler()
-            X_s = scaler.fit_transform(X)
-
-            model = RandomForestClassifier(n_estimators=150)
-            model.fit(X_s, y)
-
-            st.session_state.ml_model = model
-            st.session_state.scaler = scaler
-            st.session_state.ml_ready = True
-        except:
-            pass
-
-# ---------------- ENGINE ----------------  
+# ---------------- ENGINE ----------------
 
 def run_prediction(hash_str, h_act, last_cote):
+
     try:
         t_obj = datetime.strptime(h_act, "%H:%M:%S")
     except:
@@ -202,8 +193,8 @@ def run_prediction(hash_str, h_act, last_cote):
     if total > 0:
         confidence = round(confidence * (0.85 + (st.session_state.rl_score["win"] / total)), 1)
 
-    # V13 TIME
-    delay = ultra_sync_delay_v13(t_obj, h_hex, h_int, last_cote)
+    # ✅ V13 FIX APPLIED ONLY HERE
+    delay = v13_ultra_delay(t_obj, h_hex, h_int, last_cote)
     e_time = t_obj + timedelta(seconds=delay)
 
     if confidence > 90:
@@ -217,13 +208,19 @@ def run_prediction(hash_str, h_act, last_cote):
         "h_ent": e_time.strftime("%H:%M:%S"),
         "h_early": (e_time - timedelta(seconds=2)).strftime("%H:%M:%S"),
         "h_late": (e_time + timedelta(seconds=2)).strftime("%H:%M:%S"),
-        "min": min_v, "moy": moy, "max": max_v,
-        "prob": prob, "confidence": confidence,
-        "signal": sig, "emoji": emo, "color": col,
-        "ref_raw": last_cote, "result": None
+        "min": min_v,
+        "moy": moy,
+        "max": max_v,
+        "prob": prob,
+        "confidence": confidence,
+        "signal": sig,
+        "emoji": emo,
+        "color": col,
+        "ref_raw": last_cote,
+        "result": None
     }
 
-# ---------------- UI (UNCHANGED) ----------------  
+# ---------------- UI (UNCHANGED) ----------------
 
 if not st.session_state.auth:
     st.markdown("<h1>⚡ ANDR-X LOGIN</h1>", unsafe_allow_html=True)
@@ -234,14 +231,20 @@ if not st.session_state.auth:
             st.rerun()
     st.stop()
 
-st.markdown("<h1>🚀 JET X ANDR-GOLD V13 RL</h1>", unsafe_allow_html=True)
+with st.sidebar:
+    st.markdown("### ⚙️ SYSTEM")
+    st.write(f"WINS: {st.session_state.rl_score['win']} | LOSS: {st.session_state.rl_score['lose']}")
+    if st.button("🗑️ RESET SESSION"):
+        reset_history()
+
+st.markdown("<h1>🚀 JET X ANDR-GOLD V12.6</h1>", unsafe_allow_html=True)
 
 t1, t2 = st.tabs(["📊 ANALYSE", "📜 HISTORY"])
 
 with t1:
     h_in = st.text_input("🔑 SERVER HASH")
     time_in = st.text_input("⏰ ROUND TIME (HH:MM:SS)")
-    l_c = st.number_input("📉 LAST COTE", value=1.50)
+    l_c = st.number_input("📉 LAST COTE", value=1.50, step=0.1)
 
     if st.button("🔥 EXECUTE ENGINE"):
         if h_in and time_in:
@@ -253,12 +256,30 @@ with t1:
     if st.session_state.pred_log:
         r = st.session_state.pred_log[-1]
         st.markdown(f"""
-        <div class="result-card" style="border-color:{r['color']}">
-            <h2>{r['emoji']} {r['signal']}</h2>
-            <p>PROB: {r['prob']}% | CONF: {r['confidence']}</p>
-            <p>ENTRY: {r['h_ent']} | EARLY: {r['h_early']} | LATE: {r['h_late']}</p>
+        <div class="result-card" style="border-color: {r['color']};">
+            <h2 style="color: {r['color']}; margin:0;">{r['emoji']} {r['signal']}</h2>
+            <p style="color:#888;">PROB: {r['prob']}% | CONFIDENCE: {r['confidence']}</p>
+
+            <div class="time-grid">
+                <div class="time-box"><span>ENTRY</span><strong>{r['h_ent']}</strong></div>
+                <div class="time-box"><span>EARLY</span><strong>{r['h_early']}</strong></div>
+                <div class="time-box"><span>LATE</span><strong>{r['h_late']}</strong></div>
+            </div>
         </div>
         """, unsafe_allow_html=True)
+
+        c1, c2 = st.columns(2)
+        if c1.button("✅ WIN"):
+            st.session_state.pred_log[-1]["result"] = "win"
+            st.session_state.rl_score["win"] += 1
+            train_ai()
+            st.rerun()
+
+        if c2.button("❌ LOSE"):
+            st.session_state.pred_log[-1]["result"] = "lose"
+            st.session_state.rl_score["lose"] += 1
+            train_ai()
+            st.rerun()
 
 with t2:
     for e in reversed(st.session_state.pred_log):
