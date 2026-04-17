@@ -10,7 +10,7 @@ from sklearn.preprocessing import StandardScaler
 
 # ---------------- CONFIG ----------------
 
-st.set_page_config(page_title="ANDR-X AI V6 ⚡ FINAL", layout="centered")
+st.set_page_config(page_title="ANDR-X AI V6 ⚡ FIXED", layout="centered")
 
 st.markdown("""
 <style>
@@ -88,17 +88,14 @@ def build_dataset(history):
     for h in history:
         try:
             if all(k in h for k in [
-                "prob","moy","max",
-                "cote_min","cote_moy","cote_max",
-                "confidence","result","hour","minute"
+                "prob","cote_moy","cote_max","cote_min",
+                "confidence","hour","minute","result"
             ]):
                 data.append([
                     h["prob"],
-                    h["moy"],
-                    h["max"],
-                    h["cote_min"],
                     h["cote_moy"],
                     h["cote_max"],
+                    h["cote_min"],
                     h["confidence"],
                     h["hour"],
                     h["minute"],
@@ -113,14 +110,13 @@ def build_dataset(history):
     return pd.DataFrame(
         data,
         columns=[
-            "prob","moy","max",
-            "cmin","cmoy","cmax",
+            "prob","cmoy","cmax","cmin",
             "conf","hour","minute","label"
         ]
     )
 
 
-# ---------------- AI TRAIN ----------------
+# ---------------- TRAIN AI ----------------
 
 def train_ai():
     df = build_dataset(st.session_state.pred_log)
@@ -144,9 +140,12 @@ def ai_predict(features):
         return None
 
     X = np.array(features).reshape(1, -1)
-    X = st.session_state.scaler.transform(X)
 
-    return round(st.session_state.ml_model.predict_proba(X)[0][1] * 100, 1)
+    try:
+        X = st.session_state.scaler.transform(X)
+        return round(st.session_state.ml_model.predict_proba(X)[0][1] * 100, 1)
+    except:
+        return None
 
 
 # ---------------- BACKTEST ----------------
@@ -201,8 +200,7 @@ def run_prediction(hash_str, h_act, last_cote):
 
     hash_hex = hashlib.sha256(hash_str.encode()).hexdigest()
 
-    seed = int(hash_hex[:16], 16) % (2**32 - 1)
-    np.random.seed(seed)
+    np.random.seed(int(hash_hex[:16], 16) % (2**32 - 1))
 
     hash_int = int(hash_hex[:8], 16) % 1000
     hash_norm = (hash_int / 100) + 1.1
@@ -258,7 +256,7 @@ def run_prediction(hash_str, h_act, last_cote):
 
     h_ent = (t_obj + timedelta(seconds=delay)).strftime("%H:%M:%S")
 
-    # MARKET MODE
+    # MARKET MODE SIGNAL
     mode = market_mode(last_cote)
 
     if mode == "RISK":
@@ -272,7 +270,16 @@ def run_prediction(hash_str, h_act, last_cote):
     else:
         signal, emoji, result = "SKIP", "❌", 0
 
-    features = [prob, cote_moy, cote_max, cote_min, confidence, hour, minute]
+    features = [
+        prob,
+        cote_moy,
+        cote_max,
+        cote_min,
+        confidence,
+        hour,
+        minute
+    ]
+
     ai_score = ai_predict(features)
 
     return {
@@ -281,13 +288,9 @@ def run_prediction(hash_str, h_act, last_cote):
         "h_ent": h_ent,
 
         "prob": prob,
-        "moy": cote_moy,
-        "max": cote_max,
-        "min": cote_min,
-
-        "cote_min": cote_min,
         "cote_moy": cote_moy,
         "cote_max": cote_max,
+        "cote_min": cote_min,
 
         "confidence": confidence,
         "signal": signal,
@@ -303,7 +306,7 @@ def run_prediction(hash_str, h_act, last_cote):
 
 # ---------------- UI ----------------
 
-st.title("🚀 ANDR-X AI V6 FINAL SYSTEM")
+st.title("🚀 ANDR-X AI V6 FINAL FIXED")
 
 tab1, tab2, tab3 = st.tabs(["📊 ANALYSE", "📜 HISTORIQUE", "📈 STATS"])
 
