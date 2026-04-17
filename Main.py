@@ -9,7 +9,6 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import StandardScaler
 
 # ---------------- CONFIG & PREMIUM UI ----------------
-
 st.set_page_config(page_title="ANDR-X AI V13.2 ⚡ GOLD TERMINAL", layout="centered")
 
 # CSS ho an'ny endrika futuristic sy ny fametrahana ny takelaka
@@ -51,7 +50,6 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ---------------- SESSION MANAGEMENT ----------------
-
 if "pred_log" not in st.session_state: st.session_state.pred_log = []
 if "auth" not in st.session_state: st.session_state.auth = False
 if "ml_model" not in st.session_state: st.session_state.ml_model = RandomForestClassifier(n_estimators=150)
@@ -59,7 +57,6 @@ if "ml_ready" not in st.session_state: st.session_state.ml_ready = False
 if "rl_score" not in st.session_state: st.session_state.rl_score = {"win": 0, "lose": 0}
 
 # ---------------- FUNCTIONS ----------------
-
 def reset_history():
     st.session_state.pred_log = []
     st.session_state.rl_score = {"win": 0, "lose": 0}
@@ -83,9 +80,7 @@ def train_ai():
         except: pass
 
 # ---------------- V13 ULTRA ENGINE ----------------
-
 def v13_ultra_delay(t_obj, h_hex, h_int, last_cote):
-    # Fikajiana ny elanelam-potoana amin'ny alalan'ny hash entropy
     h_a = int(h_hex[8:14], 16)
     h_b = int(h_hex[14:20], 16)
     h_c = int(h_hex[20:26], 16)
@@ -117,7 +112,6 @@ def run_prediction(hash_str, h_act, last_cote):
     h_int = int(h_hex[:10], 16)
     np.random.seed(h_int % (2**32))
 
-    # Simulation Monte Carlo kely
     base_val = (int(h_hex[10:15], 16) % 100) / 20 + 1.25
     sims = np.random.lognormal(mean=np.log(base_val), sigma=0.38, size=15000)
 
@@ -142,7 +136,6 @@ def run_prediction(hash_str, h_act, last_cote):
     }
 
 # ---------------- LOGIN INTERFACE ----------------
-
 if not st.session_state.auth:
     st.markdown("<h1>⚡ ANDR-X LOGIN</h1>", unsafe_allow_html=True)
     pwd = st.text_input("🔐 ACCESS CODE", type="password")
@@ -151,7 +144,6 @@ if not st.session_state.auth:
     st.stop()
 
 # ---------------- MAIN APP ----------------
-
 st.markdown("<h1>🚀 JET X ANDR-GOLD V13.2</h1>", unsafe_allow_html=True)
 t1, t2 = st.tabs(["📊 ANALYSE", "📜 HISTORY"])
 
@@ -168,7 +160,7 @@ with t1:
     if st.session_state.pred_log:
         r = st.session_state.pred_log[-1]
         
-        # UI DISPLAY FIX (Ity no mampiseho an'ilay takelaka miloko)
+        # UI DISPLAY FIX (Ity no mampiseho an'ilay takelaka miloko araka ny tianao)
         st.markdown(f"""
         <div style="border: 2px solid {r['color']}; border-radius: 20px; padding: 20px; background: rgba(0, 20, 20, 0.8); text-align: center; margin-top: 15px;">
             <h2 style="color: {r['color']}; margin:0; font-family: 'Orbitron', sans-serif;">{r['emoji']} {r['signal']}</h2>
