@@ -1,4 +1,4 @@
-import streamlit as st 
+import streamlit as st
 import numpy as np
 import hashlib
 from datetime import datetime, timedelta
@@ -8,207 +8,296 @@ import pytz
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import StandardScaler
 
-# ---------------- CONFIG & PREMIUM DESIGN ----------------
-st.set_page_config(page_title="JET X ANDR V10.5 ⚡ PRO ADAPTIVE", layout="wide")
+# ---------------- CONFIG ----------------
+st.set_page_config(page_title="ANDR-X AI V3 ⚡ TERMINAL", layout="centered")
 
 st.markdown("""
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Rajdhani:wght@500;700&display=swap');
-    
-    .stApp {
-        background: radial-gradient(circle at top, #001a1a, #000000);
-        color: #e0fbfb;
-        font-family: 'Rajdhani', sans-serif;
-    }
-    h1 {
-        text-align:center;
-        font-family: 'Orbitron', sans-serif;
-        color:#00ffcc;
-        text-shadow:0 0 15px #00ffcc;
-        border-bottom: 2px solid rgba(0,255,204,0.3);
-        padding-bottom:10px;
-        letter-spacing: 5px;
-    }
-    .card {
-        border: 1px solid rgba(0, 255, 204, 0.4);
-        border-radius: 25px;
-        padding: 30px;
-        background: rgba(0, 40, 40, 0.2);
-        backdrop-filter: blur(20px);
-        text-align: center;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-        margin-bottom: 20px;
-    }
-    .cote-grid {
-        display: flex;
-        justify-content: space-around;
-        margin: 25px 0;
-    }
-    .cote-box {
-        background: rgba(255,255,255,0.03);
-        padding: 15px;
-        border-radius: 15px;
-        border: 1px solid rgba(255,255,255,0.1);
-        min-width: 100px;
-    }
-    .val-main { font-size: 1.8rem; font-weight: bold; color: #00ffcc; }
-    
-    .stButton>button {
-        background: linear-gradient(90deg, #004d4d, #00ffcc) !important;
-        color: black !important; font-weight: bold !important;
-        border-radius: 12px !important; width: 100%; transition: 0.3s !important;
-        height: 50px;
-    }
-    .stButton>button:hover { box-shadow: 0 0 20px #00ffcc !important; transform: scale(1.02); }
+.stApp {background:#000; color:#00ffcc; font-family: monospace;}
 </style>
 """, unsafe_allow_html=True)
 
-# ---------------- SESSION INITIALIZATION ----------------
-if "log" not in st.session_state: st.session_state.log = []
-if "auth" not in st.session_state: st.session_state.auth = False
-if "rl_weight" not in st.session_state:
-    st.session_state.rl_weight = {"ultra": 0.4, "strong": 0.5, "wait": 0.6}
+# ---------------- SESSION ----------------
+if "pred_log" not in st.session_state:
+    st.session_state.pred_log = []
 
-# ---------------- MASTER RESET FUNCTION ----------------
-def reset_system():
-    for key in list(st.session_state.keys()):
-        del st.session_state[key]
-    st.rerun()
+if "auth" not in st.session_state:
+    st.session_state.auth = False
 
-# ---------------- SECURITY LOGIN ----------------
-if not st.session_state.auth:
-    st.markdown("<h1>🔐 V10.5 SECURITY</h1>", unsafe_allow_html=True)
-    _, col2, _ = st.columns([1,1.5,1])
-    with col2:
-        pwd = st.text_input("SYSTEM KEY", type="password")
-        if st.button("ACTIVATE ENGINE"):
-            if pwd == "2026":
-                st.session_state.auth = True
-                st.rerun()
-            else: st.error("ACCESS DENIED")
-    st.stop()
+if "ml_model" not in st.session_state:
+    st.session_state.ml_model = RandomForestClassifier(n_estimators=120)
 
-# ---------------- CORE ENGINE V10.5 PRO ----------------
-def predict_v10_5(hash_str, h_act, last_cote):
-    tz = pytz.timezone("Indian/Antananarivo")
-    try: t_obj = datetime.strptime(h_act, "%H:%M:%S")
-    except: t_obj = datetime.now(tz)
-    
-    # 1. HASH DECODING & ENTROPY
-    h_hex = hashlib.sha256(hash_str.encode()).hexdigest()
-    hash_val = int(h_hex[:12], 16)
-    np.random.seed(hash_val % (2**32))
-    
-    # 2. DYNAMIC POWER BASED ON REF
-    base_power = 1.0 if last_cote < 1.5 else 1.25
-    norm = ((hash_val % 1000) / 1000) + base_power
-    
-    # 3. SIMULATION WITH ADAPTIVE SIGMA
-    sigma_adj = 0.25 if last_cote < 1.5 else 0.18
-    sims = np.random.lognormal(mean=np.log(norm), sigma=sigma_adj, size=15000)
-    
-    prob = round(np.clip(len([x for x in sims if x >= 2.0])/150, 2, 99), 1)
-    moy = round(np.mean(sims), 2)
-    maxv = round(np.percentile(sims, 95), 2)
-    minv = round(moy * 0.52, 2)
+if "ml_ready" not in st.session_state:
+    st.session_state.ml_ready = False
 
-    # 4. CONFIDENCE (HASH + PROBABILITY)
-    hash_stability = (hash_val % 100)
-    conf = round((prob * 0.6) + (hash_stability * 0.4), 1)
-
-    # 5. STRICT ADAPTIVE SIGNAL LOGIC
-    adj = 15 if last_cote < 1.50 else (5 if last_cote < 2.50 else -5)
-    
-    u_limit = 80 + adj
-    s_limit = 68 + adj
-    w_limit = 48 + adj
-
-    if conf >= u_limit and moy >= 2.8:
-        sig, s_type, color = "🔥 ULTRA X3+ SNIPER 🎯", "ultra", "#ff00cc"
-    elif conf >= s_limit and moy >= 1.9:
-        sig, s_type, color = "🟢 STRONG ENTRY ⚡", "strong", "#00ffcc"
-    elif conf >= w_limit:
-        sig, s_type, color = "🟡 TIMING WAIT ⏳", "wait", "#ffcc00"
-    else:
-        sig, s_type, color = "🔴 NO ENTRY ❌", "wait", "#ff4d4d"
-
-    # 6. TIMING & DELAY (ULTRA PRECISION BOOSTED)
-
-    sec = t_obj.hour*3600 + t_obj.minute*60 + t_obj.second
-
-    h1 = int(h_hex[20:25], 16)
-    h2 = int(h_hex[25:30], 16)
-    h3 = int(h_hex[30:35], 16)
-
-    base_delay = (
-        (h1 % 25) +
-        (h2 % 12) +
-        (sec % 20) +
-        int(norm * 4)
-    )
-
-    micro_adj = (h3 % 7)
-
-    raw_delay = base_delay + micro_adj
-
-    locked = (raw_delay // 5) * 5
-
-    stability = ((sec % 10) // 2) * 2
-
-    final_delay = locked + stability
-
-    entry = t_obj + timedelta(seconds=final_delay)
-
-    return {
-        "entry": entry.strftime("%H:%M:%S"), 
-        "sniper": (entry + timedelta(seconds=20)).strftime("%H:%M:%S"),
-        "prob": prob, "moy": moy, "max": maxv, "min": minv, "conf": conf,
-        "signal": sig, "type": s_type, "color": color, "ref": last_cote, "result": None
+# 🧠 RL MEMORY (AMPY VAOVAO)
+if "rl_score" not in st.session_state:
+    st.session_state.rl_score = {
+        "win": 0,
+        "lose": 0
     }
 
-# ---------------- MAIN UI ----------------
-st.sidebar.button("🚨 MASTER RESET DATA", on_click=reset_system)
-st.markdown("<h1>🚀 JET X ANDR V10.5 PRO</h1>", unsafe_allow_html=True)
+# ---------------- V4 ULTRA SYNC ----------------
+def ultra_sync_delay(t_obj, raw_delay):
+    server_tick = 6
+    t_seconds = t_obj.hour*3600 + t_obj.minute*60 + t_obj.second
+    phase = t_seconds % server_tick
 
-t1, t2 = st.tabs(["📊 ANALYSE LIVE", "📜 HISTORY"])
+    aligned = raw_delay - phase
 
-with t1:
-    c1, c2, c3 = st.columns(3)
-    with c1: h_in = st.text_input("🔑 SERVER HASH")
-    with c2: t_in = st.text_input("⏰ ROUND TIME (HH:MM:SS)")
-    with c3: c_ref = st.number_input("📉 LAST COTE (REF)", value=1.5, step=0.01)
+    if phase >= 4:
+        aligned -= 1
+    elif phase <= 1:
+        aligned += 1
 
-    if st.button("🔥 EXECUTE PRO ENGINE"):
-        if h_in and t_in:
-            st.session_state.log.append(predict_v10_5(h_in, t_in, c_ref))
+    if aligned < 12:
+        aligned += server_tick * 2
+
+    return aligned
+
+# ---------------- DOUBLE ENTRY ----------------
+def compute_entry_window(t_obj, final_delay):
+    base_time = t_obj + timedelta(seconds=final_delay)
+    early = base_time - timedelta(seconds=2)
+    late = base_time + timedelta(seconds=2)
+
+    return {
+        "entry_main": base_time.strftime("%H:%M:%S"),
+        "entry_early": early.strftime("%H:%M:%S"),
+        "entry_late": late.strftime("%H:%M:%S")
+    }
+
+# ---------------- LOGIN ----------------
+if not st.session_state.auth:
+    st.title("⚡ ANDR-X AI V3 TERMINAL")
+    pwd = st.text_input("🔐 SECURITY CODE", type="password")
+
+    if st.button("ACTIVATE SYSTEM"):
+        if pwd == "2026":
+            st.session_state.auth = True
+            st.rerun()
+    st.stop()
+
+# ---------------- AI TRAIN ----------------
+def build_dataset(history):
+    data = []
+    for h in history:
+        if all(k in h for k in ["prob", "moy", "max", "ref", "confidence", "result"]):
+            if h["result"] is not None:
+                data.append([
+                    h["prob"],
+                    h["moy"],
+                    h["max"],
+                    float(h["ref"]),
+                    h["confidence"],
+                    1 if h["result"] == "win" else 0
+                ])
+
+    if len(data) < 5:
+        return None
+
+    return pd.DataFrame(data, columns=["prob","moy","max","ref","conf","label"])
+
+def train_ai():
+    df = build_dataset(st.session_state.pred_log)
+    if df is None:
+        return
+
+    try:
+        X = df.drop("label", axis=1)
+        y = df["label"]
+
+        scaler = StandardScaler()
+        X_scaled = scaler.fit_transform(X)
+
+        model = RandomForestClassifier(n_estimators=150)
+        model.fit(X_scaled, y)
+
+        st.session_state.ml_model = model
+        st.session_state.scaler = scaler
+        st.session_state.ml_ready = True
+    except:
+        pass
+
+def ai_predict(features):
+    if not st.session_state.ml_ready or "scaler" not in st.session_state:
+        return None
+
+    try:
+        X = np.array(features).reshape(1, -1)
+        X = st.session_state.scaler.transform(X)
+        return round(st.session_state.ml_model.predict_proba(X)[0][1] * 100, 1)
+    except:
+        return None
+
+# ---------------- RL UPDATE ----------------
+def update_rl(result):
+    if result == "win":
+        st.session_state.rl_score["win"] += 1
+    elif result == "lose":
+        st.session_state.rl_score["lose"] += 1
+
+# ---------------- ENGINE ----------------
+def run_prediction(hash_str, h_act, last_cote):
+
+    try:
+        t_obj = datetime.strptime(h_act, "%H:%M:%S")
+    except:
+        tz_mg = pytz.timezone('Indian/Antananarivo')
+        t_obj = datetime.now(tz_mg)
+
+    seed_global = int(hashlib.sha256((hash_str + h_act).encode()).hexdigest(), 16) % (2**32)
+    np.random.seed(seed_global)
+
+    hash_hex = hashlib.sha256(hash_str.encode()).hexdigest()
+    hash_int = int(hash_hex[:8], 16) % 1000
+    hash_norm = (hash_int / 100) + 1.1
+
+    t_seconds = t_obj.hour*3600 + t_obj.minute*60 + t_obj.second
+    time_factor = (t_seconds % 300) / 300
+
+    if last_cote < 1.5:
+        cycle = 0.8
+    elif last_cote < 1.8:
+        cycle = 1.0
+    elif last_cote <= 2.5:
+        cycle = 1.3
+    elif last_cote <= 3:
+        cycle = 1.1
+    else:
+        cycle = 0.7
+
+    ref_val = 2.1 if hash_norm < 2 else 2.2 if hash_norm < 3 else 2.3
+    ref_val += time_factor * 0.2
+
+    base = hash_norm * ref_val * cycle * (1 + time_factor)
+    sigma = 0.25 + (hash_norm / 10)
+
+    sims = np.random.lognormal(mean=np.log(base), sigma=sigma, size=15000)
+    success = [s for s in sims if s >= 3.0]
+    prob = round(len(success)/15000 * 100, 1)
+
+    log_sims = np.log(sims + 1)
+    moy_raw = np.exp(np.mean(log_sims))
+    max_raw = np.exp(np.percentile(log_sims, 95))
+
+    moy = round(moy_raw / 1.4, 2)
+    maxv = round(max_raw / 1.2, 2)
+    confidence = round((prob * moy)/10, 1)
+
+    # RL influence
+    total = st.session_state.rl_score["win"] + st.session_state.rl_score["lose"]
+    if total > 0:
+        winrate = st.session_state.rl_score["win"] / total
+        confidence = round(confidence * (0.8 + winrate), 1)
+
+    # --- HEURE V4 ULTRA SYNC ---
+    hash_time = int(hash_hex[8:16], 16)
+    hash_time2 = int(hash_hex[16:24], 16)
+    hash_time3 = int(hash_hex[24:32], 16)
+
+    layer1 = hash_time % 18
+    layer2 = hash_time2 % 10
+    layer3 = hash_time3 % 6
+
+    if last_cote < 1.5:
+        dynamic_boost = 8
+    elif last_cote < 2.5:
+        dynamic_boost = 5
+    else:
+        dynamic_boost = 2
+
+    micro = int((hash_norm % 1) * 6)
+
+    raw_delay = 18 + layer1 + layer2 + layer3 + dynamic_boost + micro
+
+    final_delay = ultra_sync_delay(t_obj, raw_delay)
+
+    # DOUBLE ENTRY
+    entry_window = compute_entry_window(t_obj, final_delay)
+
+    h_ent = entry_window["entry_main"]
+    h_early = entry_window["entry_early"]
+    h_late = entry_window["entry_late"]
+
+    if last_cote > 3:
+        signal, emoji = "❌ SKIP", "❌"
+    elif prob < 40 or moy < 2.3:
+        signal, emoji = "❌ SKIP", "❌"
+    elif prob < 55:
+        signal, emoji = "⏳ WAIT", "⏳"
+    elif confidence > 12:
+        signal, emoji = "🔥 STRONG BUY", "🔥🎯"
+    else:
+        signal, emoji = "✅ BUY", "🎯"
+
+    features = [prob, moy, maxv, ref_val, confidence]
+    ai_score = ai_predict(features)
+
+    return {
+        "h_act": h_act,
+        "h_ent": h_ent,
+        "h_early": h_early,
+        "h_late": h_late,
+        "hash": hash_str[:10]+"...",
+        "ref": round(ref_val,2),
+        "prob": prob,
+        "moy": moy,
+        "max": maxv,
+        "confidence": confidence,
+        "signal": signal,
+        "emoji": emoji,
+        "ai_score": ai_score,
+        "result": None
+    }
+
+# ---------------- UI ----------------
+st.title("🚀 ANDR-X AI V3 ⚡ TERMINAL")
+
+tab1, tab2 = st.tabs(["📊 ANALYSE", "📜 HISTORIQUE"])
+
+with tab1:
+    hash_in = st.text_input("🔑 HASH")
+    h_in = st.text_input("⏰ HEURE (HH:MM:SS)")
+    last_cote = st.number_input("📉 CÔTE PRÉCÉDENTE", value=1.5)
+
+    if st.button("🚀 RUN ANALYSIS"):
+        if hash_in and h_in:
+            res = run_prediction(hash_in, h_in, last_cote)
+            st.session_state.pred_log.append(res)
+            train_ai()
             st.rerun()
 
-    if st.session_state.log:
-        r = st.session_state.log[-1]
+    if st.session_state.pred_log:
+        r = st.session_state.pred_log[-1]
+
         st.markdown(f"""
-        <div class="card" style="border-top: 10px solid {r['color']};">
-            <h2 style="color:{r['color']}; margin:0; font-family:Orbitron;">{r['signal']}</h2>
-            <div style="display:flex; justify-content:center; gap:50px; margin:20px 0;">
-                <div><small style="color:#888;">ENTRY</small><br><b style="font-size:2.2rem;">{r['entry']}</b></div>
-                <div><small style="color:#888;">SNIPER</small><br><b style="font-size:2.2rem; color:#ff00cc;">{r['sniper']}</b></div>
-            </div>
-            <div class="cote-grid">
-                <div class="cote-box">MIN<br><span class="val-main" style="color:#777;">{r['min']}x</span></div>
-                <div class="cote-box" style="background:rgba(0,255,204,0.1);">TARGET<br><span class="val-main">{r['moy']}x</span></div>
-                <div class="cote-box">MAX<br><span class="val-main" style="color:#ff00cc;">{r['max']}x</span></div>
-            </div>
-            <p style="font-size:0.9rem; color:#555;">PROB: {r['prob']}% | CONF: {r['conf']} | REF: {r['ref']}</p>
-        </div>
-        """, unsafe_allow_html=True)
+        # {r.get('emoji')} SIGNAL: {r.get('signal')}
 
-        w, l = st.columns(2)
-        with w:
-            if st.button("✅ WIN"): st.session_state.log[-1]["result"] = 1
-        with l:
-            if st.button("❌ LOSE"): st.session_state.log[-1]["result"] = 0
+        🎯 PROB: {r.get('prob')}%
+        🧠 CONF: {r.get('confidence')}
+        🤖 AI: {r.get('ai_score')}
 
-with t2:
-    if st.session_state.log:
-        for entry in reversed(st.session_state.log):
-            icon = "⚪" if entry['result'] is None else ("✅" if entry['result']==1 else "❌")
-            st.markdown(f"**{icon} {entry['entry']}** | Target: `{entry['moy']}x` | Conf: `{entry['conf']}` | Ref: `{entry['ref']}`")
+        ⏰ MAIN: {r.get('h_ent')}
+        🟢 EARLY: {r.get('h_early')}
+        🔵 LATE: {r.get('h_late')}
+        """)
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+            if st.button("✅ WIN"):
+                st.session_state.pred_log[-1]["result"] = "win"
+                update_rl("win")
+                train_ai()
+                st.rerun()
+
+        with col2:
+            if st.button("❌ LOSE"):
+                st.session_state.pred_log[-1]["result"] = "lose"
+                update_rl("lose")
+                train_ai()
+                st.rerun()
+
+with tab2:
+    st.write(st.session_state.pred_log[::-1])
