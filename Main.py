@@ -249,4 +249,4 @@ st.sidebar.metric("DATA SIZE", len(st.session_state.dataset))
 
 # ---------------- HISTORY ----------------
 
-st.subheader("📜 HISTORY
+st.subheader("📜 HISTORY")
