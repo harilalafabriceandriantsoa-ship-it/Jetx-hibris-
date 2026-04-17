@@ -9,7 +9,7 @@ from sklearn.ensemble import RandomForestClassifier
 
 # ---------------- CONFIG ----------------
 
-st.set_page_config(page_title="ANDR-X AI V12 FULL FIXED", layout="centered")
+st.set_page_config(page_title="ANDR-X AI V13 TIME AI", layout="centered")
 
 st.markdown("""
 <style>
@@ -26,14 +26,17 @@ st.markdown("""
 if "dataset" not in st.session_state:
     st.session_state.dataset = []
 
+if "history" not in st.session_state:
+    st.session_state.history = []
+
+if "time_stats" not in st.session_state:
+    st.session_state.time_stats = {}
+
 if "model" not in st.session_state:
     st.session_state.model = RandomForestClassifier(n_estimators=200)
 
 if "trained" not in st.session_state:
     st.session_state.trained = False
-
-if "history" not in st.session_state:
-    st.session_state.history = []
 
 # ---------------- TIME ----------------
 
@@ -57,24 +60,18 @@ def build_features(prob, moy, maxv, minv, conf, cote):
 
     return [prob, moy, maxv, minv, conf, cote, score]
 
-# ---------------- ENTRY TIME ENGINE ----------------
+# ---------------- ENTRY TIME AI ----------------
 
 def entry_time_engine(hash_hex, base_time, cote):
 
     seed = int(hash_hex[:10], 16)
 
-    micro_shift = seed % 60
-    market_shift = int(cote * 7)
+    micro = seed % 60
+    market = int(cote * 6)
 
-    final_shift = micro_shift + market_shift
+    entry = 20 + ((micro + market) % 45)
 
-    if final_shift < 20:
-        final_shift = 20 + (final_shift % 10)
-
-    if final_shift > 80:
-        final_shift = 80 - (final_shift % 10)
-
-    return final_shift
+    return entry
 
 # ---------------- TRAIN MODEL ----------------
 
@@ -111,7 +108,7 @@ def ai_predict(features):
     except:
         return None
 
-# ---------------- ENGINE ----------------
+# ---------------- MAIN ENGINE ----------------
 
 def run_prediction(hash_input, time_input, cote):
 
@@ -119,15 +116,13 @@ def run_prediction(hash_input, time_input, cote):
 
     hash_hex = hashlib.sha256(hash_input.encode()).hexdigest()
 
-    # FIX SAFE SEED
+    # SAFE SEED
     seed_value = int(hash_hex[:12], 16) & 0xffffffff
     np.random.seed(seed_value)
 
     base = (int(hash_hex[:8], 16) % 1000) / 100 + 1.1
 
     sims = np.random.lognormal(np.log(base), 0.25, 10000)
-
-    # ---------------- STATS ----------------
 
     prob = np.mean(sims >= 3.0) * 100
     prob = round(max(5, min(prob, 90)), 1)
@@ -140,11 +135,7 @@ def run_prediction(hash_input, time_input, cote):
 
     conf = round((prob * moy) / 10, 1)
 
-    # ---------------- FEATURES ----------------
-
     features = build_features(prob, moy, maxv, minv, conf, cote)
-
-    # ---------------- AI ----------------
 
     ai_score = ai_predict(features)
 
@@ -154,20 +145,32 @@ def run_prediction(hash_input, time_input, cote):
 
     train_model()
 
-    spread = maxv - minv
-
     # ---------------- ENTRY TIME ----------------
 
     entry_seconds = entry_time_engine(hash_hex, t, cote)
     entry_time = (t + timedelta(seconds=entry_seconds)).strftime("%H:%M:%S")
 
+    # ---------------- TIME LEARNING ----------------
+
+    hour = t.hour
+
+    if hour not in st.session_state.time_stats:
+        st.session_state.time_stats[hour] = {"wins": 0, "total": 0}
+
+    st.session_state.time_stats[hour]["total"] += 1
+
+    if prob > 60:
+        st.session_state.time_stats[hour]["wins"] += 1
+
     # ---------------- SIGNAL ----------------
 
+    spread = maxv - minv
+
     if spread > 5:
-        signal = "❌ SKIP (RISK HIGH)"
+        signal = "❌ SKIP"
 
     elif prob < 50:
-        signal = "❌ SKIP (LOW PROB)"
+        signal = "❌ SKIP"
 
     elif ai_score is not None and ai_score > 70:
         signal = "🔥 AI STRONG BUY"
@@ -186,7 +189,8 @@ def run_prediction(hash_input, time_input, cote):
         "conf": conf,
         "ai": ai_score,
         "signal": signal,
-        "entry_time": entry_time
+        "entry_time": entry_time,
+        "hour": hour
     }
 
     st.session_state.history.append(result)
@@ -206,9 +210,26 @@ def winrate():
 
     return round((wins / len(data)) * 100, 2)
 
+# ---------------- BEST HOURS ----------------
+
+def best_hours():
+
+    stats = st.session_state.time_stats
+
+    if not stats:
+        return []
+
+    result = []
+
+    for h, v in stats.items():
+        wr = (v["wins"] / v["total"]) * 100 if v["total"] > 0 else 0
+        result.append((h, wr, v["total"]))
+
+    return sorted(result, key=lambda x: x[1], reverse=True)
+
 # ---------------- UI ----------------
 
-st.title("🚀 ANDR-X AI V12 FULL SYSTEM FIXED")
+st.title("🚀 ANDR-X AI V13 FULL TIME AI SYSTEM")
 
 hash_input = st.text_input("🔑 HASH")
 time_input = st.text_input("⏰ TIME (HH:MM:SS)")
@@ -242,11 +263,26 @@ if "last" in st.session_state:
 
 # ---------------- STATS ----------------
 
-st.sidebar.markdown("📊 SYSTEM STATS")
+st.sidebar.metric("WINRATE", f"{winrate()} %")
+st.sidebar.metric("DATA", len(st.session_state.dataset))
 
-st.sidebar.metric("WINRATE AI", f"{winrate()} %")
-st.sidebar.metric("DATA SIZE", len(st.session_state.dataset))
+# ---------------- TIME HEATMAP ----------------
+
+st.subheader("📊 TIME HEATMAP")
+
+for h, v in sorted(st.session_state.time_stats.items()):
+    wr = (v["wins"] / v["total"]) * 100 if v["total"] else 0
+    st.write(f"{h}h → {round(wr,2)}% ({v['total']})")
+
+# ---------------- BEST HOURS ----------------
+
+st.subheader("🔥 BEST HOURS")
+
+for h, wr, total in best_hours()[:5]:
+    st.write(f"⏰ {h}h → {round(wr,2)}% | {total} trades")
 
 # ---------------- HISTORY ----------------
 
 st.subheader("📜 HISTORY")
+
+st.write(st.session_state.history[::-1])
