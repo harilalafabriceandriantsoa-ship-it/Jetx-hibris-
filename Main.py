@@ -43,6 +43,7 @@ st.markdown("""
         display: flex;
         justify-content: space-around;
         margin-top: 20px;
+        margin-bottom: 10px;
     }
     .time-box {
         background: #001111;
@@ -71,17 +72,18 @@ st.markdown("""
         transform: translateY(-2px); 
     }
     
-    /* Input styling */
+    /* INPUT STYLING - MAKES TEXT BLACK INSIDE THE BOX */
     .stTextInput>div>div>input, .stNumberInput>div>div>input {
-        background-color: rgba(0, 255, 204, 0.05) !important;
-        color: #fff !important;
-        border: 1px solid rgba(0,255,204,0.3) !important;
+        background-color: #ffffff !important; /* Lamosina fotsy mazava */
+        color: #000000 !important; /* Soratra mainty ao anatiny */
+        font-weight: bold !important;
+        border: 2px solid rgba(0,255,204,0.5) !important;
         border-radius: 8px !important;
         font-family: 'Share Tech Mono', monospace !important;
     }
     .stTextInput>div>div>input:focus, .stNumberInput>div>div>input:focus {
         border-color: #00ffcc !important;
-        box-shadow: 0 0 10px rgba(0,255,204,0.3) !important;
+        box-shadow: 0 0 10px rgba(0,255,204,0.8) !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -316,32 +318,33 @@ with tab1:
     if st.session_state.pred_log:
         r = st.session_state.pred_log[-1]
         
-        st.markdown(f"""
-        <div class="result-card" style="border-color: {r.get('color')};">
-            <h2 style="color: {r.get('color')}; margin-bottom: 5px;">{r.get('emoji')} {r.get('signal')}</h2>
-            <div style="font-size: 0.9rem; color: #888; margin-bottom: 20px;">
-                PROB: <strong style="color:#fff;">{r.get('prob')}%</strong> | 
-                CONF: <strong style="color:#fff;">{r.get('confidence')}</strong> | 
-                AI ML: <strong style="color:#fff;">{r.get('ai_score')}</strong>
-            </div>
-            
-            <div class="time-grid">
-                <div class="time-box">
-                    <span>🟢 EARLY</span>
-                    <strong style="color:#00ffcc;">{r.get('h_early')}</strong>
-                </div>
-                <div class="time-box" style="transform: scale(1.1); border-color:#ff00cc; box-shadow: 0 0 10px rgba(255,0,204,0.3);">
-                    <span style="color:#ff00cc;">⚡ MAIN ENTRY</span>
-                    <strong style="color:#ff00cc;">{r.get('h_ent')}</strong>
-                </div>
-                <div class="time-box">
-                    <span>🔵 LATE</span>
-                    <strong style="color:#0088ff;">{r.get('h_late')}</strong>
-                </div>
-            </div>
-            <p style="margin-top: 15px; color: #555; font-size: 0.8rem;">TARGET MOY: {r.get('moy')}x</p>
+        # Nesorina ny espace teo aloha mba tsy hiova ho Code Block ilay HTML
+        html_code = f"""
+<div class="result-card" style="border-color: {r.get('color')};">
+    <h2 style="color: {r.get('color')}; margin-bottom: 5px;">{r.get('emoji')} {r.get('signal')}</h2>
+    <div style="font-size: 0.9rem; color: #888; margin-bottom: 20px;">
+        PROB: <strong style="color:#fff;">{r.get('prob')}%</strong> | 
+        CONF: <strong style="color:#fff;">{r.get('confidence')}</strong> | 
+        AI ML: <strong style="color:#fff;">{r.get('ai_score')}</strong>
+    </div>
+    <div class="time-grid">
+        <div class="time-box">
+            <span>🟢 EARLY</span>
+            <strong style="color:#00ffcc;">{r.get('h_early')}</strong>
         </div>
-        """, unsafe_allow_html=True)
+        <div class="time-box" style="transform: scale(1.1); border-color:#ff00cc; box-shadow: 0 0 10px rgba(255,0,204,0.3);">
+            <span style="color:#ff00cc;">⚡ MAIN ENTRY</span>
+            <strong style="color:#ff00cc;">{r.get('h_ent')}</strong>
+        </div>
+        <div class="time-box">
+            <span>🔵 LATE</span>
+            <strong style="color:#0088ff;">{r.get('h_late')}</strong>
+        </div>
+    </div>
+    <p style="margin-top: 15px; color: #555; font-size: 0.8rem;">TARGET MOY: {r.get('moy')}x</p>
+</div>
+        """
+        st.markdown(html_code, unsafe_allow_html=True)
 
         col1, col2 = st.columns(2)
         with col1:
@@ -372,17 +375,18 @@ with tab2:
                 statut = "❌ LOSE"
                 border = "#ff4d4d"
                 
-            st.markdown(f"""
-            <div style="border-left: 4px solid {border}; background: rgba(255,255,255,0.02); padding: 10px 15px; border-radius: 5px; margin-bottom: 10px;">
-                <div style="display:flex; justify-content: space-between; align-items: center;">
-                    <div>
-                        <strong style="font-size:1.1rem;">{entry['h_ent']}</strong> 
-                        <span style="color:#888; font-size:0.8rem; margin-left:10px;">| {entry['emoji']} {entry['signal']}</span>
-                    </div>
-                    <strong style="color:{border};">{statut}</strong>
-                </div>
-                <div style="font-size:0.8rem; color:#666; margin-top:5px;">
-                    Target: {entry['moy']}x | Conf: {entry['confidence']} | Ref: {entry['ref']}
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
+            history_html = f"""
+<div style="border-left: 4px solid {border}; background: rgba(255,255,255,0.02); padding: 10px 15px; border-radius: 5px; margin-bottom: 10px;">
+    <div style="display:flex; justify-content: space-between; align-items: center;">
+        <div>
+            <strong style="font-size:1.1rem; color:#fff;">{entry['h_ent']}</strong> 
+            <span style="color:#888; font-size:0.8rem; margin-left:10px;">| {entry['emoji']} {entry['signal']}</span>
+        </div>
+        <strong style="color:{border};">{statut}</strong>
+    </div>
+    <div style="font-size:0.8rem; color:#666; margin-top:5px;">
+        Target: {entry['moy']}x | Conf: {entry['confidence']} | Ref: {entry['ref']}
+    </div>
+</div>
+            """
+            st.markdown(history_html, unsafe_allow_html=True)
