@@ -10,7 +10,7 @@ from sklearn.preprocessing import StandardScaler
 
 # ---------------- CONFIG ----------------
 
-st.set_page_config(page_title="ANDR-X AI V5 ⚡ REAL INTELLIGENCE", layout="centered")
+st.set_page_config(page_title="ANDR-X AI V5 ⚡ STABLE", layout="centered")
 
 st.markdown("""
 <style>
@@ -31,7 +31,7 @@ if "auth" not in st.session_state:
     st.session_state.auth = False
 
 if "ml_model" not in st.session_state:
-    st.session_state.ml_model = RandomForestClassifier(n_estimators=250)
+    st.session_state.ml_model = RandomForestClassifier(n_estimators=300)
 
 if "scaler" not in st.session_state:
     st.session_state.scaler = StandardScaler()
@@ -55,9 +55,9 @@ if not st.session_state.auth:
 
 # ---------------- TIME FEATURES ----------------
 
-def extract_time_features(h_act):
+def extract_time(h):
     try:
-        t = datetime.strptime(h_act, "%H:%M:%S")
+        t = datetime.strptime(h, "%H:%M:%S")
     except:
         tz = pytz.timezone('Indian/Antananarivo')
         t = datetime.now(tz)
@@ -65,7 +65,7 @@ def extract_time_features(h_act):
     return t, t.hour, t.minute
 
 
-# ---------------- AI DATASET ----------------
+# ---------------- DATASET ----------------
 
 def build_dataset(history):
     data = []
@@ -182,7 +182,7 @@ def show_heatmap():
 
 def run_prediction(hash_str, h_act, last_cote):
 
-    t_obj, hour, minute = extract_time_features(h_act)
+    t_obj, hour, minute = extract_time(h_act)
 
     hash_hex = hashlib.sha256(hash_str.encode()).hexdigest()
 
@@ -219,13 +219,13 @@ def run_prediction(hash_str, h_act, last_cote):
     max_raw = np.exp(np.percentile(log_sims, 95))
     min_raw = np.exp(np.percentile(log_sims, 10))
 
-    moy = round(moy_raw / 1.35, 2)
-    maxv = round(max_raw / 1.25, 2)
-    minv = round(min_raw / 1.5, 2)
+    cote_moy = round(moy_raw / 1.35, 2)
+    cote_max = round(max_raw / 1.25, 2)
+    cote_min = round(min_raw / 1.5, 2)
 
-    confidence = round((prob * moy) / 10, 1)
+    confidence = round((prob * cote_moy) / 10, 1)
 
-    # ENTRY TIME (HASH + TIME AI)
+    # ENTRY TIME (HASH CONTROLLED)
     h_seed = int(hash_hex[8:16], 16)
     h_seed2 = int(hash_hex[16:24], 16)
     h_seed3 = int(hash_hex[24:32], 16)
@@ -247,7 +247,7 @@ def run_prediction(hash_str, h_act, last_cote):
     # SIGNAL
     if last_cote > 3:
         signal, emoji, result = "❌ SKIP", "❌", 0
-    elif prob < 40 or moy < 2.2:
+    elif prob < 40 or cote_moy < 2.2:
         signal, emoji, result = "❌ SKIP", "❌", 0
     elif prob < 55:
         signal, emoji, result = "⏳ WAIT", "⏳", 0
@@ -255,8 +255,8 @@ def run_prediction(hash_str, h_act, last_cote):
         signal, emoji, result = "✅ BUY", "🎯", 1
 
     features = [
-        prob, moy, maxv,
-        minv, confidence,
+        prob, cote_moy, cote_max,
+        cote_min, confidence,
         hour, minute
     ]
 
@@ -268,13 +268,13 @@ def run_prediction(hash_str, h_act, last_cote):
         "h_ent": h_ent,
 
         "prob": prob,
-        "moy": moy,
-        "max": maxv,
-        "min": minv,
+        "moy": cote_moy,
+        "max": cote_max,
+        "min": cote_min,
 
-        "cote_min": minv,
-        "cote_moy": moy,
-        "cote_max": maxv,
+        "cote_min": cote_min,
+        "cote_moy": cote_moy,
+        "cote_max": cote_max,
 
         "confidence": confidence,
         "signal": signal,
@@ -289,7 +289,7 @@ def run_prediction(hash_str, h_act, last_cote):
 
 # ---------------- UI ----------------
 
-st.title("🚀 ANDR-X AI V5 ⚡ FULL INTELLIGENCE")
+st.title("🚀 ANDR-X AI V5 ⚡ STABLE FULL SYSTEM")
 
 tab1, tab2, tab3 = st.tabs(["📊 ANALYSE", "📜 HISTORIQUE", "📈 STATS"])
 
@@ -321,11 +321,11 @@ with tab1:
         c1, c2, c3 = st.columns(3)
 
         with c1:
-            st.markdown(f"📉 MIN\n{r['min']}x")
+            st.markdown(f"📉 MIN\n{r['cote_min']}x")
         with c2:
-            st.markdown(f"📊 MOY\n{r['moy']}x")
+            st.markdown(f"📊 MOY\n{r['cote_moy']}x")
         with c3:
-            st.markdown(f"🚀 MAX\n{r['max']}x")
+            st.markdown(f"🚀 MAX\n{r['cote_max']}x")
 
 
 with tab2:
@@ -339,6 +339,7 @@ with tab3:
 
 # ---------------- SIDEBAR ----------------
 
-st.sidebar.title("ANDR-X V5")
+st.sidebar.title("ANDR-X V5 STABLE")
+
 tz = pytz.timezone('Indian/Antananarivo')
 st.sidebar.write(datetime.now(tz).strftime("%d/%m/%Y %H:%M:%S"))
