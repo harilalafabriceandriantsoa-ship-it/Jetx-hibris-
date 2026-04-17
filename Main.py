@@ -10,7 +10,7 @@ from sklearn.preprocessing import StandardScaler
 
 # ---------------- CONFIG ----------------
 
-st.set_page_config(page_title="ANDR-X AI V6 ⚡ MARKET INTELLIGENCE", layout="centered")
+st.set_page_config(page_title="ANDR-X AI V6 ⚡ FINAL", layout="centered")
 
 st.markdown("""
 <style>
@@ -65,7 +65,7 @@ def extract_time(h):
     return t, t.hour, t.minute
 
 
-# ---------------- MARKET MODE (CÔTE REFERENCE) ----------------
+# ---------------- MARKET MODE ----------------
 
 def market_mode(last_cote):
     if last_cote < 1.5:
@@ -258,22 +258,17 @@ def run_prediction(hash_str, h_act, last_cote):
 
     h_ent = (t_obj + timedelta(seconds=delay)).strftime("%H:%M:%S")
 
-    # ---------------- MARKET MODE SIGNAL ----------------
-
+    # MARKET MODE
     mode = market_mode(last_cote)
 
     if mode == "RISK":
         signal, emoji, result = "SKIP", "❌", 0
-
     elif mode == "OPTIMAL" and prob >= 50:
         signal, emoji, result = "BUY", "🚀", 1
-
     elif mode == "STABLE" and prob >= 55:
         signal, emoji, result = "BUY", "🔥", 1
-
     elif mode == "LOW" and prob >= 60:
         signal, emoji, result = "BUY", "⚠️", 1
-
     else:
         signal, emoji, result = "SKIP", "❌", 0
 
@@ -308,7 +303,7 @@ def run_prediction(hash_str, h_act, last_cote):
 
 # ---------------- UI ----------------
 
-st.title("🚀 ANDR-X AI V6 ⚡ MARKET INTELLIGENCE")
+st.title("🚀 ANDR-X AI V6 FINAL SYSTEM")
 
 tab1, tab2, tab3 = st.tabs(["📊 ANALYSE", "📜 HISTORIQUE", "📈 STATS"])
 
@@ -329,22 +324,22 @@ with tab1:
         r = st.session_state.pred_log[-1]
 
         st.markdown(f"""
-# {r['emoji']} {r['signal']} ({r['mode']})
+# {r.get('emoji','')} {r.get('signal','')} ({r.get('mode','')})
 
-🎯 PROB: {r['prob']}%  
-🧠 CONF: {r['confidence']}  
-🤖 AI: {r['ai_score']}%  
-⏰ ENTRY: {r['h_ent']}
+🎯 PROB: {r.get('prob',0)}%  
+🧠 CONF: {r.get('confidence',0)}  
+🤖 AI: {r.get('ai_score','None')}%  
+⏰ ENTRY: {r.get('h_ent','--:--:--')}
 """)
 
         c1, c2, c3 = st.columns(3)
 
         with c1:
-            st.markdown(f"📉 MIN\n{r['cote_min']}x")
+            st.markdown(f"📉 MIN\n{r.get('cote_min',0)}x")
         with c2:
-            st.markdown(f"📊 MOY\n{r['cote_moy']}x")
+            st.markdown(f"📊 MOY\n{r.get('cote_moy',0)}x")
         with c3:
-            st.markdown(f"🚀 MAX\n{r['cote_max']}x")
+            st.markdown(f"🚀 MAX\n{r.get('cote_max',0)}x")
 
 with tab2:
     st.write(st.session_state.pred_log[::-1])
