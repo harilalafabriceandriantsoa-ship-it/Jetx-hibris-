@@ -9,7 +9,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import StandardScaler
 
 # ---------------- CONFIG & PREMIUM UI ----------------
-st.set_page_config(page_title="ANDR-X AI V12.5.1 ⚡ GOLD TERMINAL", layout="centered")
+st.set_page_config(page_title="ANDR-X AI V12.6 ⚡ GOLD TERMINAL", layout="centered")
 
 st.markdown("""
 <style>
@@ -39,37 +39,42 @@ st.markdown("""
         backdrop-filter: blur(10px);
     }
     
+    /* COTE GRID FIX */
     .cote-grid {
         display: flex;
         justify-content: space-around;
         margin: 20px 0;
+        gap: 10px;
     }
     .cote-box {
-        background: rgba(0,0,0,0.4);
+        background: rgba(0,0,0,0.5);
         border: 1px solid rgba(0,255,204,0.3);
-        padding: 15px;
+        padding: 12px 5px;
         border-radius: 12px;
-        width: 30%;
+        width: 32%;
     }
-    .cote-box span { font-size: 0.7rem; color: #888; display: block; margin-bottom: 5px; text-transform: uppercase;}
-    .cote-box strong { font-size: 1.4rem; font-family: 'Orbitron', sans-serif; color: #fff;}
+    .cote-box span { font-size: 0.65rem; color: #888; display: block; margin-bottom: 5px; text-transform: uppercase;}
+    .cote-box strong { font-size: 1.2rem; font-family: 'Orbitron', sans-serif; color: #fff; display: block;}
     
+    /* TIME GRID */
     .time-grid {
         display: flex;
         justify-content: space-around;
         margin-top: 20px;
+        gap: 8px;
     }
     .time-box {
         background: #001111;
         border: 1px solid rgba(0,255,204,0.4);
-        padding: 10px;
+        padding: 10px 5px;
         border-radius: 8px;
         text-align: center;
-        width: 30%;
+        width: 32%;
     }
     .time-box span { font-size: 0.7rem; color: #888; display: block;}
-    .time-box strong { font-size: 1.1rem; font-family: 'Orbitron', sans-serif;}
+    .time-box strong { font-size: 1rem; font-family: 'Orbitron', sans-serif;}
 
+    /* INPUT STYLING - WHITE BG / BLACK TEXT */
     .stTextInput>div>div>input, .stNumberInput>div>div>input {
         background-color: #ffffff !important;
         color: #000000 !important;
@@ -88,14 +93,14 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# ---------------- SESSION STATE ----------------
+# ---------------- SESSION ----------------
 if "pred_log" not in st.session_state: st.session_state.pred_log = []
 if "auth" not in st.session_state: st.session_state.auth = False
 if "ml_model" not in st.session_state: st.session_state.ml_model = RandomForestClassifier(n_estimators=150)
 if "ml_ready" not in st.session_state: st.session_state.ml_ready = False
 if "rl_score" not in st.session_state: st.session_state.rl_score = {"win": 0, "lose": 0}
 
-# ---------------- CORE LOGIC ----------------
+# ---------------- FUNCTIONS ----------------
 def reset_history():
     st.session_state.pred_log = []
     st.session_state.rl_score = {"win": 0, "lose": 0}
@@ -103,23 +108,14 @@ def reset_history():
 
 def ultra_sync_delay(t_obj, raw_delay):
     server_tick = 6
-    t_seconds = t_obj.hour*3600 + t_obj.minute*60 + t_obj.second
-    phase = t_seconds % server_tick
+    t_sec = t_obj.hour*3600 + t_obj.minute*60 + t_obj.second
+    phase = t_sec % server_tick
     aligned = raw_delay - phase
     if phase >= 4: aligned -= 1
     elif phase <= 1: aligned += 1
     if aligned < 12: aligned += server_tick * 2
     return aligned
 
-def compute_entry_window(t_obj, final_delay):
-    base_time = t_obj + timedelta(seconds=final_delay)
-    return {
-        "main": base_time.strftime("%H:%M:%S"),
-        "early": (base_time - timedelta(seconds=2)).strftime("%H:%M:%S"),
-        "late": (base_time + timedelta(seconds=2)).strftime("%H:%M:%S")
-    }
-
-# ---------------- AI ENGINE ----------------
 def train_ai():
     data = []
     for h in st.session_state.pred_log:
@@ -128,12 +124,11 @@ def train_ai():
     if len(data) >= 5:
         try:
             df = pd.DataFrame(data, columns=["prob","moy","max","ref","conf","label"])
-            X = df.drop("label", axis=1)
-            y = df["label"]
+            X = df.drop("label", axis=1); y = df["label"]
             scaler = StandardScaler()
-            X_scaled = scaler.fit_transform(X)
+            X_s = scaler.fit_transform(X)
             model = RandomForestClassifier(n_estimators=150)
-            model.fit(X_scaled, y)
+            model.fit(X_s, y)
             st.session_state.ml_model, st.session_state.scaler, st.session_state.ml_ready = model, scaler, True
         except: pass
 
@@ -141,113 +136,103 @@ def run_prediction(hash_str, h_act, last_cote):
     try: t_obj = datetime.strptime(h_act, "%H:%M:%S")
     except: t_obj = datetime.now(pytz.timezone('Indian/Antananarivo'))
 
-    hash_hex = hashlib.sha256(hash_str.encode()).hexdigest()
-    hash_int = int(hash_hex[:10], 16)
-    np.random.seed(hash_int % (2**32))
+    h_hex = hashlib.sha256(hash_str.encode()).hexdigest()
+    h_int = int(h_hex[:10], 16)
+    np.random.seed(h_int % (2**32))
 
-    threshold_adj = 15 if last_cote < 1.5 else -5 if last_cote > 2.5 else 5
-    base_val = (int(hash_hex[10:15], 16) % 100) / 20 + 1.2
-    sims = np.random.lognormal(mean=np.log(base_val), sigma=0.35, size=15000)
+    # CALC LOGIC
+    base_val = (int(h_hex[10:15], 16) % 100) / 20 + 1.25
+    sims = np.random.lognormal(mean=np.log(base_val), sigma=0.38, size=15000)
     
     prob = round(len([s for s in sims if s >= 2.0])/15000 * 100, 1)
-    moy = round(np.mean(sims) * (1 + (last_cote/20)), 2)
-    min_v, max_v = round(moy * 0.7, 2), round(moy * 1.8, 2)
-    confidence = round((prob * moy) / 10, 1)
+    moy = round(np.mean(sims) * (1 + (last_cote/18)), 2)
     
+    # FIXING MIN COTE (Never zero)
+    min_v = round(max(1.20, moy * 0.65), 2)
+    max_v = round(moy * 1.9, 2)
+    
+    confidence = round((prob * moy) / 10, 1)
     total = st.session_state.rl_score["win"] + st.session_state.rl_score["lose"]
-    if total > 0: confidence = round(confidence * (0.8 + (st.session_state.rl_score["win"]/total)), 1)
+    if total > 0: confidence = round(confidence * (0.85 + (st.session_state.rl_score["win"]/total)), 1)
 
-    final_delay = ultra_sync_delay(t_obj, 20 + (hash_int % 15))
-    times = compute_entry_window(t_obj, final_delay)
+    f_delay = ultra_sync_delay(t_obj, 20 + (h_int % 15))
+    e_time = t_obj + timedelta(seconds=f_delay)
 
-    if confidence > (85 + threshold_adj): sig, emo, col = "ULTRA SNIPER", "🔥", "#ff00cc"
-    elif confidence > (70 + threshold_adj): sig, emo, col = "STRONG BUY", "🎯", "#00ffcc"
+    if confidence > 90: sig, emo, col = "ULTRA SNIPER", "🔥", "#ff00cc"
+    elif confidence > 65: sig, emo, col = "STRONG BUY", "🎯", "#00ffcc"
     else: sig, emo, col = "WAITING / SKIP", "⏳", "#ffcc00"
 
     return {
-        "h_ent": times["main"], "h_early": times["early"], "h_late": times["late"],
+        "h_ent": e_time.strftime("%H:%M:%S"),
+        "h_early": (e_time - timedelta(seconds=2)).strftime("%H:%M:%S"),
+        "h_late": (e_time + timedelta(seconds=2)).strftime("%H:%M:%S"),
         "min": min_v, "moy": moy, "max": max_v, "prob": prob, "confidence": confidence,
         "signal": sig, "emoji": emo, "color": col, "ref_raw": last_cote, "result": None
     }
 
-# ---------------- LOGIN ----------------
+# ---------------- UI ----------------
 if not st.session_state.auth:
-    st.markdown("<h1>⚡ ANDR-X V12.5 LOGIN</h1>", unsafe_allow_html=True)
-    col1, col2, col3 = st.columns([1,2,1])
-    with col2:
-        pwd = st.text_input("🔐 ACCESS CODE", type="password")
-        if st.button("ACTIVATE TERMINAL"):
-            if pwd == "2026": st.session_state.auth = True; st.rerun()
+    st.markdown("<h1>⚡ ANDR-X LOGIN</h1>", unsafe_allow_html=True)
+    pwd = st.text_input("🔐 ACCESS CODE", type="password")
+    if st.button("ACTIVATE"):
+        if pwd == "2026": st.session_state.auth = True; st.rerun()
     st.stop()
 
-# ---------------- UI MAIN ----------------
 with st.sidebar:
     st.markdown("### ⚙️ SYSTEM")
     st.write(f"WINS: {st.session_state.rl_score['win']} | LOSS: {st.session_state.rl_score['lose']}")
     if st.button("🗑️ RESET SESSION"): reset_history()
 
-st.markdown("<h1>🚀 JET X ANDR-GOLD V12.5</h1>", unsafe_allow_html=True)
-tab1, tab2 = st.tabs(["📊 LIVE ANALYSE", "📜 HISTORY"])
+st.markdown("<h1>🚀 JET X ANDR-GOLD V12.6</h1>", unsafe_allow_html=True)
+t1, t2 = st.tabs(["📊 ANALYSE", "📜 HISTORY"])
 
-with tab1:
-    hash_in = st.text_input("🔑 SERVER HASH")
-    h_in = st.text_input("⏰ ROUND TIME (HH:MM:SS)")
-    l_cote = st.number_input("📉 LAST COTE (REFERENCE)", value=1.50, step=0.1)
+with t1:
+    h_in = st.text_input("🔑 SERVER HASH")
+    time_in = st.text_input("⏰ ROUND TIME (HH:MM:SS)")
+    l_c = st.number_input("📉 LAST COTE", value=1.50, step=0.1)
 
-    if st.button("🔥 EXECUTE GOLD ENGINE"):
-        if hash_in and h_in:
-            res = run_prediction(hash_in, h_in, l_cote)
-            st.session_state.pred_log.append(res)
-            train_ai()
-            st.rerun()
+    if st.button("🔥 EXECUTE ENGINE"):
+        if h_in and time_in:
+            res = run_prediction(h_in, time_in, l_c)
+            st.session_state.pred_log.append(res); train_ai(); st.rerun()
 
     if st.session_state.pred_log:
         r = st.session_state.pred_log[-1]
-        # FIKAMBANANA SAFE (Using .get to avoid KeyError)
-        m_val = r.get('min', '0.00')
-        mo_val = r.get('moy', '0.00')
-        mx_val = r.get('max', '0.00')
-        
         st.markdown(f"""
-        <div class="result-card" style="border-color: {r.get('color','#00ffcc')};">
-            <h2 style="color: {r.get('color','#00ffcc')}; margin:0;">{r.get('emoji','')} {r.get('signal','--')}</h2>
-            <p style="color:#888; font-size:0.8rem;">PROB: {r.get('prob',0)}% | CONFIDENCE: {r.get('confidence',0)}</p>
+        <div class="result-card" style="border-color: {r['color']};">
+            <h2 style="color: {r['color']}; margin:0;">{r['emoji']} {r['signal']}</h2>
+            <p style="color:#888; font-size:0.85rem; margin-top:5px;">PROB: {r['prob']}% | CONFIDENCE: {r['confidence']}</p>
             <div class="cote-grid">
-                <div class="cote-box"><span>Cote Min</span><strong>{m_val}x</strong></div>
+                <div class="cote-box"><span>Min</span><strong>{r['min']}x</strong></div>
                 <div class="cote-box" style="border-color:#00ffcc; background:rgba(0,255,204,0.1);">
-                    <span style="color:#00ffcc;">Target Moyen</span><strong style="color:#00ffcc;">{mo_val}x</strong>
+                    <span style="color:#00ffcc;">Target</span><strong style="color:#00ffcc;">{r['moy']}x</strong>
                 </div>
-                <div class="cote-box"><span>Cote Max</span><strong style="color:#ff00cc;">{mx_val}x</strong></div>
+                <div class="cote-box"><span>Max</span><strong>{r['max']}x</strong></div>
             </div>
             <div class="time-grid">
-                <div class="time-box"><span>🟢 EARLY</span><strong style="color:#00ffcc;">{r.get('h_early','--')}</strong></div>
-                <div class="time-box" style="border-color:#ff00cc; transform:scale(1.1);">
-                    <span style="color:#ff00cc;">⚡ MAIN ENTRY</span><strong style="color:#ff00cc;">{r.get('h_ent','--')}</strong>
+                <div class="time-box"><span>🟢 EARLY</span><strong style="color:#00ffcc;">{r['h_early']}</strong></div>
+                <div class="time-box" style="border-color:#ff00cc; transform:scale(1.05);">
+                    <span style="color:#ff00cc;">⚡ MAIN</span><strong style="color:#ff00cc;">{r['h_ent']}</strong>
                 </div>
-                <div class="time-box"><span>🔵 LATE</span><strong style="color:#0088ff;">{r.get('h_late','--')}</strong></div>
+                <div class="time-box"><span>🔵 LATE</span><strong style="color:#0088ff;">{r['h_late']}</strong></div>
             </div>
         </div>
         """, unsafe_allow_html=True)
-
         c1, c2 = st.columns(2)
-        with c1:
-            if st.button("✅ WIN"):
-                st.session_state.pred_log[-1]["result"] = "win"
-                st.session_state.rl_score["win"] += 1
-                train_ai(); st.rerun()
-        with c2:
-            if st.button("❌ LOSE"):
-                st.session_state.pred_log[-1]["result"] = "lose"
-                st.session_state.rl_score["lose"] += 1
-                train_ai(); st.rerun()
+        if c1.button("✅ WIN"):
+            st.session_state.pred_log[-1]["result"] = "win"
+            st.session_state.rl_score["win"] += 1; train_ai(); st.rerun()
+        if c2.button("❌ LOSE"):
+            st.session_state.pred_log[-1]["result"] = "lose"
+            st.session_state.rl_score["lose"] += 1; train_ai(); st.rerun()
 
-with tab2:
+with t2:
     for e in reversed(st.session_state.pred_log):
-        res_txt = e.get('result', 'PENDING')
-        color = "#00ffcc" if res_txt=="win" else "#ff4d4d" if res_txt=="lose" else "#888"
+        res_t = e.get('result', 'PENDING')
+        clr = "#00ffcc" if res_t=="win" else "#ff4d4d" if res_t=="lose" else "#888"
         st.markdown(f"""
-        <div style="border-left: 4px solid {color}; background:rgba(255,255,255,0.02); padding:10px; margin-bottom:5px; border-radius:5px;">
-            <strong style="color:#fff;">{e.get('h_ent','--')}</strong> | {e.get('signal','--')} | Target: {e.get('moy','0')}x 
-            <span style="float:right; color:{color};">{res_txt}</span>
+        <div style="border-left:4px solid {clr}; background:rgba(255,255,255,0.02); padding:10px; margin-bottom:5px;">
+            <strong style="color:#fff;">{e['h_ent']}</strong> | {e['signal']} | {e['moy']}x 
+            <span style="float:right; color:{clr};">{res_t}</span>
         </div>
         """, unsafe_allow_html=True)
