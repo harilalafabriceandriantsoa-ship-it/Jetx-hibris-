@@ -87,65 +87,113 @@ def train_ai():
     data = []
     for h in st.session_state.pred_log:
         if h.get("result") is not None:
-            data.append([h["prob"], h["moy"], h["max"], float(h["ref_raw"]), h["confidence"], 1 if h["result"] == "win" else 0])
+            data.append([
+                h["prob"], h["moy"], h["max"],
+                float(h["ref_raw"]),
+                h["confidence"],
+                1 if h["result"] == "win" else 0
+            ])
+
     if len(data) >= 5:
         try:
             df = pd.DataFrame(data, columns=["prob","moy","max","ref","conf","label"])
             X, y = df.drop("label", axis=1), df["label"]
             st.session_state.ml_model.fit(X, y)
-        except: pass
+        except:
+            pass
 
 # ---------------- V13 ENGINE ----------------
 def v13_ultra_delay(t_obj, h_hex, h_int, last_cote):
     h_a, h_b = int(h_hex[8:14], 16), int(h_hex[14:20], 16)
     h_c, h_d = int(h_hex[20:26], 16), int(h_hex[26:32], 16)
+
     base = 18 + (h_int % 25)
     layers = (h_a % 19) + (h_b % 13) + (h_c % 11) + (h_d % 7)
+
     t_sec = t_obj.hour * 3600 + t_obj.minute * 60 + t_obj.second
     entropy = (t_sec % 90) // 3
+
     rl_bias = 0
     total = st.session_state.rl_score["win"] + st.session_state.rl_score["lose"]
-    if total > 0: rl_bias = int((st.session_state.rl_score["win"] / total) * 10)
+    if total > 0:
+        rl_bias = int((st.session_state.rl_score["win"] / total) * 10)
+
     final = base + layers + entropy + rl_bias + (int(last_cote * 3) % 17)
     res = final + ((h_a % 5) - (h_c % 4))
+
     return max(12, min(110, res))
 
+# ---------------- MAIN ENGINE ----------------
 def run_prediction(hash_str, h_act, last_cote):
-    try: t_obj = datetime.strptime(h_act, "%H:%M:%S")
-    except: t_obj = datetime.now()
+    try:
+        t_obj = datetime.strptime(h_act, "%H:%M:%S")
+    except:
+        t_obj = datetime.now(pytz.timezone('Indian/Antananarivo'))
+
     h_hex = hashlib.sha256(hash_str.encode()).hexdigest()
     h_int = int(h_hex[:10], 16)
     np.random.seed(h_int % (2**32))
+
     base_val = (int(h_hex[10:15], 16) % 100) / 20 + 1.25
     sims = np.random.lognormal(mean=np.log(base_val), sigma=0.38, size=15000)
+
     prob = round(len([s for s in sims if s >= 2.0]) / 15000 * 100, 1)
     moy = round(np.mean(sims) * (1 + (last_cote / 18)), 2)
+
     conf = round((prob * moy) / 10, 1)
-    
+
     delay = v13_ultra_delay(t_obj, h_hex, h_int, last_cote)
     e_time = t_obj + timedelta(seconds=delay)
 
-    if conf > 90: sig, emo, col = "ULTRA SNIPER", "🔥", "#ff00cc"
-    elif conf > 65: sig, emo, col = "STRONG BUY", "🎯", "#00ffcc"
-    else: sig, emo, col = "WAITING / SKIP", "⏳", "#ffcc00"
+    # ---------------- COTE ADAPTIVE ENGINE (NEW FIX) ----------------
+    volatility = np.std(sims)
+    momentum = np.log1p(prob) / 10
+    hash_boost = (h_int % 7) * 0.01
+
+    base_min = moy * (0.55 + (volatility % 0.10))
+    base_max = moy * (1.60 + momentum)
+
+    min_cote = round(max(1.10, base_min + hash_boost), 2)
+    moy_cote = round(moy, 2)
+    max_cote = round(base_max + hash_boost, 2)
+
+    if conf > 90:
+        sig, emo, col = "ULTRA SNIPER", "🔥", "#ff00cc"
+    elif conf > 65:
+        sig, emo, col = "STRONG BUY", "🎯", "#00ffcc"
+    else:
+        sig, emo, col = "WAITING / SKIP", "⏳", "#ffcc00"
 
     return {
         "h_ent": e_time.strftime("%H:%M:%S"),
         "h_early": (e_time - timedelta(seconds=2)).strftime("%H:%M:%S"),
         "h_late": (e_time + timedelta(seconds=2)).strftime("%H:%M:%S"),
-        "min": round(max(1.20, moy * 0.65), 2), "moy": moy, "max": round(moy * 1.9, 2),
-        "prob": prob, "confidence": conf, "signal": sig, "emoji": emo, "color": col, 
-        "ref_raw": last_cote, "result": None
+
+        # FIXED COTE SYSTEM
+        "min": min_cote,
+        "moy": moy_cote,
+        "max": max_cote,
+
+        "prob": prob,
+        "confidence": conf,
+        "signal": sig,
+        "emoji": emo,
+        "color": col,
+        "ref_raw": last_cote,
+        "result": None
     }
 
 # ---------------- UI ----------------
 if not st.session_state.auth:
     st.markdown("<h1>⚡ ANDR-X LOGIN</h1>", unsafe_allow_html=True)
     if st.text_input("🔐 ACCESS CODE", type="password") == "2026":
-        if st.button("ACTIVATE"): st.session_state.auth = True; st.rerun()
+        if st.button("ACTIVATE"):
+            st.session_state.auth = True
+            st.rerun()
     st.stop()
 
 st.markdown("<h1>🚀 JET X ANDR-GOLD V12.6</h1>", unsafe_allow_html=True)
+
 t1, t2 = st.tabs(["📊 ANALYSE", "📜 HISTORY"])
 
 with t1:
@@ -156,10 +204,12 @@ with t1:
     if st.button("🔥 EXECUTE ENGINE"):
         if h_in and t_in:
             st.session_state.pred_log.append(run_prediction(h_in, t_in, l_c))
-            train_ai(); st.rerun()
+            train_ai()
+            st.rerun()
 
     if st.session_state.pred_log:
         r = st.session_state.pred_log[-1]
+
         st.markdown(f"""
         <div class="result-card" style="border-color: {r['color']};">
             <h2 style="color: {r['color']}; margin:0;">{r['emoji']} {r['signal']}</h2>
@@ -169,16 +219,13 @@ with t1:
                 <div class="time-box"><span>EARLY</span><strong>{r['h_early']}</strong></div>
                 <div class="time-box"><span>LATE</span><strong>{r['h_late']}</strong></div>
             </div>
+            <div class="time-grid">
+                <div class="time-box"><span>MIN</span><strong>{r['min']}</strong></div>
+                <div class="time-box"><span>MOY</span><strong>{r['moy']}</strong></div>
+                <div class="time-box"><span>MAX</span><strong>{r['max']}</strong></div>
+            </div>
         </div>
         """, unsafe_allow_html=True)
-
-        c1, c2 = st.columns(2)
-        if c1.button("✅ WIN"):
-            st.session_state.pred_log[-1]["result"] = "win"
-            st.session_state.rl_score["win"] += 1; train_ai(); st.rerun()
-        if c2.button("❌ LOSE"):
-            st.session_state.pred_log[-1]["result"] = "lose"
-            st.session_state.rl_score["lose"] += 1; train_ai(); st.rerun()
 
 with t2:
     for e in reversed(st.session_state.pred_log):
@@ -187,4 +234,5 @@ with t2:
 with st.sidebar:
     st.markdown("### ⚙️ SYSTEM")
     st.write(f"WINS: {st.session_state.rl_score['win']} | LOSS: {st.session_state.rl_score['lose']}")
-    if st.button("🗑️ RESET SESSION"): reset_history()
+    if st.button("🗑️ RESET SESSION"):
+        reset_history()
