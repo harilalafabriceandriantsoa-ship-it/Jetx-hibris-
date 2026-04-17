@@ -43,7 +43,7 @@ if "ml_ready" not in st.session_state:
 # ---------------- LOGIN ----------------
 
 if not st.session_state.auth:
-    st.title("⚡ ANDR-X AI V5 REAL TERMINAL")
+    st.title("⚡ ANDR-X AI V5 TERMINAL")
     pwd = st.text_input("🔐 SECURITY CODE", type="password")
 
     if st.button("ACTIVATE SYSTEM"):
@@ -65,19 +65,25 @@ def extract_time_features(h_act):
     return t, t.hour, t.minute
 
 
-# ---------------- DATASET ----------------
+# ---------------- AI DATASET ----------------
 
 def build_dataset(history):
     data = []
 
     for h in history:
         try:
-            if all(k in h for k in ["prob","moy","max","ref","confidence","result","hour","minute"]):
+            if all(k in h for k in [
+                "prob","moy","max",
+                "cote_min","cote_moy","cote_max",
+                "confidence","result","hour","minute"
+            ]):
                 data.append([
                     h["prob"],
                     h["moy"],
                     h["max"],
-                    h["ref"],
+                    h["cote_min"],
+                    h["cote_moy"],
+                    h["cote_max"],
                     h["confidence"],
                     h["hour"],
                     h["minute"],
@@ -91,7 +97,11 @@ def build_dataset(history):
 
     return pd.DataFrame(
         data,
-        columns=["prob","moy","max","ref","conf","hour","minute","label"]
+        columns=[
+            "prob","moy","max",
+            "cmin","cmoy","cmax",
+            "conf","hour","minute","label"
+        ]
     )
 
 
@@ -124,13 +134,21 @@ def ai_predict(features):
     return round(st.session_state.ml_model.predict_proba(X)[0][1] * 100, 1)
 
 
-# ---------------- BACKTEST TIME ----------------
+# ---------------- BACKTEST ----------------
+
+def winrate():
+    logs = st.session_state.pred_log
+    if len(logs) == 0:
+        return 0
+
+    win = sum([1 for x in logs if x["result"] == 1])
+    return round((win / len(logs)) * 100, 2)
+
 
 def hourly_stats():
-    logs = st.session_state.pred_log
     stats = {}
 
-    for h in logs:
+    for h in st.session_state.pred_log:
         hour = h.get("hour", 0)
 
         if hour not in stats:
@@ -147,7 +165,7 @@ def show_heatmap():
 
     st.subheader("📈 TIME WINRATE HEATMAP")
 
-    if len(stats) == 0:
+    if not stats:
         st.info("Mbola tsisy data")
         return
 
@@ -157,18 +175,15 @@ def show_heatmap():
 
         rate = round((win/total)*100,2) if total > 0 else 0
 
-        st.write(f"🕐 {h}h → {rate}% | trades: {total}")
+        st.write(f"🕐 {h}h → {rate}% | {total} trades")
 
 
 # ---------------- ENGINE ----------------
 
 def run_prediction(hash_str, h_act, last_cote):
 
-    tz = pytz.timezone('Indian/Antananarivo')
-
     t_obj, hour, minute = extract_time_features(h_act)
 
-    # HASH CORE
     hash_hex = hashlib.sha256(hash_str.encode()).hexdigest()
 
     seed = int(hash_hex[:16], 16) % (2**32 - 1)
@@ -177,10 +192,8 @@ def run_prediction(hash_str, h_act, last_cote):
     hash_int = int(hash_hex[:8], 16) % 1000
     hash_norm = (hash_int / 100) + 1.1
 
-    # TIME FACTOR
     time_factor = (hour * 60 + minute) % 300 / 300
 
-    # CYCLE
     cycle = (
         0.8 if last_cote < 1.5 else
         1.0 if last_cote < 1.8 else
@@ -196,16 +209,23 @@ def run_prediction(hash_str, h_act, last_cote):
     sigma = 0.2 + (hash_norm / 12)
 
     sims = np.random.lognormal(np.log(base), sigma, 14000)
-    success = np.sum(sims >= 3.0)
 
+    success = np.sum(sims >= 3.0)
     prob = round(success / 14000 * 100, 1)
 
-    moy = round(np.exp(np.mean(np.log(sims + 1))) / 1.35, 2)
-    maxv = round(np.exp(np.percentile(np.log(sims + 1), 95)) / 1.25, 2)
+    log_sims = np.log(sims + 1)
+
+    moy_raw = np.exp(np.mean(log_sims))
+    max_raw = np.exp(np.percentile(log_sims, 95))
+    min_raw = np.exp(np.percentile(log_sims, 10))
+
+    moy = round(moy_raw / 1.35, 2)
+    maxv = round(max_raw / 1.25, 2)
+    minv = round(min_raw / 1.5, 2)
 
     confidence = round((prob * moy) / 10, 1)
 
-    # ENTRY TIME (HASH + TIME AI CONTROLLED)
+    # ENTRY TIME (HASH + TIME AI)
     h_seed = int(hash_hex[8:16], 16)
     h_seed2 = int(hash_hex[16:24], 16)
     h_seed3 = int(hash_hex[24:32], 16)
@@ -234,43 +254,44 @@ def run_prediction(hash_str, h_act, last_cote):
     else:
         signal, emoji, result = "✅ BUY", "🎯", 1
 
-    features = [prob, moy, maxv, ref_val, confidence, hour, minute]
+    features = [
+        prob, moy, maxv,
+        minv, confidence,
+        hour, minute
+    ]
+
     ai_score = ai_predict(features)
 
     return {
         "hash": hash_str[:10] + "...",
         "h_act": h_act,
         "h_ent": h_ent,
+
         "prob": prob,
         "moy": moy,
         "max": maxv,
-        "ref": round(ref_val,2),
+        "min": minv,
+
+        "cote_min": minv,
+        "cote_moy": moy,
+        "cote_max": maxv,
+
         "confidence": confidence,
         "signal": signal,
         "emoji": emoji,
         "ai_score": ai_score,
+
         "result": result,
         "hour": hour,
         "minute": minute
     }
 
 
-# ---------------- WINRATE ----------------
-
-def winrate():
-    logs = st.session_state.pred_log
-    if len(logs) == 0:
-        return 0
-
-    win = sum([1 for x in logs if x["result"] == 1])
-    return round((win / len(logs)) * 100, 2)
-
-
 # ---------------- UI ----------------
 
-st.title("🚀 ANDR-X AI V5 ⚡ REAL TIME INTELLIGENCE")
+st.title("🚀 ANDR-X AI V5 ⚡ FULL INTELLIGENCE")
 
-tab1, tab2, tab3 = st.tabs(["📊 ANALYSE", "📜 HISTORIQUE", "📈 TIME AI"])
+tab1, tab2, tab3 = st.tabs(["📊 ANALYSE", "📜 HISTORIQUE", "📈 STATS"])
 
 with tab1:
 
@@ -278,7 +299,7 @@ with tab1:
     h_in = st.text_input("⏰ HEURE (HH:MM:SS)")
     last_cote = st.number_input("📉 CÔTE PRÉCÉDENTE", value=1.5)
 
-    if st.button("🚀 RUN ANALYSIS"):
+    if st.button("🚀 RUN"):
         if hash_in and h_in:
             res = run_prediction(hash_in, h_in, last_cote)
             st.session_state.pred_log.append(res)
@@ -297,12 +318,24 @@ with tab1:
 ⏰ ENTRY: {r['h_ent']}
 """)
 
+        c1, c2, c3 = st.columns(3)
+
+        with c1:
+            st.markdown(f"📉 MIN\n{r['min']}x")
+        with c2:
+            st.markdown(f"📊 MOY\n{r['moy']}x")
+        with c3:
+            st.markdown(f"🚀 MAX\n{r['max']}x")
+
+
 with tab2:
     st.write(st.session_state.pred_log[::-1])
+
 
 with tab3:
     st.metric("WINRATE", f"{winrate()} %")
     show_heatmap()
+
 
 # ---------------- SIDEBAR ----------------
 
