@@ -1,4 +1,4 @@
-import streamlit as st 
+import streamlit as st
 import numpy as np
 import pandas as pd
 import hashlib
@@ -73,17 +73,34 @@ def entry_time_engine(hash_hex, base_time, cote):
 
     return entry
 
-# ---------------- TRAIN MODEL ----------------
+# ---------------- TRAIN MODEL (FIXED SAFE) ----------------
 
 def train_model():
 
-    if len(st.session_state.dataset) < 20:
+    if len(st.session_state.dataset) < 30:
         return
 
     data = np.array(st.session_state.dataset)
 
-    X = data[:, :6]
-    y = data[:, 6]
+    try:
+        X = data[:, :6]
+        y = data[:, 6]
+    except:
+        return
+
+    # CLEAN LABELS
+    try:
+        y = np.array([int(float(v)) for v in y])
+    except:
+        return
+
+    # must have 2 classes
+    if len(np.unique(y)) < 2:
+        return
+
+    # remove NaN safety
+    if np.isnan(X).any():
+        return
 
     model = RandomForestClassifier(
         n_estimators=300,
