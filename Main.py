@@ -106,7 +106,7 @@ def reset_history():
     st.session_state.rl_score = {"win": 0, "lose": 0}
     st.rerun()
 
-# ---------------- AI TRAIN ----------------
+# ---------------- TRAIN ----------------
 
 def train_ai():
     data = []
@@ -117,53 +117,43 @@ def train_ai():
     if len(data) >= 5:
         try:
             df = pd.DataFrame(data, columns=["prob","moy","max","ref","conf","label"])
-            X = df.drop("label", axis=1); y = df["label"]
+            X = df.drop("label", axis=1)
+            y = df["label"]
             scaler = StandardScaler()
             X_s = scaler.fit_transform(X)
             model = RandomForestClassifier(n_estimators=150)
             model.fit(X_s, y)
-            st.session_state.ml_model, st.session_state.scaler, st.session_state.ml_ready = model, scaler, True
+            st.session_state.ml_model = model
+            st.session_state.scaler = scaler
+            st.session_state.ml_ready = True
         except:
             pass
 
-# ---------------- V13 ULTRA TIME ENGINE (ONLY FIX) ----------------
+# ---------------- SAFE V13 TIME ENGINE FIX ----------------
 
-def v13_ultra_delay(t_obj, h_hex, h_int, last_cote):
+def safe_ultra_delay(t_obj, h_hex, h_int, last_cote):
 
-    hash_time_a = int(h_hex[8:14], 16)
-    hash_time_b = int(h_hex[14:20], 16)
-    hash_time_c = int(h_hex[20:26], 16)
-    hash_time_d = int(h_hex[26:32], 16)
+    base = 18 + (h_int % 25)
 
-    base_delay = 18 + (h_int % 25)
+    a = int(h_hex[8:14], 16) % 19
+    b = int(h_hex[14:20], 16) % 13
+    c = int(h_hex[20:26], 16) % 11
+    d = int(h_hex[26:32], 16) % 7
 
-    layer_1 = hash_time_a % 19
-    layer_2 = hash_time_b % 13
-    layer_3 = hash_time_c % 11
-    layer_4 = hash_time_d % 7
+    t_sec = t_obj.hour*3600 + t_obj.minute*60 + t_obj.second
+    phase = (t_sec % 90) // 3
 
-    t_sec = t_obj.hour * 3600 + t_obj.minute * 60 + t_obj.second
-    phase_entropy = (t_sec % 90) // 3
+    bias = int(last_cote * 3) % 10
 
-    rl_bias = 0
-    total_rl = st.session_state.rl_score["win"] + st.session_state.rl_score["lose"]
-    if total_rl > 0:
-        rl_bias = int((st.session_state.rl_score["win"] / total_rl) * 10)
+    delay = base + a + b + c + d + phase + bias
 
-    ref_bias = int(last_cote * 3) % 17
+    # 🔥 FIX: avoid stuck / too close timing
+    if delay < 12:
+        delay += 18
+    if delay > 120:
+        delay = 60 + (delay % 40)
 
-    raw_delay = base_delay + layer_1 + layer_2 + layer_3 + layer_4 + phase_entropy + rl_bias + ref_bias
-
-    micro = ((hash_time_a % 5) - (hash_time_c % 4))
-
-    final_delay = raw_delay + micro
-
-    if final_delay < 12:
-        final_delay += 18
-    elif final_delay > 110:
-        final_delay = 60 + (final_delay % 30)
-
-    return final_delay
+    return delay
 
 # ---------------- ENGINE ----------------
 
@@ -193,9 +183,13 @@ def run_prediction(hash_str, h_act, last_cote):
     if total > 0:
         confidence = round(confidence * (0.85 + (st.session_state.rl_score["win"] / total)), 1)
 
-    # ✅ V13 FIX APPLIED ONLY HERE
-    delay = v13_ultra_delay(t_obj, h_hex, h_int, last_cote)
+    # ✅ FIXED ENTRY TIME (NON BROKEN)
+    delay = safe_ultra_delay(t_obj, h_hex, h_int, last_cote)
+
     e_time = t_obj + timedelta(seconds=delay)
+
+    early = e_time - timedelta(seconds=2)
+    late = e_time + timedelta(seconds=2)
 
     if confidence > 90:
         sig, emo, col = "ULTRA SNIPER", "🔥", "#ff00cc"
@@ -206,8 +200,8 @@ def run_prediction(hash_str, h_act, last_cote):
 
     return {
         "h_ent": e_time.strftime("%H:%M:%S"),
-        "h_early": (e_time - timedelta(seconds=2)).strftime("%H:%M:%S"),
-        "h_late": (e_time + timedelta(seconds=2)).strftime("%H:%M:%S"),
+        "h_early": early.strftime("%H:%M:%S"),
+        "h_late": late.strftime("%H:%M:%S"),
         "min": min_v,
         "moy": moy,
         "max": max_v,
@@ -220,7 +214,7 @@ def run_prediction(hash_str, h_act, last_cote):
         "result": None
     }
 
-# ---------------- UI (UNCHANGED) ----------------
+# ---------------- UI ----------------
 
 if not st.session_state.auth:
     st.markdown("<h1>⚡ ANDR-X LOGIN</h1>", unsafe_allow_html=True)
@@ -230,12 +224,6 @@ if not st.session_state.auth:
             st.session_state.auth = True
             st.rerun()
     st.stop()
-
-with st.sidebar:
-    st.markdown("### ⚙️ SYSTEM")
-    st.write(f"WINS: {st.session_state.rl_score['win']} | LOSS: {st.session_state.rl_score['lose']}")
-    if st.button("🗑️ RESET SESSION"):
-        reset_history()
 
 st.markdown("<h1>🚀 JET X ANDR-GOLD V12.6</h1>", unsafe_allow_html=True)
 
@@ -255,10 +243,10 @@ with t1:
 
     if st.session_state.pred_log:
         r = st.session_state.pred_log[-1]
+
         st.markdown(f"""
-        <div class="result-card" style="border-color: {r['color']};">
-            <h2 style="color: {r['color']}; margin:0;">{r['emoji']} {r['signal']}</h2>
-            <p style="color:#888;">PROB: {r['prob']}% | CONFIDENCE: {r['confidence']}</p>
+        <div class="result-card" style="border-color:{r['color']}">
+            <h2>{r['emoji']} {r['signal']}</h2>
 
             <div class="time-grid">
                 <div class="time-box"><span>ENTRY</span><strong>{r['h_ent']}</strong></div>
@@ -267,19 +255,6 @@ with t1:
             </div>
         </div>
         """, unsafe_allow_html=True)
-
-        c1, c2 = st.columns(2)
-        if c1.button("✅ WIN"):
-            st.session_state.pred_log[-1]["result"] = "win"
-            st.session_state.rl_score["win"] += 1
-            train_ai()
-            st.rerun()
-
-        if c2.button("❌ LOSE"):
-            st.session_state.pred_log[-1]["result"] = "lose"
-            st.session_state.rl_score["lose"] += 1
-            train_ai()
-            st.rerun()
 
 with t2:
     for e in reversed(st.session_state.pred_log):
