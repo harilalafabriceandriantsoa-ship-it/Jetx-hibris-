@@ -2,14 +2,14 @@ import streamlit as st
 import numpy as np
 import pandas as pd
 import hashlib
-from datetime import datetime
+from datetime import datetime, timedelta
 import pytz
 
 from sklearn.ensemble import RandomForestClassifier
 
 # ---------------- CONFIG ----------------
 
-st.set_page_config(page_title="ANDR-X AI V12 FULL ML FIXED", layout="centered")
+st.set_page_config(page_title="ANDR-X AI V12 FULL FIXED", layout="centered")
 
 st.markdown("""
 <style>
@@ -57,7 +57,26 @@ def build_features(prob, moy, maxv, minv, conf, cote):
 
     return [prob, moy, maxv, minv, conf, cote, score]
 
-# ---------------- TRAIN ----------------
+# ---------------- ENTRY TIME ENGINE ----------------
+
+def entry_time_engine(hash_hex, base_time, cote):
+
+    seed = int(hash_hex[:10], 16)
+
+    micro_shift = seed % 60
+    market_shift = int(cote * 7)
+
+    final_shift = micro_shift + market_shift
+
+    if final_shift < 20:
+        final_shift = 20 + (final_shift % 10)
+
+    if final_shift > 80:
+        final_shift = 80 - (final_shift % 10)
+
+    return final_shift
+
+# ---------------- TRAIN MODEL ----------------
 
 def train_model():
 
@@ -100,7 +119,7 @@ def run_prediction(hash_input, time_input, cote):
 
     hash_hex = hashlib.sha256(hash_input.encode()).hexdigest()
 
-    # ---------------- FIXED SEED (NO ERROR) ----------------
+    # FIX SAFE SEED
     seed_value = int(hash_hex[:12], 16) & 0xffffffff
     np.random.seed(seed_value)
 
@@ -137,7 +156,12 @@ def run_prediction(hash_input, time_input, cote):
 
     spread = maxv - minv
 
-    # ---------------- LOGIC ----------------
+    # ---------------- ENTRY TIME ----------------
+
+    entry_seconds = entry_time_engine(hash_hex, t, cote)
+    entry_time = (t + timedelta(seconds=entry_seconds)).strftime("%H:%M:%S")
+
+    # ---------------- SIGNAL ----------------
 
     if spread > 5:
         signal = "❌ SKIP (RISK HIGH)"
@@ -161,7 +185,8 @@ def run_prediction(hash_input, time_input, cote):
         "min": minv,
         "conf": conf,
         "ai": ai_score,
-        "signal": signal
+        "signal": signal,
+        "entry_time": entry_time
     }
 
     st.session_state.history.append(result)
@@ -183,7 +208,7 @@ def winrate():
 
 # ---------------- UI ----------------
 
-st.title("🚀 ANDR-X AI V12 FULL ML FIXED SYSTEM")
+st.title("🚀 ANDR-X AI V12 FULL SYSTEM FIXED")
 
 hash_input = st.text_input("🔑 HASH")
 time_input = st.text_input("⏰ TIME (HH:MM:SS)")
@@ -210,7 +235,9 @@ if "last" in st.session_state:
 
 📊 MOY: {r['moy']}  
 🚀 MAX: {r['max']}  
-📉 MIN: {r['min']}
+📉 MIN: {r['min']}  
+
+⏰ ENTRY: {r['entry_time']}
 """)
 
 # ---------------- STATS ----------------
@@ -222,6 +249,4 @@ st.sidebar.metric("DATA SIZE", len(st.session_state.dataset))
 
 # ---------------- HISTORY ----------------
 
-st.subheader("📜 HISTORY")
-
-st.write(st.session_state.history[::-1])
+st.subheader("📜 HISTORY
