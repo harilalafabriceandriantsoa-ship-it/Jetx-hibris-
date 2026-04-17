@@ -139,13 +139,9 @@ def run_prediction(hash_str, h_act, last_cote):
 
     prob = round(len([s for s in sims if s >= 2.0]) / 15000 * 100, 1)
     moy = round(np.mean(sims) * (1 + (last_cote / 18)), 2)
-
     conf = round((prob * moy) / 10, 1)
 
-    delay = v13_ultra_delay(t_obj, h_hex, h_int, last_cote)
-    e_time = t_obj + timedelta(seconds=delay)
-
-    # ---------------- COTE ADAPTIVE ENGINE (NEW FIX) ----------------
+    # ---------------- COTE ADAPTIVE ----------------
     volatility = np.std(sims)
     momentum = np.log1p(prob) / 10
     hash_boost = (h_int % 7) * 0.01
@@ -157,10 +153,26 @@ def run_prediction(hash_str, h_act, last_cote):
     moy_cote = round(moy, 2)
     max_cote = round(base_max + hash_boost, 2)
 
-    if conf > 90:
+    # ---------------- 🔥 FIX: REFERENCE ↔ SIGNAL ALIGNMENT ----------------
+    ref_norm = (last_cote - 1.0) / 3.0
+    ref_norm = max(0, min(ref_norm, 1))
+
+    prob = prob * (0.85 + (1 - ref_norm))
+    conf = conf * (0.80 + ref_norm)
+
+    delay = v13_ultra_delay(t_obj, h_hex, h_int, last_cote)
+    e_time = t_obj + timedelta(seconds=delay)
+
+    # ---------------- FIX SIGNAL ----------------
+    if conf > 90 and last_cote <= 2.2:
         sig, emo, col = "ULTRA SNIPER", "🔥", "#ff00cc"
-    elif conf > 65:
+
+    elif conf > 70 and prob > 55 and last_cote <= 2.8:
         sig, emo, col = "STRONG BUY", "🎯", "#00ffcc"
+
+    elif last_cote > 3.0:
+        sig, emo, col = "SKIP (HIGH RISK)", "❌", "#ff4444"
+
     else:
         sig, emo, col = "WAITING / SKIP", "⏳", "#ffcc00"
 
@@ -169,13 +181,13 @@ def run_prediction(hash_str, h_act, last_cote):
         "h_early": (e_time - timedelta(seconds=2)).strftime("%H:%M:%S"),
         "h_late": (e_time + timedelta(seconds=2)).strftime("%H:%M:%S"),
 
-        # FIXED COTE SYSTEM
         "min": min_cote,
         "moy": moy_cote,
         "max": max_cote,
 
-        "prob": prob,
-        "confidence": conf,
+        "prob": round(prob, 1),
+        "confidence": round(conf, 1),
+
         "signal": sig,
         "emoji": emo,
         "color": col,
@@ -214,11 +226,13 @@ with t1:
         <div class="result-card" style="border-color: {r['color']};">
             <h2 style="color: {r['color']}; margin:0;">{r['emoji']} {r['signal']}</h2>
             <p style="color:#888;">PROB: {r['prob']}% | CONFIDENCE: {r['confidence']}</p>
+
             <div class="time-grid">
                 <div class="time-box"><span>ENTRY</span><strong>{r['h_ent']}</strong></div>
                 <div class="time-box"><span>EARLY</span><strong>{r['h_early']}</strong></div>
                 <div class="time-box"><span>LATE</span><strong>{r['h_late']}</strong></div>
             </div>
+
             <div class="time-grid">
                 <div class="time-box"><span>MIN</span><strong>{r['min']}</strong></div>
                 <div class="time-box"><span>MOY</span><strong>{r['moy']}</strong></div>
