@@ -2,7 +2,6 @@ import streamlit as st
 import numpy as np
 import hashlib
 from datetime import datetime, timedelta
-import pandas as pd
 import pytz
 
 from sklearn.ensemble import RandomForestClassifier
@@ -10,7 +9,7 @@ from sklearn.preprocessing import StandardScaler
 
 # ---------------- CONFIG ----------------
 
-st.set_page_config(page_title="ANDR-X AI V10 ⚡ ULTRA TIME", layout="centered")
+st.set_page_config(page_title="ANDR-X AI V11 ⚡ SMART LEARN", layout="centered")
 
 st.markdown("""
 <style>
@@ -30,6 +29,9 @@ if "pred_log" not in st.session_state:
 if "auth" not in st.session_state:
     st.session_state.auth = False
 
+if "win_memory" not in st.session_state:
+    st.session_state.win_memory = []
+
 if "ml_model" not in st.session_state:
     st.session_state.ml_model = RandomForestClassifier(n_estimators=300)
 
@@ -43,7 +45,7 @@ if "ml_ready" not in st.session_state:
 # ---------------- LOGIN ----------------
 
 if not st.session_state.auth:
-    st.title("⚡ ANDR-X AI V10 TERMINAL")
+    st.title("⚡ ANDR-X AI V11 TERMINAL")
     pwd = st.text_input("🔐 CODE", type="password")
 
     if st.button("ACTIVATE"):
@@ -82,39 +84,39 @@ def time_engine(hash_hex, hour, minute, second):
     return (micro + cycle + noise) / 100
 
 
-# ---------------- X3 DETECTOR ----------------
+# ---------------- LOSS FILTER ----------------
 
-def detect_x3(prob, moy, maxv, minv, confidence, last_cote, time_score):
+def loss_risk(prob, confidence, spread):
 
-    cond_prob = prob >= 55
-    cond_moy = moy >= 2.2
-    cond_max = maxv >= 3.2
-    cond_conf = confidence >= 12
+    risk = 0
 
-    spread = maxv - minv
-    cond_stable = 1.2 <= spread <= 4.5
+    if prob < 50:
+        risk += 2
+    if confidence < 10:
+        risk += 2
+    if spread > 5:
+        risk += 2
 
-    cond_market = 1.6 <= last_cote <= 2.6
-    cond_time = time_score >= 0.25
-    cond_realistic = prob <= 92
+    return risk >= 4
 
-    score = sum([
-        cond_prob,
-        cond_moy,
-        cond_max,
-        cond_conf,
-        cond_stable,
-        cond_market,
-        cond_time,
-        cond_realistic
-    ])
 
-    if score >= 7:
-        return "🔥 X3 STRONG", "🚀🔥", 1
-    elif score >= 5:
-        return "⚡ X3 POSSIBLE", "⚡", 0
-    else:
-        return None, None, None
+# ---------------- BEST ENTRY ----------------
+
+def best_entry_second(hash_hex, time_score, last_cote):
+
+    base = int(hash_hex[:6], 16) % 60
+    boost = int(time_score * 30)
+    market = int(last_cote * 10)
+
+    second = base + boost + market
+
+    if second < 25:
+        second = 25 + (second % 10)
+
+    if second > 75:
+        second = 75 - (second % 10)
+
+    return second
 
 
 # ---------------- ENGINE ----------------
@@ -145,58 +147,56 @@ def run_prediction(hash_str, h_act, last_cote):
 
     sims = np.random.lognormal(np.log(base), 0.25, 12000)
 
-    prob = round(np.mean(sims >= 3.0) * 100, 1)
-    prob = min(prob, 95)
+    # ---------------- PROBABILITY ----------------
+    raw_prob = np.mean(sims >= 3.0) * 100
+    prob = (raw_prob * 0.7) + (np.median(sims) * 3)
+    prob = max(5, min(prob, 88))
+    prob = round(prob, 1)
 
+    # ---------------- METRICS ----------------
     log_sims = np.log(sims + 1)
 
     moy = round(np.exp(np.mean(log_sims)) / 1.3, 2)
     maxv = round(np.exp(np.percentile(log_sims, 95)) / 1.2, 2)
     minv = round(np.exp(np.percentile(log_sims, 10)) / 1.4, 2)
 
-    confidence = round((prob * moy) / 10, 1)
-    confidence = min(confidence, 100)
+    volatility = np.std(sims)
 
-    # ---------------- ULTRA TIME (HASH + COTE REFERENCE) ----------------
-
-    hash_part = int(hash_hex[:6], 16) % 50          # 0–50 sec
-    ref_part = int(last_cote * 20)                  # influence cote
-    time_part = int(time_score * 40)                # influence timing
-
-    delay = hash_part + ref_part + time_part
-
-    # clamp intelligent
-    if delay < 30:
-        delay = 30 + (delay % 10)
-
-    if delay > 90:
-        delay = 90 - (delay % 10)
-
-    h_ent = (t_obj + timedelta(seconds=delay)).strftime("%H:%M:%S")
-
-    # ---------------- SIGNAL ----------------
-
-    signal, emoji, result = detect_x3(
-        prob,
-        moy,
-        maxv,
-        minv,
-        confidence,
-        last_cote,
-        time_score
+    confidence = (
+        prob * 0.5 +
+        moy * 10 +
+        (1 / (1 + volatility)) * 20
     )
 
-    if signal is None:
-        if prob >= 55:
-            signal, emoji, result = "BUY", "🎯", 1
-        elif prob >= 40:
-            signal, emoji, result = "POSSIBLE", "⏳", 0
+    confidence = round(min(confidence, 100), 1)
+
+    spread = maxv - minv
+
+    # ---------------- LOSS FILTER ----------------
+    if loss_risk(prob, confidence, spread):
+        signal = "SKIP"
+        emoji = "❌"
+        result = 0
+    else:
+
+        # ---------------- BEST ENTRY ----------------
+        entry_second = best_entry_second(hash_hex, time_score, last_cote)
+        h_ent = (t_obj + timedelta(seconds=entry_second)).strftime("%H:%M:%S")
+
+        # ---------------- SIGNAL ----------------
+        if prob >= 60 and confidence >= 15:
+            signal, emoji, result = "🔥 BUY", "🎯", 1
+        elif prob >= 45:
+            signal, emoji, result = "⚡ POSSIBLE", "⏳", 0
         else:
             signal, emoji, result = "SKIP", "❌", 0
 
+    # ---------------- UPDATE MEMORY ----------------
+    st.session_state.win_memory.append(result)
+
     return {
         "hash": hash_str[:10] + "...",
-        "h_ent": h_ent,
+        "h_ent": h_ent if not loss_risk(prob, confidence, spread) else "--:--:--",
 
         "prob": prob,
         "moy": moy,
@@ -208,16 +208,23 @@ def run_prediction(hash_str, h_act, last_cote):
         "emoji": emoji,
 
         "ai_score": None,
-
         "result": result,
         "hour": hour,
         "minute": minute
     }
 
 
+# ---------------- WINRATE ----------------
+
+def get_winrate():
+    if len(st.session_state.win_memory) == 0:
+        return 0
+    return round(sum(st.session_state.win_memory) / len(st.session_state.win_memory) * 100, 2)
+
+
 # ---------------- UI ----------------
 
-st.title("🚀 ANDR-X AI V10 ⚡ ULTRA TIME BALANCED")
+st.title("🚀 ANDR-X AI V11 ⚡ SMART LEARNING")
 
 tab1, tab2, tab3 = st.tabs(["📊 ANALYSE", "📜 HISTORIQUE", "📈 STATS"])
 
@@ -241,7 +248,6 @@ with tab1:
 
 🎯 PROB: {r.get('prob',0)}%  
 🧠 CONF: {r.get('confidence',0)}  
-🤖 AI: {r.get('ai_score','None')}%  
 ⏰ ENTRY: {r.get('h_ent','--:--:--')}
 """)
 
@@ -258,17 +264,14 @@ with tab2:
     st.write(st.session_state.pred_log[::-1])
 
 with tab3:
-    if len(st.session_state.pred_log) > 0:
-        win = sum([1 for x in st.session_state.pred_log if x["result"] == 1])
-        st.metric("WINRATE", f"{round(win/len(st.session_state.pred_log)*100,2)} %")
+    st.metric("WINRATE AI", f"{get_winrate()} %")
 
 # RESET
-
 if st.sidebar.button("🧹 RESET DATA"):
     st.session_state.pred_log = []
+    st.session_state.win_memory = []
     st.rerun()
 
 # CLOCK
-
 tz = pytz.timezone('Indian/Antananarivo')
 st.sidebar.write(datetime.now(tz).strftime("%d/%m/%Y %H:%M:%S"))
