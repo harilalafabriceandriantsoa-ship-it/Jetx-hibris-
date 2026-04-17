@@ -10,7 +10,7 @@ from sklearn.preprocessing import StandardScaler
 
 # ---------------- CONFIG ----------------
 
-st.set_page_config(page_title="ANDR-X AI V8 ⚡ RESTORED", layout="centered")
+st.set_page_config(page_title="ANDR-X AI V9 ⚡ ULTRA X3", layout="centered")
 
 st.markdown("""
 <style>
@@ -31,7 +31,7 @@ if "auth" not in st.session_state:
     st.session_state.auth = False
 
 if "ml_model" not in st.session_state:
-    st.session_state.ml_model = RandomForestClassifier(n_estimators=250)
+    st.session_state.ml_model = RandomForestClassifier(n_estimators=300)
 
 if "scaler" not in st.session_state:
     st.session_state.scaler = StandardScaler()
@@ -43,7 +43,7 @@ if "ml_ready" not in st.session_state:
 # ---------------- LOGIN ----------------
 
 if not st.session_state.auth:
-    st.title("⚡ ANDR-X AI V8 TERMINAL")
+    st.title("⚡ ANDR-X AI V9 TERMINAL")
     pwd = st.text_input("🔐 CODE", type="password")
 
     if st.button("ACTIVATE"):
@@ -65,7 +65,7 @@ def extract_time(h):
     return t, t.hour, t.minute, t.second
 
 
-# ---------------- TIME ENGINE (RESTORED + STRONG VARIATION) ----------------
+# ---------------- TIME ENGINE ----------------
 
 def time_engine(hash_hex, hour, minute, second):
 
@@ -82,21 +82,6 @@ def time_engine(hash_hex, hour, minute, second):
     return (micro + cycle + noise) / 100
 
 
-# ---------------- MARKET MODE ----------------
-
-def market_mode(last_cote):
-    if last_cote < 1.5:
-        return "LOW"
-    elif last_cote < 2.0:
-        return "STABLE"
-    elif last_cote <= 2.5:
-        return "OPTIMAL"
-    elif last_cote <= 3.0:
-        return "VOLATILE"
-    else:
-        return "RISK"
-
-
 # ---------------- AI SAFE ----------------
 
 def ai_predict(features):
@@ -109,6 +94,43 @@ def ai_predict(features):
         return round(st.session_state.ml_model.predict_proba(X)[0][1] * 100, 1)
     except:
         return None
+
+
+# ---------------- ULTRA X3 DETECTOR ----------------
+
+def detect_x3(prob, moy, maxv, minv, confidence, last_cote, time_score):
+
+    cond_prob = prob >= 55
+    cond_moy = moy >= 2.2
+    cond_max = maxv >= 3.2
+    cond_conf = confidence >= 12
+
+    spread = maxv - minv
+    cond_stable = spread >= 1.2 and spread <= 4.5
+
+    cond_market = 1.6 <= last_cote <= 2.6
+
+    cond_time = time_score >= 0.25
+
+    cond_realistic = prob <= 92
+
+    score = sum([
+        cond_prob,
+        cond_moy,
+        cond_max,
+        cond_conf,
+        cond_stable,
+        cond_market,
+        cond_time,
+        cond_realistic
+    ])
+
+    if score >= 7:
+        return "🔥 X3 STRONG", "🚀🔥", 1
+    elif score >= 5:
+        return "⚡ X3 POSSIBLE", "⚡", 0
+    else:
+        return None, None, None
 
 
 # ---------------- ENGINE ----------------
@@ -140,6 +162,7 @@ def run_prediction(hash_str, h_act, last_cote):
     sims = np.random.lognormal(np.log(base), 0.25, 12000)
 
     prob = round(np.mean(sims >= 3.0) * 100, 1)
+    prob = min(prob, 95)
 
     log_sims = np.log(sims + 1)
 
@@ -148,8 +171,9 @@ def run_prediction(hash_str, h_act, last_cote):
     minv = round(np.exp(np.percentile(log_sims, 10)) / 1.4, 2)
 
     confidence = round((prob * moy) / 10, 1)
+    confidence = min(confidence, 100)
 
-    # ---------------- ENTRY TIME (RESTORED FLEXIBLE WINDOW) ----------------
+    # ENTRY TIME
 
     delay = int(
         (hash_norm * 40) +
@@ -162,26 +186,25 @@ def run_prediction(hash_str, h_act, last_cote):
 
     h_ent = (t_obj + timedelta(seconds=delay)).strftime("%H:%M:%S")
 
-    # ---------------- X3 RESTORED FREQUENCY (LIKE OLD VERSION FEEL) ----------------
+    # ---------------- SIGNAL VIA X3 DETECTOR ----------------
 
-    x3_zone = (
-        prob >= 48 and
-        moy >= 2.0 and
-        confidence >= 8
+    signal, emoji, result = detect_x3(
+        prob,
+        moy,
+        maxv,
+        minv,
+        confidence,
+        last_cote,
+        time_score
     )
 
-    if x3_zone:
-        signal, emoji, result = "🔥 X3 ZONE", "🚀🔥", 1
-    elif prob >= 52:
-        signal, emoji, result = "BUY", "🎯", 1
-    elif prob >= 40:
-        signal, emoji, result = "POSSIBLE", "⏳", 0
-    else:
-        signal, emoji, result = "SKIP", "❌", 0
-
-    features = [prob, moy, maxv, minv, confidence, hour, minute]
-
-    ai_score = ai_predict(features)
+    if signal is None:
+        if prob >= 55:
+            signal, emoji, result = "BUY", "🎯", 1
+        elif prob >= 40:
+            signal, emoji, result = "POSSIBLE", "⏳", 0
+        else:
+            signal, emoji, result = "SKIP", "❌", 0
 
     return {
         "hash": hash_str[:10] + "...",
@@ -195,7 +218,8 @@ def run_prediction(hash_str, h_act, last_cote):
         "confidence": confidence,
         "signal": signal,
         "emoji": emoji,
-        "ai_score": ai_score,
+
+        "ai_score": None,
 
         "result": result,
         "hour": hour,
@@ -205,7 +229,7 @@ def run_prediction(hash_str, h_act, last_cote):
 
 # ---------------- UI ----------------
 
-st.title("🚀 ANDR-X AI V8 ⚡ RESTORED MODE")
+st.title("🚀 ANDR-X AI V9 ⚡ ULTRA X3 ENGINE")
 
 tab1, tab2, tab3 = st.tabs(["📊 ANALYSE", "📜 HISTORIQUE", "📈 STATS"])
 
@@ -216,7 +240,7 @@ with tab1:
     last_cote = st.number_input("📉 CÔTE", value=1.5)
 
     if st.button("RUN"):
-        if hash_in and h_in:
+        if hash_in:
             res = run_prediction(hash_in, h_in, last_cote)
             st.session_state.pred_log.append(res)
             st.rerun()
@@ -225,22 +249,22 @@ with tab1:
         r = st.session_state.pred_log[-1]
 
         st.markdown(f"""
-# {r['emoji']} {r['signal']}
+# {r.get('emoji','')} {r.get('signal','')}
 
-🎯 PROB: {r['prob']}%  
-🧠 CONF: {r['confidence']}  
-🤖 AI: {r['ai_score']}%  
-⏰ ENTRY: {r['h_ent']}
+🎯 PROB: {r.get('prob',0)}%  
+🧠 CONF: {r.get('confidence',0)}  
+🤖 AI: {r.get('ai_score','None')}%  
+⏰ ENTRY: {r.get('h_ent','--:--:--')}
 """)
 
         c1, c2, c3 = st.columns(3)
 
         with c1:
-            st.markdown(f"📉 MIN\n{r['min']}x")
+            st.markdown(f"📉 MIN\n{r.get('min',0)}x")
         with c2:
-            st.markdown(f"📊 MOY\n{r['moy']}x")
+            st.markdown(f"📊 MOY\n{r.get('moy',0)}x")
         with c3:
-            st.markdown(f"🚀 MAX\n{r['max']}x")
+            st.markdown(f"🚀 MAX\n{r.get('max',0)}x")
 
 with tab2:
     st.write(st.session_state.pred_log[::-1])
@@ -249,3 +273,14 @@ with tab3:
     if len(st.session_state.pred_log) > 0:
         win = sum([1 for x in st.session_state.pred_log if x["result"] == 1])
         st.metric("WINRATE", f"{round(win/len(st.session_state.pred_log)*100,2)} %")
+
+# RESET
+
+if st.sidebar.button("🧹 RESET DATA"):
+    st.session_state.pred_log = []
+    st.rerun()
+
+# CLOCK
+
+tz = pytz.timezone('Indian/Antananarivo')
+st.sidebar.write(datetime.now(tz).strftime("%d/%m/%Y %H:%M:%S"))
