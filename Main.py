@@ -10,7 +10,7 @@ from sklearn.preprocessing import StandardScaler
 
 # ---------------- CONFIG ----------------
 
-st.set_page_config(page_title="ANDR-X AI V9 ⚡ ULTRA X3", layout="centered")
+st.set_page_config(page_title="ANDR-X AI V10 ⚡ ULTRA TIME", layout="centered")
 
 st.markdown("""
 <style>
@@ -43,7 +43,7 @@ if "ml_ready" not in st.session_state:
 # ---------------- LOGIN ----------------
 
 if not st.session_state.auth:
-    st.title("⚡ ANDR-X AI V9 TERMINAL")
+    st.title("⚡ ANDR-X AI V10 TERMINAL")
     pwd = st.text_input("🔐 CODE", type="password")
 
     if st.button("ACTIVATE"):
@@ -82,21 +82,7 @@ def time_engine(hash_hex, hour, minute, second):
     return (micro + cycle + noise) / 100
 
 
-# ---------------- AI SAFE ----------------
-
-def ai_predict(features):
-    if not st.session_state.ml_ready:
-        return None
-
-    try:
-        X = np.array(features).reshape(1, -1)
-        X = st.session_state.scaler.transform(X)
-        return round(st.session_state.ml_model.predict_proba(X)[0][1] * 100, 1)
-    except:
-        return None
-
-
-# ---------------- ULTRA X3 DETECTOR ----------------
+# ---------------- X3 DETECTOR ----------------
 
 def detect_x3(prob, moy, maxv, minv, confidence, last_cote, time_score):
 
@@ -106,12 +92,10 @@ def detect_x3(prob, moy, maxv, minv, confidence, last_cote, time_score):
     cond_conf = confidence >= 12
 
     spread = maxv - minv
-    cond_stable = spread >= 1.2 and spread <= 4.5
+    cond_stable = 1.2 <= spread <= 4.5
 
     cond_market = 1.6 <= last_cote <= 2.6
-
     cond_time = time_score >= 0.25
-
     cond_realistic = prob <= 92
 
     score = sum([
@@ -173,20 +157,24 @@ def run_prediction(hash_str, h_act, last_cote):
     confidence = round((prob * moy) / 10, 1)
     confidence = min(confidence, 100)
 
-    # ENTRY TIME
+    # ---------------- ULTRA TIME (HASH + COTE REFERENCE) ----------------
 
-    delay = int(
-        (hash_norm * 40) +
-        (time_score * 80) +
-        (minute % 20)
-    )
+    hash_part = int(hash_hex[:6], 16) % 50          # 0–50 sec
+    ref_part = int(last_cote * 20)                  # influence cote
+    time_part = int(time_score * 40)                # influence timing
 
-    if delay < 20:
-        delay += 20
+    delay = hash_part + ref_part + time_part
+
+    # clamp intelligent
+    if delay < 30:
+        delay = 30 + (delay % 10)
+
+    if delay > 90:
+        delay = 90 - (delay % 10)
 
     h_ent = (t_obj + timedelta(seconds=delay)).strftime("%H:%M:%S")
 
-    # ---------------- SIGNAL VIA X3 DETECTOR ----------------
+    # ---------------- SIGNAL ----------------
 
     signal, emoji, result = detect_x3(
         prob,
@@ -229,7 +217,7 @@ def run_prediction(hash_str, h_act, last_cote):
 
 # ---------------- UI ----------------
 
-st.title("🚀 ANDR-X AI V9 ⚡ ULTRA X3 ENGINE")
+st.title("🚀 ANDR-X AI V10 ⚡ ULTRA TIME BALANCED")
 
 tab1, tab2, tab3 = st.tabs(["📊 ANALYSE", "📜 HISTORIQUE", "📈 STATS"])
 
