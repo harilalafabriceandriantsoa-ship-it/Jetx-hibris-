@@ -100,7 +100,6 @@ def predict_v10_5(hash_str, h_act, last_cote):
     np.random.seed(hash_val % (2**32))
     
     # 2. DYNAMIC POWER BASED ON REF
-    # Raha latsaky ny 1.5 ny reference, ampidinina ny hery (norm)
     base_power = 1.0 if last_cote < 1.5 else 1.25
     norm = ((hash_val % 1000) / 1000) + base_power
     
@@ -118,7 +117,6 @@ def predict_v10_5(hash_str, h_act, last_cote):
     conf = round((prob * 0.6) + (hash_stability * 0.4), 1)
 
     # 5. STRICT ADAPTIVE SIGNAL LOGIC
-    # Raha ambany ny reference, miakatra +15 ny fetra (threshold)
     adj = 15 if last_cote < 1.50 else (5 if last_cote < 2.50 else -5)
     
     u_limit = 80 + adj
@@ -134,11 +132,33 @@ def predict_v10_5(hash_str, h_act, last_cote):
     else:
         sig, s_type, color = "🔴 NO ENTRY ❌", "wait", "#ff4d4d"
 
-    # 6. TIMING & DELAY
+    # 6. TIMING & DELAY (ULTRA PRECISION BOOSTED)
+
     sec = t_obj.hour*3600 + t_obj.minute*60 + t_obj.second
-    delay = ((int(h_hex[20:25], 16) % 30) + (sec % 15))
-    entry = t_obj + timedelta(seconds=(delay // 5) * 5 + 5)
-    
+
+    h1 = int(h_hex[20:25], 16)
+    h2 = int(h_hex[25:30], 16)
+    h3 = int(h_hex[30:35], 16)
+
+    base_delay = (
+        (h1 % 25) +
+        (h2 % 12) +
+        (sec % 20) +
+        int(norm * 4)
+    )
+
+    micro_adj = (h3 % 7)
+
+    raw_delay = base_delay + micro_adj
+
+    locked = (raw_delay // 5) * 5
+
+    stability = ((sec % 10) // 2) * 2
+
+    final_delay = locked + stability
+
+    entry = t_obj + timedelta(seconds=final_delay)
+
     return {
         "entry": entry.strftime("%H:%M:%S"), 
         "sniper": (entry + timedelta(seconds=20)).strftime("%H:%M:%S"),
