@@ -11,7 +11,6 @@ from sklearn.preprocessing import StandardScaler
 # ---------------- CONFIG & PREMIUM UI ----------------
 st.set_page_config(page_title="ANDR-X AI V13.2 ⚡ GOLD TERMINAL", layout="centered")
 
-# CSS futuristic ho an'ny endrika sy ny sary
 st.markdown("""
 <style>     
     @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Share+Tech+Mono&display=swap');
@@ -102,7 +101,6 @@ if st.button("🔥 EXECUTE ENGINE"):
 if st.session_state.pred_log:
     r = st.session_state.pred_log[-1]
     
-    # UI Display f-string fix mba hipoitra ho sary ny HTML
     st.markdown(f"""
     <div style="border: 2px solid {r['color']}; border-radius: 20px; padding: 20px; background: rgba(0, 20, 20, 0.8); text-align: center; margin-top: 15px;">
         <h2 style="color: {r['color']}; margin:0; font-family: 'Orbitron';">{r['emoji']} {r['signal']}</h2>
