@@ -7,14 +7,19 @@ import pytz
 
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import accuracy_score
 
 # ---------------- CONFIG ----------------
 
-st.set_page_config(page_title="ANDR-X AI V3 ⚡ TERMINAL", layout="centered")
+st.set_page_config(page_title="ANDR-X AI V4 ⚡ REAL ENGINE", layout="centered")
 
 st.markdown("""
-<style>     
-.stApp {background:#000; color:#00ffcc; font-family: monospace;}    
+<style>
+.stApp {
+    background:#000;
+    color:#00ffcc;
+    font-family: monospace;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -26,249 +31,257 @@ if "pred_log" not in st.session_state:
 if "auth" not in st.session_state:
     st.session_state.auth = False
 
-if "ml_model" not in st.session_state:
-    st.session_state.ml_model = RandomForestClassifier(n_estimators=120)
+if "model" not in st.session_state:
+    st.session_state.model = RandomForestClassifier(n_estimators=200, random_state=42)
 
-if "ml_ready" not in st.session_state:
-    st.session_state.ml_ready = False
+if "scaler" not in st.session_state:
+    st.session_state.scaler = StandardScaler()
 
+if "trained" not in st.session_state:
+    st.session_state.trained = False
 
 # ---------------- LOGIN ----------------
 
 if not st.session_state.auth:
-    st.title("⚡ ANDR-X AI V3 TERMINAL")
+    st.title("⚡ ANDR-X AI V4 REAL TERMINAL")
     pwd = st.text_input("🔐 SECURITY CODE", type="password")
 
     if st.button("ACTIVATE SYSTEM"):
         if pwd == "2026":
             st.session_state.auth = True
             st.rerun()
-
+        else:
+            st.error("CODE INCORRECT")
     st.stop()
 
+# ---------------- DATASET ----------------
 
-# ---------------- AI TRAIN ----------------
+def build_dataset(logs):
+    rows = []
 
-def build_dataset(history):
-    data = []
-
-    for h in history:
-        if all(k in h for k in ["prob", "moy", "max", "ref", "confidence", "signal"]):
-            data.append([
-                h["prob"],
-                h["moy"],
-                h["max"],
-                float(h["ref"]),
-                h["confidence"],
-                1 if "BUY" in h["signal"] else 0
+    for r in logs:
+        try:
+            rows.append([
+                r["prob"],
+                r["moy"],
+                r["max"],
+                r["ref"],
+                r["confidence"],
+                r["last_cote"],
+                r["label"]
             ])
+        except:
+            continue
 
-    if len(data) < 5:
+    if len(rows) < 8:
         return None
 
-    return pd.DataFrame(data, columns=["prob","moy","max","ref","conf","label"])
+    return pd.DataFrame(rows, columns=[
+        "prob", "moy", "max", "ref", "conf", "last_cote", "label"
+    ])
 
+# ---------------- TRAIN ----------------
 
-def train_ai():
+def train_model():
     df = build_dataset(st.session_state.pred_log)
     if df is None:
         return
 
-    try:
-        X = df.drop("label", axis=1)
-        y = df["label"]
+    X = df.drop("label", axis=1)
+    y = df["label"]
 
-        scaler = StandardScaler()
-        X_scaled = scaler.fit_transform(X)
+    X_scaled = st.session_state.scaler.fit_transform(X)
 
-        model = RandomForestClassifier(n_estimators=150)
-        model.fit(X_scaled, y)
+    model = RandomForestClassifier(
+        n_estimators=250,
+        max_depth=8,
+        random_state=42
+    )
 
-        st.session_state.ml_model = model
-        st.session_state.scaler = scaler
-        st.session_state.ml_ready = True
+    model.fit(X_scaled, y)
 
-    except:
-        pass
+    st.session_state.model = model
+    st.session_state.trained = True
 
+# ---------------- AI PREDICT ----------------
 
 def ai_predict(features):
-    if not st.session_state.ml_ready or "scaler" not in st.session_state:
+    if not st.session_state.trained:
         return None
 
     try:
         X = np.array(features).reshape(1, -1)
         X = st.session_state.scaler.transform(X)
-        return round(st.session_state.ml_model.predict_proba(X)[0][1] * 100, 1)
+
+        p = st.session_state.model.predict_proba(X)[0][1]
+        return round(p * 100, 2)
+
     except:
         return None
 
+# ---------------- ENGINE ----------------
 
-# ---------------- ENGINE FIXED ----------------
-
-def run_prediction(hash_str, h_act, last_cote):
+def run_engine(hash_str, h_act, last_cote):
 
     try:
-        t_obj = datetime.strptime(h_act, "%H:%M:%S")
+        t = datetime.strptime(h_act, "%H:%M:%S")
     except:
-        tz_mg = pytz.timezone('Indian/Antananarivo')
-        t_obj = datetime.now(tz_mg)
+        tz = pytz.timezone("Indian/Antananarivo")
+        t = datetime.now(tz)
 
-    seed_global = int(hashlib.sha256((hash_str + h_act).encode()).hexdigest(), 16) % (2**32)
-    np.random.seed(seed_global)
+    seed = int(hashlib.sha256((hash_str + h_act).encode()).hexdigest(), 16) % (2**32)
+    np.random.seed(seed)
 
-    hash_hex = hashlib.sha256(hash_str.encode()).hexdigest()
-    hash_int = int(hash_hex[:8], 16) % 1000
-    hash_norm = (hash_int / 100) + 1.1
+    h = hashlib.sha256(hash_str.encode()).hexdigest()
+    base_num = int(h[:8], 16) % 1000
+    hash_norm = (base_num / 100) + 1.1
 
-    # ✅ FIXED TIME CALC
-    t_seconds = t_obj.hour * 3600 + t_obj.minute * 60 + t_obj.second
-    time_factor = (t_seconds % 300) / 300
+    seconds = t.hour * 3600 + t.minute * 60 + t.second
+    time_factor = (seconds % 300) / 300
 
-    # cycle logic
-    if last_cote < 1.5:
-        cycle = 0.8
-    elif last_cote < 1.8:
-        cycle = 1.0
-    elif last_cote <= 2.5:
-        cycle = 1.3
-    elif last_cote <= 3:
-        cycle = 1.1
-    else:
-        cycle = 0.7
+    cycle = 1.2 if 1.5 <= last_cote <= 2.5 else 0.9
 
-    ref_val = 2.1 if hash_norm < 2 else 2.2 if hash_norm < 3 else 2.3
-    ref_val += time_factor * 0.2
+    base = hash_norm * cycle * (1 + time_factor)
 
-    base = hash_norm * ref_val * cycle * (1 + time_factor)
-    sigma = 0.25 + (hash_norm / 10)
+    sims = np.random.lognormal(mean=np.log(base), sigma=0.3, size=10000)
 
-    sims = np.random.lognormal(mean=np.log(base), sigma=sigma, size=15000)
+    prob = round(len([x for x in sims if x >= 3]) / 10000 * 100, 2)
 
-    success = [s for s in sims if s >= 3.0]
-    prob = round(len(success) / 15000 * 100, 1)
+    moy = round(np.mean(sims), 2)
+    maxv = round(np.percentile(sims, 95), 2)
 
-    moy_raw = np.exp(np.mean(np.log(sims + 1)))
-    max_raw = np.exp(np.percentile(np.log(sims + 1), 95))
+    confidence = round(prob * moy / 10, 2)
 
-    moy = round(moy_raw / 1.4, 2)
-    maxv = round(max_raw / 1.2, 2)
-
-    confidence = round((prob * moy) / 10, 1)
-
-    # ---------------- ENTRY TIME FIX (NOT FIXED ANYMORE) ----------------
-
-    hash_time = int(hash_hex[8:16], 16)
-    hash_time2 = int(hash_hex[16:24], 16)
-    hash_time3 = int(hash_hex[24:32], 16)
-
-    layer1, layer2, layer3 = hash_time % 30, hash_time2 % 15, hash_time3 % 8
-    cycle_boost = int(cycle * 5)
-    micro_precision = int((hash_norm % 1) * 8)
-    time_sync = (t_seconds % 60) // 10
-
-    # 🔥 FIX: ADD RANDOM JITTER (anti fixed time bug)
-    jitter = int((hash_int % 7) - 3)
-
-    delay = 20 + layer1 + layer2 + layer3 + cycle_boost + micro_precision + time_sync + jitter
-
-    if delay < 12:
-        delay += 15
-
-    h_ent = (t_obj + timedelta(seconds=delay)).strftime("%H:%M:%S")
-
-    # ---------------- SIGNAL FIXED ----------------
-
-    if last_cote > 3:
-        signal, emoji = "❌ SKIP", "❌"
-    elif prob < 45 or moy < 2.3:
-        signal, emoji = "❌ SKIP", "❌"
+    # SIGNAL
+    if prob < 40:
+        signal = 0
+        emoji = "❌ SKIP"
     elif prob < 60:
-        signal, emoji = "⏳ WAIT", "⏳"
-    elif confidence > 12:
-        signal, emoji = "🔥 STRONG BUY", "🔥🎯"
+        signal = 0
+        emoji = "⏳ WAIT"
     else:
-        signal, emoji = "🎯 BUY", "🎯"
+        signal = 1
+        emoji = "🔥 BUY"
 
-    features = [prob, moy, maxv, ref_val, confidence]
+    ref = round(base, 2)
+
+    # AI FEATURES
+    features = [prob, moy, maxv, ref, confidence, last_cote]
     ai_score = ai_predict(features)
 
+    # ENTRY TIME SIM
+    delay = int((prob + confidence) % 60)
+    h_entry = (t + timedelta(seconds=delay)).strftime("%H:%M:%S")
+
     return {
+        "hash": hash_str[:10],
         "h_act": h_act,
-        "h_ent": h_ent,
-        "hash": hash_str[:10] + "...",
-        "ref": round(ref_val, 2),
+        "h_entry": h_entry,
         "prob": prob,
         "moy": moy,
         "max": maxv,
         "confidence": confidence,
+        "ref": ref,
+        "last_cote": last_cote,
         "signal": signal,
         "emoji": emoji,
-        "ai_score": ai_score
+        "ai_score": ai_score,
+        "label": signal
     }
 
+# ---------------- BACKTEST ----------------
+
+def backtest():
+    if len(st.session_state.pred_log) < 5:
+        return None
+
+    df = pd.DataFrame(st.session_state.pred_log)
+
+    y_true = df["label"]
+    y_pred = df["signal"]
+
+    acc = accuracy_score(y_true, y_pred)
+
+    winrate = round((df["signal"].sum() / len(df)) * 100, 2)
+
+    return acc, winrate
 
 # ---------------- UI ----------------
 
-st.title("🚀 ANDR-X AI V3 ⚡ TERMINAL")
+st.title("🚀 ANDR-X AI V4 ⚡ REAL ENGINE")
 
-tab1, tab2, tab3 = st.tabs(["📊 ANALYSE", "📜 HISTORIQUE", "📖 GUIDE"])
+tab1, tab2, tab3 = st.tabs(["📊 LIVE", "📜 HISTORY", "📈 BACKTEST"])
+
+# ---------------- TAB 1 ----------------
 
 with tab1:
 
     hash_in = st.text_input("🔑 HASH")
-    h_in = st.text_input("⏰ HEURE (HH:MM:SS)")
-    last_cote = st.number_input("📉 CÔTE PRÉCÉDENTE", value=1.5)
+    h_in = st.text_input("⏰ TIME (HH:MM:SS)")
+    last_cote = st.number_input("📉 LAST COTE", value=1.8)
 
-    if st.button("🚀 RUN ANALYSIS"):
+    if st.button("🚀 RUN ENGINE"):
         if hash_in and h_in:
-            res = run_prediction(hash_in, h_in, last_cote)
+
+            res = run_engine(hash_in, h_in, last_cote)
             st.session_state.pred_log.append(res)
-            train_ai()
+
+            train_model()
             st.rerun()
-        else:
-            st.warning("Fenoy ny HASH sy ny HEURE azafady!")
 
     if st.session_state.pred_log:
+
         r = st.session_state.pred_log[-1]
 
         st.markdown(f"""
-        # {r.get('emoji','🎯')} SIGNAL: {r.get('signal','ANALYSE...')}
+### {r['emoji']}
 
-        🎯 PROB X3+: **{r.get('prob',0)}%**
-        🧠 CONFIDENCE: **{r.get('confidence',0)}**
-        🤖 AI SCORE: **{r.get('ai_score','None')}%**
-        ⏰ HEURE D’ENTRÉE: **{r.get('h_ent','--:--:--')}**
-        """)
+- 🎯 Prob: {r['prob']}%
+- 🧠 Confidence: {r['confidence']}
+- 🤖 AI Score: {r['ai_score']}
+- ⏰ Entry: {r['h_entry']}
+- 📊 Ref: {r['ref']}
+""")
 
-        m1, m2, m3 = st.columns(3)
-        with m1:
-            st.markdown(f"📉 MIN\n**{round(r.get('moy',0)/1.5,2)}x**")
-        with m2:
-            st.markdown(f"📊 MOYEN\n**{r.get('moy',0)}x**")
-        with m3:
-            st.markdown(f"🚀 MAX\n**{r.get('max',0)}x**")
+        c1, c2, c3 = st.columns(3)
 
+        with c1:
+            st.metric("MIN", round(r["moy"] / 1.5, 2))
+        with c2:
+            st.metric("AVG", r["moy"])
+        with c3:
+            st.metric("MAX", r["max"])
+
+# ---------------- TAB 2 ----------------
 
 with tab2:
-    st.write("📜 HISTORIQUE")
+    st.write("📜 HISTORY")
+
     if st.session_state.pred_log:
-        st.write(st.session_state.pred_log[::-1])
+        st.dataframe(pd.DataFrame(st.session_state.pred_log)[::-1])
     else:
-        st.info("Mbola tsisy historique.")
+        st.info("Empty history")
+
+# ---------------- TAB 3 ----------------
 
 with tab3:
-    st.markdown("""
-📖 ANDR-X AI V3 GUIDE 🎯
 
-🎯 CÔTE RÉFÉRENCE:
-1.80 → 2.50 = BEST ZONE X3+
+    st.write("📈 BACKTEST RESULT")
 
-⏰ HEURE:
-ENTRY = dynamic hash-based timing
-    """)
+    result = backtest()
 
-with st.sidebar:
-    st.markdown("⚡ ANDR-X AI V3")
-    tz_mg = pytz.timezone('Indian/Antananarivo')
-    st.markdown(datetime.now(tz_mg).strftime("%d/%m/%Y %H:%M:%S"))
+    if result:
+        acc, winrate = result
+
+        st.success(f"ACCURACY: {round(acc*100,2)}%")
+        st.success(f"WINRATE: {winrate}%")
+
+    else:
+        st.warning("Not enough data for backtest")
+
+# ---------------- SIDEBAR ----------------
+
+st.sidebar.markdown("⚡ ANDR-X V4 REAL AI")
+
+tz = pytz.timezone("Indian/Antananarivo")
+st.sidebar.markdown(datetime.now(tz).strftime("%d/%m/%Y %H:%M:%S"))
