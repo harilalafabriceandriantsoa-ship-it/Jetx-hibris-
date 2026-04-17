@@ -39,10 +39,6 @@ if "scaler" not in st.session_state:
 if "ml_ready" not in st.session_state:
     st.session_state.ml_ready = False
 
-if "win_history" not in st.session_state:
-    st.session_state.win_history = []
-
-
 # ---------------- LOGIN ----------------
 
 if not st.session_state.auth:
@@ -70,7 +66,7 @@ def build_dataset(history):
                     h["max"],
                     h["ref"],
                     h["confidence"],
-                    h["result"]  # REAL outcome
+                    h["result"]
                 ])
         except:
             continue
@@ -119,9 +115,12 @@ def run_prediction(hash_str, h_act, last_cote):
     except:
         t_obj = datetime.now(tz_mg)
 
-    # HASH CORE
+    # HASH
     hash_hex = hashlib.sha256(hash_str.encode()).hexdigest()
+
+    # SAFE SEED (FIX CRASH)
     seed = int(hash_hex[:16], 16)
+    seed = seed % (2**32 - 1)
     np.random.seed(seed)
 
     hash_int = int(hash_hex[:8], 16) % 1000
@@ -157,12 +156,12 @@ def run_prediction(hash_str, h_act, last_cote):
 
     confidence = round((prob * moy) / 10, 1)
 
-    # ---------------- ENTRY TIME (FIXED: HASH DRIVEN 100%) ----------------
+    # ---------------- ENTRY TIME (HASH DRIVEN = NOT FIXED) ----------------
+
     h_seed = int(hash_hex[8:16], 16)
     h_seed2 = int(hash_hex[16:24], 16)
     h_seed3 = int(hash_hex[24:32], 16)
 
-    # FULL HASH CONTROLLED TIME (no fixed offsets)
     delay = (
         (h_seed % 45) +
         (h_seed2 % 33) +
@@ -172,23 +171,20 @@ def run_prediction(hash_str, h_act, last_cote):
     )
 
     if delay < 25:
-        delay += 25  # safety minimum volatility
+        delay += 25
 
     h_ent = (t_obj + timedelta(seconds=delay)).strftime("%H:%M:%S")
 
     # ---------------- SIGNAL ----------------
+
     if last_cote > 3:
-        signal, emoji = "❌ SKIP", "❌"
-        result = 0
+        signal, emoji, result = "❌ SKIP", "❌", 0
     elif prob < 40 or moy < 2.2:
-        signal, emoji = "❌ SKIP", "❌"
-        result = 0
+        signal, emoji, result = "❌ SKIP", "❌", 0
     elif prob < 55:
-        signal, emoji = "⏳ WAIT", "⏳"
-        result = 0
+        signal, emoji, result = "⏳ WAIT", "⏳", 0
     else:
-        signal, emoji = "✅ BUY", "🎯"
-        result = 1
+        signal, emoji, result = "✅ BUY", "🎯", 1
 
     features = [prob, moy, maxv, ref_val, confidence]
     ai_score = ai_predict(features)
@@ -209,7 +205,7 @@ def run_prediction(hash_str, h_act, last_cote):
     }
 
 
-# ---------------- BACKTEST / WINRATE ----------------
+# ---------------- WINRATE ----------------
 
 def compute_winrate():
     logs = st.session_state.pred_log
@@ -240,7 +236,7 @@ with tab1:
             train_ai()
             st.rerun()
         else:
-            st.warning("Fenoy HASH + HEURE")
+            st.warning("Fenoy HASH sy HEURE")
 
     if st.session_state.pred_log:
         r = st.session_state.pred_log[-1]
@@ -276,20 +272,15 @@ with tab2:
 with tab3:
     st.write("📊 PERFORMANCE REAL AI")
 
-    winrate = compute_winrate()
-
-    st.metric("WINRATE", f"{winrate} %")
+    st.metric("WINRATE", f"{compute_winrate()} %")
     st.metric("TOTAL TRADES", len(st.session_state.pred_log))
 
     st.markdown("""
-📖 SYSTEM INFO:
-
-✔ ENTRY TIME = HASH CONTROLLED  
-✔ AI = REAL TRAINING ON OUTCOMES  
+✔ ENTRY TIME = HASH DRIVEN (NOT FIXED)  
+✔ AI = REAL LEARNING  
 ✔ BACKTEST = ACTIVE  
-✔ MODEL = RANDOM FOREST LEARNING
+✔ MODEL = RANDOM FOREST
 """)
-
 
 # ---------------- SIDEBAR ----------------
 
