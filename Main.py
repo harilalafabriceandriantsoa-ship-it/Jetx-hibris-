@@ -9,7 +9,7 @@ from sklearn.ensemble import RandomForestClassifier
 
 # ---------------- CONFIG ----------------
 
-st.set_page_config(page_title="ANDR-X AI V12 FULL ML", layout="centered")
+st.set_page_config(page_title="ANDR-X AI V12 FULL ML FIXED", layout="centered")
 
 st.markdown("""
 <style>
@@ -44,7 +44,7 @@ def get_time(h):
         tz = pytz.timezone("Indian/Antananarivo")
         return datetime.now(tz)
 
-# ---------------- FEATURES ENGINE ----------------
+# ---------------- FEATURES ----------------
 
 def build_features(prob, moy, maxv, minv, conf, cote):
 
@@ -57,7 +57,7 @@ def build_features(prob, moy, maxv, minv, conf, cote):
 
     return [prob, moy, maxv, minv, conf, cote, score]
 
-# ---------------- TRAIN AI ----------------
+# ---------------- TRAIN ----------------
 
 def train_model():
 
@@ -80,7 +80,7 @@ def train_model():
     st.session_state.model = model
     st.session_state.trained = True
 
-# ---------------- AI PREDICTION ----------------
+# ---------------- AI PREDICT ----------------
 
 def ai_predict(features):
 
@@ -92,7 +92,7 @@ def ai_predict(features):
     except:
         return None
 
-# ---------------- ENGINE SIMULATION ----------------
+# ---------------- ENGINE ----------------
 
 def run_prediction(hash_input, time_input, cote):
 
@@ -100,7 +100,9 @@ def run_prediction(hash_input, time_input, cote):
 
     hash_hex = hashlib.sha256(hash_input.encode()).hexdigest()
 
-    np.random.seed(int(hash_hex[:12], 16))
+    # ---------------- FIXED SEED (NO ERROR) ----------------
+    seed_value = int(hash_hex[:12], 16) & 0xffffffff
+    np.random.seed(seed_value)
 
     base = (int(hash_hex[:8], 16) % 1000) / 100 + 1.1
 
@@ -119,7 +121,7 @@ def run_prediction(hash_input, time_input, cote):
 
     conf = round((prob * moy) / 10, 1)
 
-    # ---------------- FEATURE ----------------
+    # ---------------- FEATURES ----------------
 
     features = build_features(prob, moy, maxv, minv, conf, cote)
 
@@ -127,19 +129,18 @@ def run_prediction(hash_input, time_input, cote):
 
     ai_score = ai_predict(features)
 
-    # label for training (simple heuristic)
     label = 1 if prob > 60 else 0
 
     st.session_state.dataset.append(features + [label])
 
     train_model()
 
-    # ---------------- DECISION LOGIC ----------------
-
     spread = maxv - minv
 
+    # ---------------- LOGIC ----------------
+
     if spread > 5:
-        signal = "❌ SKIP (HIGH RISK)"
+        signal = "❌ SKIP (RISK HIGH)"
 
     elif prob < 50:
         signal = "❌ SKIP (LOW PROB)"
@@ -182,7 +183,7 @@ def winrate():
 
 # ---------------- UI ----------------
 
-st.title("🚀 ANDR-X AI V12 FULL ML SYSTEM")
+st.title("🚀 ANDR-X AI V12 FULL ML FIXED SYSTEM")
 
 hash_input = st.text_input("🔑 HASH")
 time_input = st.text_input("⏰ TIME (HH:MM:SS)")
@@ -214,7 +215,7 @@ if "last" in st.session_state:
 
 # ---------------- STATS ----------------
 
-st.sidebar.markdown("📊 STATS SYSTEM")
+st.sidebar.markdown("📊 SYSTEM STATS")
 
 st.sidebar.metric("WINRATE AI", f"{winrate()} %")
 st.sidebar.metric("DATA SIZE", len(st.session_state.dataset))
