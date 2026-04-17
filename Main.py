@@ -10,7 +10,7 @@ from sklearn.preprocessing import StandardScaler
 
 # ---------------- CONFIG ----------------
 
-st.set_page_config(page_title="ANDR-X AI V5 ⚡ STABLE", layout="centered")
+st.set_page_config(page_title="ANDR-X AI V6 ⚡ MARKET INTELLIGENCE", layout="centered")
 
 st.markdown("""
 <style>
@@ -43,7 +43,7 @@ if "ml_ready" not in st.session_state:
 # ---------------- LOGIN ----------------
 
 if not st.session_state.auth:
-    st.title("⚡ ANDR-X AI V5 TERMINAL")
+    st.title("⚡ ANDR-X AI V6 TERMINAL")
     pwd = st.text_input("🔐 SECURITY CODE", type="password")
 
     if st.button("ACTIVATE SYSTEM"):
@@ -53,7 +53,7 @@ if not st.session_state.auth:
     st.stop()
 
 
-# ---------------- TIME FEATURES ----------------
+# ---------------- TIME ----------------
 
 def extract_time(h):
     try:
@@ -63,6 +63,21 @@ def extract_time(h):
         t = datetime.now(tz)
 
     return t, t.hour, t.minute
+
+
+# ---------------- MARKET MODE (CÔTE REFERENCE) ----------------
+
+def market_mode(last_cote):
+    if last_cote < 1.5:
+        return "LOW"
+    elif last_cote < 2.0:
+        return "STABLE"
+    elif last_cote <= 2.5:
+        return "OPTIMAL"
+    elif last_cote <= 3.0:
+        return "VOLATILE"
+    else:
+        return "RISK"
 
 
 # ---------------- DATASET ----------------
@@ -105,7 +120,7 @@ def build_dataset(history):
     )
 
 
-# ---------------- TRAIN AI ----------------
+# ---------------- AI TRAIN ----------------
 
 def train_ai():
     df = build_dataset(st.session_state.pred_log)
@@ -196,7 +211,7 @@ def run_prediction(hash_str, h_act, last_cote):
 
     cycle = (
         0.8 if last_cote < 1.5 else
-        1.0 if last_cote < 1.8 else
+        1.0 if last_cote < 2.0 else
         1.3 if last_cote <= 2.5 else
         1.1 if last_cote <= 3 else
         0.7
@@ -210,8 +225,7 @@ def run_prediction(hash_str, h_act, last_cote):
 
     sims = np.random.lognormal(np.log(base), sigma, 14000)
 
-    success = np.sum(sims >= 3.0)
-    prob = round(success / 14000 * 100, 1)
+    prob = round(np.sum(sims >= 3.0) / 14000 * 100, 1)
 
     log_sims = np.log(sims + 1)
 
@@ -225,7 +239,7 @@ def run_prediction(hash_str, h_act, last_cote):
 
     confidence = round((prob * cote_moy) / 10, 1)
 
-    # ENTRY TIME (HASH CONTROLLED)
+    # ENTRY TIME
     h_seed = int(hash_hex[8:16], 16)
     h_seed2 = int(hash_hex[16:24], 16)
     h_seed3 = int(hash_hex[24:32], 16)
@@ -244,22 +258,26 @@ def run_prediction(hash_str, h_act, last_cote):
 
     h_ent = (t_obj + timedelta(seconds=delay)).strftime("%H:%M:%S")
 
-    # SIGNAL
-    if last_cote > 3:
-        signal, emoji, result = "❌ SKIP", "❌", 0
-    elif prob < 40 or cote_moy < 2.2:
-        signal, emoji, result = "❌ SKIP", "❌", 0
-    elif prob < 55:
-        signal, emoji, result = "⏳ WAIT", "⏳", 0
+    # ---------------- MARKET MODE SIGNAL ----------------
+
+    mode = market_mode(last_cote)
+
+    if mode == "RISK":
+        signal, emoji, result = "SKIP", "❌", 0
+
+    elif mode == "OPTIMAL" and prob >= 50:
+        signal, emoji, result = "BUY", "🚀", 1
+
+    elif mode == "STABLE" and prob >= 55:
+        signal, emoji, result = "BUY", "🔥", 1
+
+    elif mode == "LOW" and prob >= 60:
+        signal, emoji, result = "BUY", "⚠️", 1
+
     else:
-        signal, emoji, result = "✅ BUY", "🎯", 1
+        signal, emoji, result = "SKIP", "❌", 0
 
-    features = [
-        prob, cote_moy, cote_max,
-        cote_min, confidence,
-        hour, minute
-    ]
-
+    features = [prob, cote_moy, cote_max, cote_min, confidence, hour, minute]
     ai_score = ai_predict(features)
 
     return {
@@ -283,20 +301,21 @@ def run_prediction(hash_str, h_act, last_cote):
 
         "result": result,
         "hour": hour,
-        "minute": minute
+        "minute": minute,
+        "mode": mode
     }
 
 
 # ---------------- UI ----------------
 
-st.title("🚀 ANDR-X AI V5 ⚡ STABLE FULL SYSTEM")
+st.title("🚀 ANDR-X AI V6 ⚡ MARKET INTELLIGENCE")
 
 tab1, tab2, tab3 = st.tabs(["📊 ANALYSE", "📜 HISTORIQUE", "📈 STATS"])
 
 with tab1:
 
     hash_in = st.text_input("🔑 HASH")
-    h_in = st.text_input("⏰ HEURE (HH:MM:SS)")
+    h_in = st.text_input("⏰ HEURE")
     last_cote = st.number_input("📉 CÔTE PRÉCÉDENTE", value=1.5)
 
     if st.button("🚀 RUN"):
@@ -310,7 +329,7 @@ with tab1:
         r = st.session_state.pred_log[-1]
 
         st.markdown(f"""
-# {r['emoji']} {r['signal']}
+# {r['emoji']} {r['signal']} ({r['mode']})
 
 🎯 PROB: {r['prob']}%  
 🧠 CONF: {r['confidence']}  
@@ -327,10 +346,8 @@ with tab1:
         with c3:
             st.markdown(f"🚀 MAX\n{r['cote_max']}x")
 
-
 with tab2:
     st.write(st.session_state.pred_log[::-1])
-
 
 with tab3:
     st.metric("WINRATE", f"{winrate()} %")
@@ -339,7 +356,6 @@ with tab3:
 
 # ---------------- SIDEBAR ----------------
 
-st.sidebar.title("ANDR-X V5 STABLE")
-
+st.sidebar.title("ANDR-X V6")
 tz = pytz.timezone('Indian/Antananarivo')
 st.sidebar.write(datetime.now(tz).strftime("%d/%m/%Y %H:%M:%S"))
