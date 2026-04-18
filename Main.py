@@ -1,6 +1,5 @@
 import streamlit as st
 import numpy as np
-import pandas as pd
 import hashlib
 from datetime import datetime, timedelta
 import pytz
@@ -45,9 +44,9 @@ if "trained" not in st.session_state:
 
 # ================= TIME =================
 
-def get_time(h):
+def get_time(t):
     try:
-        return datetime.strptime(h, "%H:%M:%S")
+        return datetime.strptime(t, "%H:%M:%S")
     except:
         tz = pytz.timezone("Indian/Antananarivo")
         return datetime.now(tz)
@@ -120,12 +119,12 @@ def run_prediction(hash_input, time_input, cote):
 
     t = get_time(time_input)
 
-    hash_hex = hashlib.sha256(hash_input.encode()).hexdigest()
+    h = hash_val(hash_input)
 
-    seed_value = int(hash_hex[:12], 16) & 0xffffffff
-    np.random.seed(seed_value)
+    seed = int(hashlib.sha256(hash_input.encode()).hexdigest()[:12], 16)
+    np.random.seed(seed & 0xffffffff)
 
-    base = (int(hash_hex[:8], 16) % 1000) / 100 + 1.1
+    base = (seed % 1000) / 100 + 1.1
 
     sims = np.random.lognormal(np.log(base), 0.25, 8000)
 
@@ -134,36 +133,34 @@ def run_prediction(hash_input, time_input, cote):
 
     log_sims = np.log(sims + 1)
 
-    moy = np.exp(np.mean(log_sims)) / 1.3
-    maxv = np.exp(np.percentile(log_sims, 95)) / 1.2
-    minv = np.exp(np.percentile(log_sims, 10)) / 1.4
+    moy = round(np.exp(np.mean(log_sims)) / 1.3, 2)
+    maxv = round(np.exp(np.percentile(log_sims, 95)) / 1.2, 2)
+    minv = round(np.exp(np.percentile(log_sims, 10)) / 1.4, 2)
 
-    moy = round(moy, 2)
-    maxv = round(maxv, 2)
-    minv = round(minv, 2)
+    spread = round(maxv - minv, 2)
 
-    spread = maxv - minv
-
-    # ================= CONF FIX (IMPORTANT) =================
-    conf = (prob * 0.6) + (moy * 20) - (spread * 2)
-    conf = round(np.clip(conf, 5, 95), 1)
+    conf = round((prob * 0.6) + (moy * 20) - (spread * 2), 1)
+    conf = max(5, min(conf, 95))
 
     features = build_features(prob, moy, maxv, minv, conf, cote)
 
     ai_score = ai_predict(features)
 
     label = 1 if prob > 60 else 0
+
     st.session_state.dataset.append(features + [label])
 
     train_model()
 
-    # ================= ENTRY TIME (FIXED) =================
-    entry_seconds = int(10 + (spread * 4) + abs(maxv - moy) * 3 + (prob * 0.2))
-    entry_seconds = np.clip(entry_seconds, 8, 90)
+    # ================= ENTRY TIME =================
 
-    entry_time = (t + timedelta(seconds=int(entry_seconds))).strftime("%H:%M:%S")
+    entry_seconds = int(10 + (spread * 4) + abs(maxv - moy) * 3 + (prob * 0.2))
+    entry_seconds = max(8, min(90, entry_seconds))
+
+    entry_time = (t + timedelta(seconds=entry_seconds)).strftime("%H:%M:%S")
 
     # ================= TIME STATS =================
+
     hour = t.hour
 
     if hour not in st.session_state.time_stats:
@@ -174,22 +171,22 @@ def run_prediction(hash_input, time_input, cote):
     if prob > 60:
         st.session_state.time_stats[hour]["wins"] += 1
 
-    # ================= SIGNAL (CLEAN LOGIC) =================
+    # ================= SIGNAL =================
 
     if ai_score is not None and ai_score >= 75 and prob >= 65:
-        signal = "🔥 ULTRA QUALITY ENTRY"
+        signal = "🔥 ULTRA ENTRY"
 
     elif prob >= 70 and spread <= 3.5:
-        signal = "🟢 STRONG SAFE ENTRY"
+        signal = "🟢 STRONG ENTRY"
 
     elif prob >= 55 and conf >= 60:
         signal = "⚡ MODERATE ENTRY"
 
     elif spread > 6:
-        signal = "❌ HIGH RISK - SKIP"
+        signal = "❌ HIGH RISK"
 
     else:
-        signal = "⏳ WAIT CONFIRMATION"
+        signal = "⏳ WAIT"
 
     result = {
         "prob": prob,
@@ -201,7 +198,7 @@ def run_prediction(hash_input, time_input, cote):
         "signal": signal,
         "entry_time": entry_time,
         "hour": hour,
-        "spread": round(spread, 2)
+        "spread": spread   # ✅ FIX IMPORTANT (NO KEY ERROR)
     }
 
     st.session_state.history.append(result)
@@ -237,13 +234,13 @@ def best_hours():
 
 st.title("🚀 ANDR-X AI V13 ULTRA FIXED")
 
-h = st.text_input("HASH")
-t = st.text_input("TIME (HH:MM:SS)")
-c = st.number_input("COTE", value=1.5)
+hash_input = st.text_input("HASH")
+time_input = st.text_input("TIME")
+cote = st.number_input("COTE", value=1.5)
 
 if st.button("RUN ANALYSIS"):
-    if h:
-        st.session_state.last = run_prediction(h, t, c)
+    if hash_input:
+        st.session_state.last = run_prediction(hash_input, time_input, cote)
 
 # ================= OUTPUT =================
 
@@ -253,7 +250,8 @@ if "last" in st.session_state:
 
     st.markdown(f"""
 <div class="box">
-<h3>{r['signal']}</h3>
+
+### {r['signal']}
 
 PROB: {r['prob']}%  
 CONF: {r['conf']}  
@@ -266,6 +264,7 @@ MIN: {r['min']}
 SPREAD: {r['spread']}  
 
 ENTRY: {r['entry_time']}
+
 </div>
 """, unsafe_allow_html=True)
 
