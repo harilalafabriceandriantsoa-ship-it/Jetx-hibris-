@@ -47,32 +47,37 @@ def get_time(h):
         tz = pytz.timezone("Indian/Antananarivo")
         return datetime.now(tz)
 
+# ================= HASH =================
+
+def hash_val(x):
+    h = hashlib.sha256(x.encode()).hexdigest()
+    return int(h[:10], 16) / 0xFFFFFFFFFF
+
 # ================= FEATURES =================
 
-def build_features(prob, moy, maxv, minv, conf, cote):
+def build_features(prob, moy, maxv, minv, conf, cote_ref):
 
     spread = maxv - minv
     stability = 1 / (1 + spread)
-    risk = spread * cote
+    risk = spread * cote_ref
     momentum = (prob * 0.4) + (conf * 0.6)
 
     score = (moy * 2) + momentum + (stability * 20) - risk
 
-    return [prob, moy, maxv, minv, conf, cote, score]
+    return [prob, moy, maxv, minv, conf, cote_ref, score]
 
-# ================= ENTRY TIME ENGINE =================
+# ================= ENTRY ENGINE =================
 
-def entry_time_engine(entropy, volatility, cote):
+def entry_engine(entropy, volatility, cote_ref):
 
-    base = 10
     delay = int(
-        base +
+        8 +
         (entropy * 35) +
         (volatility * 20) +
-        (cote * 2)
+        (cote_ref * 3)
     )
 
-    return max(5, min(delay, 70))
+    return max(5, min(delay, 75))
 
 # ================= TRAIN MODEL =================
 
@@ -83,8 +88,8 @@ def train_model():
 
     data = np.array(st.session_state.dataset)
 
-    X = data[:, :6]
-    y = data[:, 6]
+    X = data[:, :7]
+    y = data[:, 7]
 
     y = np.array([int(v) for v in y])
 
@@ -114,11 +119,13 @@ def ai_predict(features):
     except:
         return None
 
-# ================= CORE ENGINE ULTRA =================
+# ================= CORE ENGINE =================
 
-def run_prediction(hash_input, time_input, cote):
+def run_prediction(hash_input, time_input, cote_ref):
 
     t = get_time(time_input)
+
+    h = hash_val(hash_input)
 
     hash_hex = hashlib.sha256(hash_input.encode()).hexdigest()
 
@@ -128,7 +135,7 @@ def run_prediction(hash_input, time_input, cote):
 
     np.random.seed(seed)
 
-    # ================= ULTRA SIMULATION =================
+    # ================= SIMULATION =================
 
     sims1 = np.random.lognormal(np.log(1.2 + entropy), 0.35, 8000)
     sims2 = np.random.gamma(2.2, 1.1 + entropy, 8000)
@@ -150,7 +157,7 @@ def run_prediction(hash_input, time_input, cote):
 
     # ================= FEATURES =================
 
-    features = build_features(prob, moy, maxv, minv, conf, cote)
+    features = build_features(prob, moy, maxv, minv, conf, cote_ref)
 
     ai_score = ai_predict(features)
 
@@ -162,7 +169,8 @@ def run_prediction(hash_input, time_input, cote):
 
     # ================= ENTRY TIME =================
 
-    entry_seconds = entry_time_engine(entropy, volatility, cote)
+    entry_seconds = entry_engine(entropy, volatility, cote_ref)
+
     entry_time = (t + timedelta(seconds=entry_seconds)).strftime("%H:%M:%S")
 
     # ================= TIME STATS =================
@@ -177,7 +185,7 @@ def run_prediction(hash_input, time_input, cote):
     if prob > 60:
         st.session_state.time_stats[hour]["wins"] += 1
 
-    # ================= SIGNAL ENGINE =================
+    # ================= SIGNAL =================
 
     trend = moy - minv
 
@@ -205,7 +213,8 @@ def run_prediction(hash_input, time_input, cote):
         "ai": ai_score,
         "signal": signal,
         "entry_time": entry_time,
-        "volatility": round(volatility, 2)
+        "volatility": round(volatility, 2),
+        "ref": cote_ref
     }
 
     st.session_state.history.append(result)
@@ -221,7 +230,7 @@ def winrate():
 
     data = np.array(st.session_state.dataset)
 
-    wins = np.sum(data[:, 6] == 1)
+    wins = np.sum(data[:, 7] == 1)
 
     return round((wins / len(data)) * 100, 2)
 
@@ -241,16 +250,15 @@ def best_hours():
 
 # ================= UI =================
 
-st.title("🚀 ANDR-X AI V13 ULTRA SYSTEM")
+st.title("🚀 ANDR-X AI V13 ULTRA FINAL")
 
 hash_input = st.text_input("🔑 HASH")
 time_input = st.text_input("⏰ TIME (HH:MM:SS)")
-cote = st.number_input("📉 CÔTE", value=1.5)
+cote_ref = st.number_input("📉 COTE REF", value=2.0)
 
 if st.button("RUN ANALYSIS"):
-
     if hash_input:
-        st.session_state["last"] = run_prediction(hash_input, time_input, cote)
+        st.session_state["last"] = run_prediction(hash_input, time_input, cote_ref)
 
 # ================= OUTPUT =================
 
@@ -270,6 +278,7 @@ if "last" in st.session_state:
 📉 MIN: {r['min']}  
 
 ⚡ VOL: {r['volatility']}  
+📌 REF: {r['ref']}  
 ⏰ ENTRY: {r['entry_time']}
 """)
 
@@ -278,7 +287,7 @@ if "last" in st.session_state:
 st.sidebar.metric("WINRATE", f"{winrate()} %")
 st.sidebar.metric("DATA", len(st.session_state.dataset))
 
-# ================= TIME HEATMAP =================
+# ================= TIME ANALYSIS =================
 
 st.subheader("📊 TIME PERFORMANCE")
 
@@ -291,10 +300,4 @@ for h, v in sorted(st.session_state.time_stats.items()):
 st.subheader("🔥 BEST HOURS")
 
 for h, wr, total in best_hours()[:5]:
-    st.write(f"⏰ {h}h → {round(wr,2)}% | {total} trades")
-
-# ================= HISTORY =================
-
-st.subheader("📜 HISTORY")
-
-st.write(st.session_state.history[::-1])
+    st.write(f"⏰ {h}h → {round(wr,2)}% | {total}")
