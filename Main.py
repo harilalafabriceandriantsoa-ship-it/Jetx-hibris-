@@ -8,7 +8,7 @@ from sklearn.ensemble import RandomForestClassifier
 
 # ================= CONFIG =================
 
-st.set_page_config(page_title="ANDR-X AI V13 ULTRA FULL", layout="centered")
+st.set_page_config(page_title="ANDR-X AI V13 ULTRA SAFE", layout="centered")
 
 st.markdown("""
 <style>
@@ -25,7 +25,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# ================= SESSION =================
+# ================= SESSION SAFE INIT =================
 
 if "dataset" not in st.session_state:
     st.session_state.dataset = []
@@ -33,6 +33,7 @@ if "dataset" not in st.session_state:
 if "history" not in st.session_state:
     st.session_state.history = []
 
+# 🔥 IMPORTANT FIX (DICT ONLY)
 if "time_stats" not in st.session_state:
     st.session_state.time_stats = {}
 
@@ -45,16 +46,15 @@ if "trained" not in st.session_state:
 if "auth" not in st.session_state:
     st.session_state.auth = False
 
-# ================= LOGIN SYSTEM =================
+# ================= LOGIN =================
 
 if not st.session_state.auth:
 
     st.title("🔐 ACCESS SYSTEM")
 
-    pwd = st.text_input("ENTER PASSWORD", type="password")
+    pwd = st.text_input("PASSWORD", type="password")
 
     if st.button("LOGIN"):
-
         if pwd == "2026":
             st.session_state.auth = True
             st.rerun()
@@ -65,16 +65,19 @@ if not st.session_state.auth:
 
 # ================= RESET SYSTEM =================
 
-st.sidebar.markdown("### ⚙️ CONTROL PANEL")
+st.sidebar.title("CONTROL")
 
 if st.sidebar.button("🗑️ RESET DATA"):
 
     st.session_state.dataset = []
     st.session_state.history = []
-    st.session_state.time_stats = []
+
+    # 🔥 IMPORTANT FIX
+    st.session_state.time_stats = {}
+
     st.session_state.trained = False
 
-    st.success("DATA RESET DONE")
+    st.success("RESET DONE")
     st.rerun()
 
 # ================= TIME =================
@@ -136,7 +139,7 @@ def train_model():
     st.session_state.model = model
     st.session_state.trained = True
 
-# ================= AI PREDICT =================
+# ================= AI =================
 
 def ai_predict(features):
 
@@ -187,14 +190,14 @@ def run_prediction(hash_input, time_input, cote):
 
     train_model()
 
-    # ================= ENTRY TIME =================
+    # ================= ENTRY =================
 
-    entry_seconds = int(10 + (spread * 4) + abs(maxv - moy) * 3)
+    entry_seconds = int(10 + (spread * 4))
     entry_seconds = max(8, min(90, entry_seconds))
 
     entry_time = (t + timedelta(seconds=entry_seconds)).strftime("%H:%M:%S")
 
-    # ================= TIME STATS =================
+    # ================= TIME STATS SAFE =================
 
     hour = t.hour
 
@@ -214,11 +217,11 @@ def run_prediction(hash_input, time_input, cote):
     elif prob >= 70 and spread <= 3.5:
         signal = "🟢 STRONG ENTRY"
 
-    elif prob >= 55 and conf >= 60:
-        signal = "⚡ MODERATE ENTRY"
+    elif prob >= 55:
+        signal = "⚡ ENTRY"
 
     elif spread > 6:
-        signal = "❌ HIGH RISK"
+        signal = "❌ RISK"
 
     else:
         signal = "⏳ WAIT"
@@ -251,26 +254,35 @@ def winrate():
 
     return round(np.mean(data[:, 6]) * 100, 2)
 
-# ================= BEST HOURS =================
+# ================= BEST HOURS SAFE =================
 
 def best_hours():
 
     stats = st.session_state.time_stats
 
+    # 🔥 SAFE CHECK
+    if not isinstance(stats, dict):
+        return []
+
     result = []
 
     for h, v in stats.items():
-        wr = (v["wins"] / v["total"]) * 100 if v["total"] else 0
-        result.append((h, wr, v["total"]))
+
+        wins = v.get("wins", 0)
+        total = v.get("total", 0)
+
+        wr = (wins / total) * 100 if total > 0 else 0
+
+        result.append((h, wr, total))
 
     return sorted(result, key=lambda x: x[1], reverse=True)
 
 # ================= UI =================
 
-st.title("🚀 ANDR-X AI V13 ULTRA FULL SYSTEM")
+st.title("🚀 ANDR-X AI V13 ULTRA SAFE")
 
 hash_input = st.text_input("HASH")
-time_input = st.text_input("TIME (HH:MM:SS)")
+time_input = st.text_input("TIME")
 cote = st.number_input("COTE", value=1.5)
 
 if st.button("RUN ANALYSIS"):
