@@ -192,7 +192,18 @@ with col_res:
     else:
         st.info("Awaiting Server Hash for Quantum Synchronization...")
 
+# --- History Table (SAFE VERSION) ---
 st.markdown("### 📊 MISSION LOGS (HISTORY)")
 if st.session_state.history:
+    # Ovaina ho DataFrame ny tantara
     df_hist = pd.DataFrame(st.session_state.history).iloc[::-1]
-    st.table(df_hist[['entry', 'signal', 'x3_prob', 'moy']].head(10))
+    
+    # Ity no vahaolana: Jereo fotsiny izay colonne misy ao
+    target_cols = ['entry', 'signal', 'x3_prob', 'moy']
+    # Tsy maka afa-tsy izay colonne "tena ao" anatiny ihany izy eto
+    available_cols = [c for c in target_cols if c in df_hist.columns]
+    
+    if available_cols:
+        st.table(df_hist[available_cols].head(10))
+    else:
+        st.write("Preparing table structure...")
