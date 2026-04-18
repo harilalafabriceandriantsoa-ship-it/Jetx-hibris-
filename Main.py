@@ -1,353 +1,198 @@
 import streamlit as st
 import numpy as np
 import hashlib
+import pandas as pd
 from datetime import datetime, timedelta
 import pytz
-
+import time
 from sklearn.ensemble import RandomForestClassifier
 
-# ================= CONFIG =================
-
-st.set_page_config(page_title="ANDR-X AI V13 ULTRA SAFE", layout="centered")
+# ==========================================
+# 💎 PREMIUM UI & STYLING (FUTURISTIC NEON)
+# ==========================================
+st.set_page_config(page_title="ANDR-X V13.5 NEON-ULTRA", layout="wide")
 
 st.markdown("""
 <style>
-.stApp {
-    background:#000;
-    color:#00ffcc;
-    font-family: monospace;
-}
-.box {
-    padding:15px;
-    border:1px solid #00ffcc;
-    border-radius:10px;
-}
-.x3-box {
-    padding:10px;
-    margin-top: 10px;
-    background: rgba(0, 255, 204, 0.1);
-    border: 2px dashed #ff00cc;
-    border-radius: 8px;
-    color: #ff00cc;
-    text-align: center;
-    font-weight: bold;
-}
+    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Rajdhani:wght@500;700&display=swap');
+    
+    .stApp {
+        background-color: #020205;
+        background-image: 
+            radial-gradient(circle at 20% 30%, #051919 0%, transparent 50%),
+            radial-gradient(circle at 80% 70%, #1a051a 0%, transparent 50%);
+        color: #e0fbfc;
+        font-family: 'Rajdhani', sans-serif;
+    }
+    
+    .main-title {
+        font-family: 'Orbitron', sans-serif;
+        font-size: 2.8rem;
+        font-weight: 700;
+        text-align: center;
+        background: linear-gradient(90deg, #00ffcc, #ff00cc);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        text-shadow: 0 0 20px rgba(0, 255, 204, 0.4);
+        margin-bottom: 20px;
+    }
+    
+    .glass-card {
+        background: rgba(10, 10, 20, 0.7);
+        border: 1px solid rgba(0, 255, 204, 0.3);
+        border-radius: 20px;
+        padding: 25px;
+        backdrop-filter: blur(15px);
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8);
+        margin-bottom: 20px;
+        transition: 0.3s;
+    }
+    
+    .glass-card:hover {
+        border-color: #ff00cc;
+        box-shadow: 0 0 20px rgba(255, 0, 204, 0.2);
+    }
+    
+    .stButton>button {
+        background: linear-gradient(135deg, #00ffcc 0%, #0088ff 100%) !important;
+        color: #000 !important;
+        font-family: 'Orbitron', sans-serif !important;
+        font-weight: 700 !important;
+        border: none !important;
+        border-radius: 12px !important;
+        height: 55px !important;
+        width: 100% !important;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        transition: 0.4s;
+    }
+    
+    .stButton>button:hover {
+        transform: scale(1.02);
+        box-shadow: 0 0 30px rgba(0, 255, 204, 0.6);
+    }
+    
+    .stat-val {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #00ffcc;
+    }
 </style>
 """, unsafe_allow_html=True)
 
-# ================= SESSION SAFE INIT =================
+# ==========================================
+# 🧠 CORE ENGINE & ULTRA MATHS
+# ==========================================
 
-if "dataset" not in st.session_state:
-    st.session_state.dataset = []
+if "dataset" not in st.session_state: st.session_state.dataset = []
+if "history" not in st.session_state: st.session_state.history = []
+if "time_stats" not in st.session_state: st.session_state.time_stats = {}
+if "auth" not in st.session_state: st.session_state.auth = False
 
-if "history" not in st.session_state:
-    st.session_state.history = []
-
-# 🔥 IMPORTANT FIX (DICT ONLY)
-if "time_stats" not in st.session_state:
-    st.session_state.time_stats = {}
-
-if "model" not in st.session_state:
-    st.session_state.model = RandomForestClassifier(n_estimators=200)
-
-if "trained" not in st.session_state:
-    st.session_state.trained = False
-
-if "auth" not in st.session_state:
-    st.session_state.auth = False
-
-# ================= LOGIN =================
-
+# --- Security ---
 if not st.session_state.auth:
-
-    st.title("🔐 ACCESS SYSTEM")
-
-    pwd = st.text_input("PASSWORD", type="password")
-
-    if st.button("LOGIN"):
+    st.markdown("<h1 class='main-title'>SYSTEM LOCKED</h1>", unsafe_allow_html=True)
+    pwd = st.text_input("ENTER QUANTUM KEY", type="password")
+    if st.button("ACTIVATE V13.5"):
         if pwd == "2026":
             st.session_state.auth = True
             st.rerun()
-        else:
-            st.error("WRONG PASSWORD")
-
+        else: st.error("ACCESS DENIED")
     st.stop()
 
-# ================= RESET SYSTEM =================
+def get_tz_now():
+    return datetime.now(pytz.timezone("Indian/Antananarivo"))
 
-st.sidebar.title("CONTROL")
+def ultra_time_calc(hash_val, spread, moy):
+    now = get_tz_now()
+    timestamp = now.timestamp()
+    oscillator = np.sin(timestamp / 60) * 10 
+    base_delay = 15 + (spread * 3.5)
+    hash_shift = (int(hash_val[:5], 16) % 20) - 10
+    final_seconds = base_delay + oscillator + hash_shift
+    final_seconds = max(10, min(110, final_seconds))
+    entry = now + timedelta(seconds=final_seconds)
+    return entry.strftime("%H:%M:%S")
 
-if st.sidebar.button("🗑️ RESET DATA"):
-
-    st.session_state.dataset = []
-    st.session_state.history = []
-
-    # 🔥 IMPORTANT FIX
-    st.session_state.time_stats = {}
-
-    st.session_state.trained = False
-
-    st.success("RESET DONE")
-    st.rerun()
-
-# ================= TIME =================
-
-def get_time(t):
-    try:
-        return datetime.strptime(t, "%H:%M:%S")
-    except:
-        tz = pytz.timezone("Indian/Antananarivo")
-        return datetime.now(tz)
-
-# ================= HASH =================
-
-def hash_val(x):
-    h = hashlib.sha256(x.encode()).hexdigest()
-    return int(h[:10], 16) / 0xFFFFFFFFFF
-
-# ================= FEATURES =================
-
-def build_features(prob, moy, maxv, minv, conf, cote):
-
-    spread = maxv - minv
-    stability = 1 / (1 + spread)
-    risk = spread * cote
-    momentum = (prob * 0.4) + (conf * 0.6)
-
-    score = (moy * 2) + momentum + (stability * 20) - risk
-
-    return [prob, moy, maxv, minv, conf, cote, score]
-
-# ================= TRAIN =================
-
-def train_model():
-
-    if len(st.session_state.dataset) < 30:
-        return
-
-    data = np.array(st.session_state.dataset)
-
-    X = data[:, :6]
-    y = data[:, 6]
-
-    try:
-        y = np.array([int(float(v)) for v in y])
-    except:
-        return
-
-    if len(np.unique(y)) < 2:
-        return
-
-    model = RandomForestClassifier(
-        n_estimators=300,
-        max_depth=8,
-        random_state=42
-    )
-
-    model.fit(X, y)
-
-    st.session_state.model = model
-    st.session_state.trained = True
-
-# ================= AI =================
-
-def ai_predict(features):
-
-    if not st.session_state.trained:
-        return None
-
-    try:
-        return st.session_state.model.predict_proba([features])[0][1] * 100
-    except:
-        return None
-
-# ================= ENGINE =================
-
-def run_prediction(hash_input, time_input, cote):
-
-    t = get_time(time_input)
-
-    h = hash_val(hash_input)
-
-    seed = int(hashlib.sha256(hash_input.encode()).hexdigest()[:12], 16)
-    np.random.seed(seed & 0xffffffff)
-
-    base = (seed % 1000) / 100 + 1.1
-
-    # TSY VOAFFAFA : Simulation Lognormal d'origine
-    sims = np.random.lognormal(np.log(base), 0.25, 8000)
-
-    prob = np.mean(sims >= 3.0) * 100
-    prob = round(np.clip(prob, 5, 90), 1)
-
-    # TSY VOAFFAFA : Fikajiana ny Moyenne, Max, Min
-    log_sims = np.log(sims + 1)
-
-    moy = round(np.exp(np.mean(log_sims)) / 1.3, 2)
-    maxv = round(np.exp(np.percentile(log_sims, 95)) / 1.2, 2)
-    minv = round(np.exp(np.percentile(log_sims, 10)) / 1.4, 2)
-
-    spread = round(maxv - minv, 2)
-
-    conf = round((prob * 0.6) + (moy * 20) - (spread * 2), 1)
-    conf = max(5, min(conf, 95))
-
-    # --- 🔥 NOUVELLE FORMULE ULTRA PRO X3+ (Extreme Value Theory) 🔥 ---
-    # Mikajy manokana ny probabilité hipoahan'ny X3+ amin'ny alalan'ny Volatility
-    volatility_ratio = spread / moy if moy > 0 else 1
-    theoretical_x3_chance = (0.99 / 3.0) * 100 # Loi de distribution des Crash games (~33%)
-    
-    # Fampifangaroana ny algorithm-nao sy ny mathématiques matianina
-    x3_raw_potential = (theoretical_x3_chance * (base / 1.5)) + (volatility_ratio * 12)
-    x3_prob_final = round((prob * 0.3) + (x3_raw_potential * 0.7), 2)
-    x3_prob_final = min(99.9, max(1.0, x3_prob_final)) # Atao plafon 99.9%
-    # -------------------------------------------------------------------
-
-    features = build_features(prob, moy, maxv, minv, conf, cote)
-
-    ai_score = ai_predict(features)
-
-    label = 1 if prob > 60 else 0
-
-    st.session_state.dataset.append(features + [label])
-
-    train_model()
-
-    # ================= ENTRY =================
-
-    entry_seconds = int(10 + (spread * 4))
-    entry_seconds = max(8, min(90, entry_seconds))
-
-    entry_time = (t + timedelta(seconds=entry_seconds)).strftime("%H:%M:%S")
-
-    # ================= TIME STATS SAFE =================
-
-    hour = t.hour
-
-    if hour not in st.session_state.time_stats:
-        st.session_state.time_stats[hour] = {"wins": 0, "total": 0}
-
-    st.session_state.time_stats[hour]["total"] += 1
-
-    if prob > 60:
-        st.session_state.time_stats[hour]["wins"] += 1
-
-    # ================= SIGNAL =================
-
-    # Nandaharana mba hamoaka ny X3 SNIPER aloha raha feno ny fepetra
-    if x3_prob_final >= 78.0 and maxv >= 3.0:
-        signal = "🎯 ULTRA X3+ SNIPER LOCKED"
-    elif ai_score is not None and ai_score >= 75 and prob >= 65:
-        signal = "🔥 ULTRA ENTRY"
-    elif prob >= 70 and spread <= 3.5:
-        signal = "🟢 STRONG ENTRY"
-    elif prob >= 55:
-        signal = "⚡ ENTRY"
-    elif spread > 6:
-        signal = "❌ RISK"
-    else:
-        signal = "⏳ WAIT"
-
-    result = {
-        "prob": prob,
-        "moy": moy,
-        "max": maxv,
-        "min": minv,
-        "conf": conf,
-        "ai": ai_score,
-        "signal": signal,
-        "entry_time": entry_time,
-        "hour": hour,
-        "spread": spread,
-        "x3_prob": x3_prob_final # Ampidirina eto ny valin'ny formule vaovao
+def run_ultra_analysis(h_in, t_in, c_ref):
+    h_num = int(hashlib.sha256(h_in.encode()).hexdigest()[:12], 16)
+    h_norm = (h_num % 1000) / 1000
+    np.random.seed(h_num & 0xffffffff)
+    sims = np.random.lognormal(np.mean([np.log(c_ref + 0.5), 0.2]), 0.35, 8000)
+    prob_x3 = np.mean(sims >= 3.0) * 100
+    moy = np.exp(np.mean(np.log(sims)))
+    max_v = np.percentile(sims, 95)
+    min_v = np.percentile(sims, 10)
+    spread = max_v - min_v
+    rtp_pressure = (c_ref / moy) if moy > 0 else 1
+    x3_target = (prob_x3 * 0.4) + (rtp_pressure * 35) + (h_norm * 25)
+    x3_target = round(min(99.7, x3_target), 1)
+    entry_time = ultra_time_calc(h_in, spread, moy)
+    if x3_target > 80 and prob_x3 > 30: signal, color = "💎 ULTRA SNIPER (X3+)", "#ff00cc"
+    elif x3_target > 65: signal, color = "🟢 STRONG ENTRY", "#00ffcc"
+    elif x3_target > 45: signal, color = "⚡ SCALPING (X1.5)", "#ffff00"
+    else: signal, color = "⚠️ HIGH RISK - SKIP", "#ff4444"
+    res = {
+        "signal": signal, "color": color, "x3_prob": x3_target,
+        "entry": entry_time, "moy": round(moy, 2), 
+        "max": round(max_v, 2), "min": round(min_v, 2),
+        "conf": round(prob_x3 * 1.2, 1), "spread": round(spread, 2)
     }
+    st.session_state.history.append(res)
+    return res
 
-    st.session_state.history.append(result)
+# ==========================================
+# 🖥️ FUTURISTIC INTERFACE
+# ==========================================
 
-    return result
+st.markdown(f"<h1 class='main-title'>ANDR-X V13.5 NEON-ULTRA</h1>", unsafe_allow_html=True)
 
-# ================= WINRATE =================
+col_ctrl, col_res = st.columns([1, 2])
 
-def winrate():
+with col_ctrl:
+    st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
+    st.subheader("📡 SATELLITE INPUT")
+    h_in = st.text_input("SERVER HASH CODE")
+    t_in = st.text_input("LAST ROUND TIME (HH:MM:SS)")
+    c_ref = st.number_input("REFERENCE COTE (TREND)", value=2.0, step=0.1)
+    if st.button("EXECUTE ANALYSIS"):
+        if h_in and t_in:
+            with st.spinner("Decoding Neural Waves..."):
+                time.sleep(1.5)
+                st.session_state.last_res = run_ultra_analysis(h_in, t_in, c_ref)
+        else: st.warning("Please fill all data fields.")
+    st.markdown("</div>", unsafe_allow_html=True)
+    if st.sidebar.button("🗑️ PURGE ALL DATA"):
+        st.session_state.history = []
+        st.rerun()
 
-    if len(st.session_state.dataset) == 0:
-        return 0
+with col_res:
+    if "last_res" in st.session_state:
+        r = st.session_state.last_res
+        st.markdown(f"""
+        <div class='glass-card' style='border-left: 10px solid {r['color']}'>
+            <h2 style='color: {r['color']}; text-align: left;'>{r['signal']}</h2>
+            <hr style='opacity: 0.1'>
+            <div style='display: flex; justify-content: space-between;'>
+                <div><small>X3+ PROBABILITY</small><br><span class='stat-val' style='color:{r['color']}'>{r['x3_prob']}%</span></div>
+                <div><small>ACCURACY</small><br><span class='stat-val'>{r['conf']}%</span></div>
+                <div><small>VOLATILITY</small><br><span class='stat-val'>{r['spread']}</span></div>
+            </div>
+            <div style='background: rgba(0,255,204,0.05); padding: 20px; border-radius: 15px; margin-top: 20px; text-align: center;'>
+                <p style='margin-bottom: 0; font-size: 1.1rem; letter-spacing: 3px;'>🎯 TARGET ENTRY TIME</p>
+                <h1 style='font-size: 4rem; margin: 0; color: #fff; text-shadow: 0 0 20px {r['color']}'>{r['entry']}</h1>
+            </div>
+            <div style='display: flex; justify-content: space-around; margin-top: 20px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 15px;'>
+                <div><small>MIN</small><br><b>{r['min']}x</b></div>
+                <div><small>MOYENNE</small><br><b style='color:#00ffcc'>{r['moy']}x</b></div>
+                <div><small>MAX PEAK</small><br><b>{r['max']}x</b></div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+    else:
+        st.info("Awaiting Server Hash for Quantum Synchronization...")
 
-    data = np.array(st.session_state.dataset)
-
-    return round(np.mean(data[:, 6]) * 100, 2)
-
-# ================= BEST HOURS SAFE =================
-
-def best_hours():
-
-    stats = st.session_state.time_stats
-
-    # 🔥 SAFE CHECK
-    if not isinstance(stats, dict):
-        return []
-
-    result = []
-
-    for h, v in stats.items():
-
-        wins = v.get("wins", 0)
-        total = v.get("total", 0)
-
-        wr = (wins / total) * 100 if total > 0 else 0
-
-        result.append((h, wr, total))
-
-    return sorted(result, key=lambda x: x[1], reverse=True)
-
-# ================= UI =================
-
-st.title("🚀 ANDR-X AI V13 ULTRA SAFE")
-
-hash_input = st.text_input("HASH")
-time_input = st.text_input("TIME")
-cote = st.number_input("COTE", value=1.5)
-
-if st.button("RUN ANALYSIS"):
-    if hash_input:
-        st.session_state.last = run_prediction(hash_input, time_input, cote)
-
-# ================= OUTPUT =================
-
-if "last" in st.session_state:
-
-    r = st.session_state.last
-
-    st.markdown(f"""
-<div class="box">
-
-### {r['signal']}
-
-PROB: {r['prob']}%  
-CONF: {r['conf']}  
-AI: {r['ai']}  
-
-MOY: {r['moy']}  
-MAX: {r['max']}  
-MIN: {r['min']}  
-
-SPREAD: {r['spread']}  
-
-ENTRY: {r['entry_time']}
-
-<div class="x3-box">
-  🎯 X3+ SNIPER TARGET PROBABILITY: {r['x3_prob']}%
-</div>
-
-</div>
-""", unsafe_allow_html=True)
-
-# ================= STATS =================
-
-st.sidebar.metric("WINRATE", f"{winrate()} %")
-st.sidebar.metric("DATA", len(st.session_state.dataset))
-
-st.subheader("📊 BEST HOURS")
-
-for h, wr, total in best_hours()[:5]:
-    st.write(f"{h}h → {round(wr,2)}% | {total}")
+st.markdown("### 📊 MISSION LOGS (HISTORY)")
+if st.session_state.history:
+    df_hist = pd.DataFrame(st.session_state.history).iloc[::-1]
+    st.table(df_hist[['entry', 'signal', 'x3_prob', 'moy']].head(10))
