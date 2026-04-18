@@ -1,155 +1,301 @@
 import streamlit as st
 import numpy as np
+import pandas as pd
 import hashlib
-from datetime import datetime
+from datetime import datetime, timedelta
 import pytz
+
 from sklearn.ensemble import RandomForestClassifier
 
-# ================= CONFIG =================
+# ---------------- CONFIG ----------------
 
-st.set_page_config(page_title="COSMOS X ANALYTIC", layout="centered")
+st.set_page_config(page_title="ANDR-X AI V13 TIME AI", layout="centered")
 
 st.markdown("""
 <style>
-.stApp { background:#000; color:#00ffcc; font-family: monospace; }
-h1 { text-align:center; color:#00ffcc; }
-.box { padding:15px; border:1px solid #00ffcc; border-radius:10px; }
+.stApp {
+    background:#000;
+    color:#00ffcc;
+    font-family: monospace;
+}
 </style>
 """, unsafe_allow_html=True)
 
-# ================= SESSION =================
+# ---------------- SESSION ----------------
 
-if "data" not in st.session_state:
-    st.session_state.data = []
+if "dataset" not in st.session_state:
+    st.session_state.dataset = []
+
+if "history" not in st.session_state:
+    st.session_state.history = []
+
+if "time_stats" not in st.session_state:
+    st.session_state.time_stats = {}
 
 if "model" not in st.session_state:
-    st.session_state.model = RandomForestClassifier(n_estimators=150)
+    st.session_state.model = RandomForestClassifier(n_estimators=200)
 
 if "trained" not in st.session_state:
     st.session_state.trained = False
 
-# ================= TIME =================
+# ---------------- TIME ----------------
 
-def now():
-    return datetime.now(pytz.timezone("Indian/Antananarivo"))
+def get_time(h):
+    try:
+        return datetime.strptime(h, "%H:%M:%S")
+    except:
+        tz = pytz.timezone("Indian/Antananarivo")
+        return datetime.now(tz)
 
-# ================= HASH =================
+# ---------------- FEATURES ----------------
 
-def hash_val(x):
-    h = hashlib.sha256(x.encode()).hexdigest()
-    return int(h[:10], 16) / 0xFFFFFFFFFF
+def build_features(prob, moy, maxv, minv, conf, cote):
 
-# ================= FEATURES =================
-
-def features(prob, avg, maxv, minv, conf):
     spread = maxv - minv
     stability = 1 / (1 + spread)
-    score = (avg * 2) + prob + (conf * 0.5) + (stability * 10)
-    return [prob, avg, maxv, minv, conf, score]
+    risk = spread * cote
+    momentum = (prob * 0.4) + (conf * 0.6)
 
-# ================= AI TRAIN =================
+    score = (moy * 2) + momentum + (stability * 20) - risk
 
-def train():
-    if len(st.session_state.data) < 20:
+    return [prob, moy, maxv, minv, conf, cote, score]
+
+# ---------------- ENTRY TIME AI ----------------
+
+def entry_time_engine(hash_hex, base_time, cote):
+
+    seed = int(hash_hex[:10], 16)
+
+    micro = seed % 60
+    market = int(cote * 6)
+
+    entry = 20 + ((micro + market) % 45)
+
+    return entry
+
+# ---------------- TRAIN MODEL ----------------
+
+def train_model():
+
+    if len(st.session_state.dataset) < 30:
         return
 
-    data = np.array(st.session_state.data)
+    data = np.array(st.session_state.dataset)
 
-    X = data[:, :5]
-    y = data[:, 5]
+    try:
+        X = data[:, :6]
+        y = data[:, 6]
+    except:
+        return
 
-    model = RandomForestClassifier(n_estimators=200, random_state=42)
+    try:
+        y = np.array([int(float(v)) for v in y])
+    except:
+        return
+
+    if len(np.unique(y)) < 2:
+        return
+
+    if np.isnan(X).any():
+        return
+
+    model = RandomForestClassifier(
+        n_estimators=300,
+        max_depth=8,
+        random_state=42
+    )
+
     model.fit(X, y)
 
     st.session_state.model = model
     st.session_state.trained = True
 
-# ================= AI PREDICT =================
+# ---------------- AI PREDICT ----------------
 
-def ai_predict(x):
+def ai_predict(features):
+
     if not st.session_state.trained:
         return None
-    return st.session_state.model.predict_proba([x])[0][1] * 100
 
-# ================= ENGINE =================
+    try:
+        return st.session_state.model.predict_proba([features])[0][1] * 100
+    except:
+        return None
 
-def run(hash_input, cote_ref):
+# ---------------- MAIN ENGINE ----------------
 
-    h = hash_val(hash_input)
+def run_prediction(hash_input, time_input, cote):
 
-    # simulation (statistical only)
-    sims = np.random.lognormal(mean=np.log(1 + h), sigma=0.4, size=5000)
+    t = get_time(time_input)
 
-    prob = np.mean(sims >= 2.5) * 100
-    prob = round(prob, 2)
+    hash_hex = hashlib.sha256(hash_input.encode()).hexdigest()
 
-    avg = round(np.mean(sims), 2)
-    maxv = round(np.percentile(sims, 95), 2)
-    minv = round(np.percentile(sims, 10), 2)
+    # SAFE SEED
+    seed_value = int(hash_hex[:12], 16) & 0xffffffff
+    np.random.seed(seed_value)
 
-    conf = round(prob * (avg / 3), 2)
+    base = (int(hash_hex[:8], 16) % 1000) / 100 + 1.1
 
-    feat = features(prob, avg, maxv, minv, conf)
+    sims = np.random.lognormal(np.log(base), 0.25, 10000)
+
+    prob = np.mean(sims >= 3.0) * 100
+    prob = round(max(5, min(prob, 90)), 1)
+
+    log_sims = np.log(sims + 1)
+
+    moy = round(np.exp(np.mean(log_sims)) / 1.3, 2)
+    maxv = round(np.exp(np.percentile(log_sims, 95)) / 1.2, 2)
+    minv = round(np.exp(np.percentile(log_sims, 10)) / 1.4, 2)
+
+    conf = round((prob * moy) / 10, 1)
+
+    features = build_features(prob, moy, maxv, minv, conf, cote)
+
+    ai_score = ai_predict(features)
 
     label = 1 if prob > 60 else 0
 
-    st.session_state.data.append(feat + [label])
+    st.session_state.dataset.append(features + [label])
 
-    train()
+    train_model()
 
-    ai_score = ai_predict(feat)
+    # ---------------- ENTRY TIME ----------------
+
+    entry_seconds = entry_time_engine(hash_hex, t, cote)
+    entry_time = (t + timedelta(seconds=entry_seconds)).strftime("%H:%M:%S")
+
+    # ---------------- TIME LEARNING ----------------
+
+    hour = t.hour
+
+    if hour not in st.session_state.time_stats:
+        st.session_state.time_stats[hour] = {"wins": 0, "total": 0}
+
+    st.session_state.time_stats[hour]["total"] += 1
+
+    if prob > 60:
+        st.session_state.time_stats[hour]["wins"] += 1
+
+    # ---------------- SIGNAL ----------------
 
     spread = maxv - minv
 
-    # ================= SIGNAL =================
+    if spread > 5:
+        signal = "❌ SKIP"
 
-    if spread > 6:
-        sig = "❌ HIGH RISK"
+    elif prob < 50:
+        signal = "❌ SKIP"
 
-    elif prob < 45:
-        sig = "⏳ WEAK"
+    elif ai_score is not None and ai_score > 70:
+        signal = "🔥 AI STRONG BUY"
 
-    elif ai_score and ai_score > 70:
-        sig = "⚡ STRONG ZONE"
-
-    elif prob > 60:
-        sig = "🟢 GOOD ZONE"
+    elif prob > 65 and conf > 15:
+        signal = "⚡ BUY"
 
     else:
-        sig = "🟡 WAIT"
+        signal = "⏳ WAIT"
 
-    return {
+    result = {
         "prob": prob,
-        "avg": avg,
+        "moy": moy,
         "max": maxv,
         "min": minv,
         "conf": conf,
         "ai": ai_score,
-        "signal": sig
+        "signal": signal,
+        "entry_time": entry_time,
+        "hour": hour
     }
 
-# ================= UI =================
+    st.session_state.history.append(result)
 
-st.title("🚀 COSMOS X ANALYTIC ENGINE")
+    return result
 
-h = st.text_input("HASH INPUT")
-c = st.number_input("COTE REF", value=2.0)
+# ---------------- WINRATE ----------------
+
+def winrate():
+
+    if len(st.session_state.dataset) == 0:
+        return 0
+
+    data = np.array(st.session_state.dataset)
+
+    wins = np.sum(data[:, 6] == 1)
+
+    return round((wins / len(data)) * 100, 2)
+
+# ---------------- BEST HOURS ----------------
+
+def best_hours():
+
+    stats = st.session_state.time_stats
+
+    if not stats:
+        return []
+
+    result = []
+
+    for h, v in stats.items():
+        wr = (v["wins"] / v["total"]) * 100 if v["total"] > 0 else 0
+        result.append((h, wr, v["total"]))
+
+    return sorted(result, key=lambda x: x[1], reverse=True)
+
+# ---------------- UI ----------------
+
+st.title("🚀 ANDR-X AI V13 FULL TIME AI SYSTEM")
+
+hash_input = st.text_input("🔑 HASH")
+time_input = st.text_input("⏰ TIME (HH:MM:SS)")
+cote = st.number_input("📉 CÔTE", value=1.5)
 
 if st.button("RUN ANALYSIS"):
-    if h:
-        st.session_state.res = run(h, c)
+    if hash_input:
+        res = run_prediction(hash_input, time_input, cote)
+        st.session_state["last"] = res
 
-if "res" in st.session_state:
-    r = st.session_state.res
+# ---------------- OUTPUT ----------------
+
+if "last" in st.session_state:
+
+    r = st.session_state["last"]
 
     st.markdown(f"""
-    <div class="box">
-        <h2>{r['signal']}</h2>
-        <p>PROB: {r['prob']}%</p>
-        <p>AVG: {r['avg']}</p>
-        <p>MAX: {r['max']}</p>
-        <p>MIN: {r['min']}</p>
-        <p>CONF: {r['conf']}</p>
-        <p>AI: {r['ai']}</p>
-    </div>
-    """, unsafe_allow_html=True)
+### {r['signal']}
+
+🎯 PROB: {r['prob']}%  
+🧠 CONF: {r['conf']}  
+🤖 AI SCORE: {r['ai']}  
+
+📊 MOY: {r['moy']}  
+🚀 MAX: {r['max']}  
+📉 MIN: {r['min']}  
+
+⏰ ENTRY: {r['entry_time']}
+""")
+
+# ---------------- STATS ----------------
+
+st.sidebar.metric("WINRATE", f"{winrate()} %")
+st.sidebar.metric("DATA", len(st.session_state.dataset))
+
+# ---------------- TIME HEATMAP ----------------
+
+st.subheader("📊 TIME HEATMAP")
+
+for h, v in sorted(st.session_state.time_stats.items()):
+    wr = (v["wins"] / v["total"]) * 100 if v["total"] else 0
+    st.write(f"{h}h → {round(wr,2)}% ({v['total']})")
+
+# ---------------- BEST HOURS ----------------
+
+st.subheader("🔥 BEST HOURS")
+
+for h, wr, total in best_hours()[:5]:
+    st.write(f"⏰ {h}h → {round(wr,2)}% | {total} trades")
+
+# ---------------- HISTORY ----------------
+
+st.subheader("📜 HISTORY")
+
+st.write(st.session_state.history[::-1])
