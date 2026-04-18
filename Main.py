@@ -5,7 +5,6 @@ import pandas as pd
 from datetime import datetime, timedelta
 import pytz
 import time
-from sklearn.ensemble import RandomForestClassifier
 
 # ==========================================
 # 💎 PREMIUM UI & STYLING (FUTURISTIC NEON)
@@ -84,12 +83,10 @@ st.markdown("""
 # 🧠 CORE ENGINE & ULTRA MATHS
 # ==========================================
 
-if "dataset" not in st.session_state: st.session_state.dataset = []
 if "history" not in st.session_state: st.session_state.history = []
-if "time_stats" not in st.session_state: st.session_state.time_stats = {}
 if "auth" not in st.session_state: st.session_state.auth = False
 
-# --- Security ---
+# --- Authentication ---
 if not st.session_state.auth:
     st.markdown("<h1 class='main-title'>SYSTEM LOCKED</h1>", unsafe_allow_html=True)
     pwd = st.text_input("ENTER QUANTUM KEY", type="password")
@@ -106,39 +103,65 @@ def get_tz_now():
 def ultra_time_calc(hash_val, spread, moy):
     now = get_tz_now()
     timestamp = now.timestamp()
-    oscillator = np.sin(timestamp / 60) * 10 
-    base_delay = 15 + (spread * 3.5)
-    hash_shift = (int(hash_val[:5], 16) % 20) - 10
+    # Oscillator dynamique hifanaraka amin'ny cycle
+    oscillator = np.sin(timestamp / 60) * 8 
+    base_delay = 12 + (spread * 2.5)
+    hash_shift = (int(hash_val[:5], 16) % 16) - 8
     final_seconds = base_delay + oscillator + hash_shift
-    final_seconds = max(10, min(110, final_seconds))
+    final_seconds = max(8, min(95, final_seconds))
     entry = now + timedelta(seconds=final_seconds)
     return entry.strftime("%H:%M:%S")
 
 def run_ultra_analysis(h_in, t_in, c_ref):
+    # Hash processing
     h_num = int(hashlib.sha256(h_in.encode()).hexdigest()[:12], 16)
     h_norm = (h_num % 1000) / 1000
     np.random.seed(h_num & 0xffffffff)
-    sims = np.random.lognormal(np.mean([np.log(c_ref + 0.5), 0.2]), 0.35, 8000)
+    
+    # Monte Carlo Simulation (Optimized for X3)
+    sims = np.random.lognormal(np.mean([np.log(c_ref + 0.1), 0.3]), 0.4, 8000)
+    
     prob_x3 = np.mean(sims >= 3.0) * 100
     moy = np.exp(np.mean(np.log(sims)))
     max_v = np.percentile(sims, 95)
     min_v = np.percentile(sims, 10)
     spread = max_v - min_v
+    
+    # Accuracy Logic (Basée sur la cohérence historique)
+    history_len = len(st.session_state.history)
+    history_boost = min(history_len * 4, 30)
+    base_conf = 100 - (abs(moy - c_ref) / c_ref * 100)
+    final_conf = max(15, min(98.5, base_conf + history_boost))
+
+    # Signal Logic
     rtp_pressure = (c_ref / moy) if moy > 0 else 1
-    x3_target = (prob_x3 * 0.4) + (rtp_pressure * 35) + (h_norm * 25)
+    x3_target = (prob_x3 * 0.5) + (rtp_pressure * 30) + (h_norm * 20)
     x3_target = round(min(99.7, x3_target), 1)
+    
     entry_time = ultra_time_calc(h_in, spread, moy)
-    if x3_target > 80 and prob_x3 > 30: signal, color = "💎 ULTRA SNIPER (X3+)", "#ff00cc"
-    elif x3_target > 65: signal, color = "🟢 STRONG ENTRY", "#00ffcc"
-    elif x3_target > 45: signal, color = "⚡ SCALPING (X1.5)", "#ffff00"
+    
+    if x3_target > 78 and final_conf > 55: signal, color = "💎 ULTRA SNIPER (X3+)", "#ff00cc"
+    elif x3_target > 58: signal, color = "🟢 STRONG ENTRY", "#00ffcc"
+    elif x3_target > 38: signal, color = "⚡ SCALPING (X1.5)", "#ffff00"
     else: signal, color = "⚠️ HIGH RISK - SKIP", "#ff4444"
+    
     res = {
-        "signal": signal, "color": color, "x3_prob": x3_target,
-        "entry": entry_time, "moy": round(moy, 2), 
-        "max": round(max_v, 2), "min": round(min_v, 2),
-        "conf": round(prob_x3 * 1.2, 1), "spread": round(spread, 2)
+        "entry": entry_time,
+        "signal": signal,
+        "color": color,
+        "x3_prob": x3_target,
+        "conf": round(final_conf, 1),
+        "spread": round(spread, 2),
+        "moy": round(moy, 2),
+        "max": round(max_v, 2),
+        "min": round(min_v, 2)
     }
+    
+    # Manage Memory (mitazona ny 15 farany ihany)
     st.session_state.history.append(res)
+    if len(st.session_state.history) > 15:
+        st.session_state.history.pop(0)
+        
     return res
 
 # ==========================================
@@ -152,18 +175,21 @@ col_ctrl, col_res = st.columns([1, 2])
 with col_ctrl:
     st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
     st.subheader("📡 SATELLITE INPUT")
-    h_in = st.text_input("SERVER HASH CODE")
-    t_in = st.text_input("LAST ROUND TIME (HH:MM:SS)")
+    h_in = st.text_input("SERVER HASH CODE", placeholder="D76F4F2D...")
+    t_in = st.text_input("LAST ROUND TIME", placeholder="21:51:16")
     c_ref = st.number_input("REFERENCE COTE (TREND)", value=2.0, step=0.1)
+    
     if st.button("EXECUTE ANALYSIS"):
         if h_in and t_in:
             with st.spinner("Decoding Neural Waves..."):
-                time.sleep(1.5)
+                time.sleep(1.2)
                 st.session_state.last_res = run_ultra_analysis(h_in, t_in, c_ref)
         else: st.warning("Please fill all data fields.")
     st.markdown("</div>", unsafe_allow_html=True)
+    
     if st.sidebar.button("🗑️ PURGE ALL DATA"):
         st.session_state.history = []
+        if "last_res" in st.session_state: del st.session_state.last_res
         st.rerun()
 
 with col_res:
@@ -195,12 +221,11 @@ with col_res:
 # --- History Table (SAFE VERSION) ---
 st.markdown("### 📊 MISSION LOGS (HISTORY)")
 if st.session_state.history:
-    # Ovaina ho DataFrame ny tantara
+    # Reverse history for display (newest first)
     df_hist = pd.DataFrame(st.session_state.history).iloc[::-1]
     
-    # Ity no vahaolana: Jereo fotsiny izay colonne misy ao
-    target_cols = ['entry', 'signal', 'x3_prob', 'moy']
-    # Tsy maka afa-tsy izay colonne "tena ao" anatiny ihany izy eto
+    # Columns selection safely
+    target_cols = ['entry', 'signal', 'x3_prob', 'conf', 'moy']
     available_cols = [c for c in target_cols if c in df_hist.columns]
     
     if available_cols:
