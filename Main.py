@@ -8,7 +8,7 @@ from sklearn.ensemble import RandomForestClassifier
 
 # ================= CONFIG =================
 
-st.set_page_config(page_title="ANDR-X AI V13 ULTRA FIX", layout="centered")
+st.set_page_config(page_title="ANDR-X AI V13 ULTRA FULL", layout="centered")
 
 st.markdown("""
 <style>
@@ -41,6 +41,41 @@ if "model" not in st.session_state:
 
 if "trained" not in st.session_state:
     st.session_state.trained = False
+
+if "auth" not in st.session_state:
+    st.session_state.auth = False
+
+# ================= LOGIN SYSTEM =================
+
+if not st.session_state.auth:
+
+    st.title("🔐 ACCESS SYSTEM")
+
+    pwd = st.text_input("ENTER PASSWORD", type="password")
+
+    if st.button("LOGIN"):
+
+        if pwd == "2026":
+            st.session_state.auth = True
+            st.rerun()
+        else:
+            st.error("WRONG PASSWORD")
+
+    st.stop()
+
+# ================= RESET SYSTEM =================
+
+st.sidebar.markdown("### ⚙️ CONTROL PANEL")
+
+if st.sidebar.button("🗑️ RESET DATA"):
+
+    st.session_state.dataset = []
+    st.session_state.history = []
+    st.session_state.time_stats = []
+    st.session_state.trained = False
+
+    st.success("DATA RESET DONE")
+    st.rerun()
 
 # ================= TIME =================
 
@@ -154,7 +189,7 @@ def run_prediction(hash_input, time_input, cote):
 
     # ================= ENTRY TIME =================
 
-    entry_seconds = int(10 + (spread * 4) + abs(maxv - moy) * 3 + (prob * 0.2))
+    entry_seconds = int(10 + (spread * 4) + abs(maxv - moy) * 3)
     entry_seconds = max(8, min(90, entry_seconds))
 
     entry_time = (t + timedelta(seconds=entry_seconds)).strftime("%H:%M:%S")
@@ -198,7 +233,7 @@ def run_prediction(hash_input, time_input, cote):
         "signal": signal,
         "entry_time": entry_time,
         "hour": hour,
-        "spread": spread   # ✅ FIX IMPORTANT (NO KEY ERROR)
+        "spread": spread
     }
 
     st.session_state.history.append(result)
@@ -232,10 +267,10 @@ def best_hours():
 
 # ================= UI =================
 
-st.title("🚀 ANDR-X AI V13 ULTRA FIXED")
+st.title("🚀 ANDR-X AI V13 ULTRA FULL SYSTEM")
 
 hash_input = st.text_input("HASH")
-time_input = st.text_input("TIME")
+time_input = st.text_input("TIME (HH:MM:SS)")
 cote = st.number_input("COTE", value=1.5)
 
 if st.button("RUN ANALYSIS"):
