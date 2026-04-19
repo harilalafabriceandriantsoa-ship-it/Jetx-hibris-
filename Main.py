@@ -9,7 +9,7 @@ import time
 # ==========================================
 # 💎 PREMIUM UI & STYLING
 # ==========================================
-st.set_page_config(page_title="JETX-ANDR V13.5 PRO-SYNC", layout="wide")
+st.set_page_config(page_title="ANDR-X V13.5 PRO-SYNC", layout="wide")
 
 st.markdown("""
 <style>
@@ -76,54 +76,43 @@ def get_tz_now():
 def hyper_time_calc(hash_val, spread, t_in):
     now = get_tz_now()
     try:
-        # Maka ny lera nampidirinao mba ho fototra (Precision extrême)
         t_obj = datetime.strptime(t_in.strip(), "%H:%M:%S").time()
         base_time = datetime.combine(now.date(), t_obj)
-        # Raha efa lasa ny misasak'alina (midnight rollover)
         if base_time > now.replace(tzinfo=None) + timedelta(hours=1):
             base_time -= timedelta(days=1)
     except Exception:
-        base_time = now # Fallback raha diso ny format
+        base_time = now
         
-    # Kajy ny segondra araka ny herin'ny Hash
     hash_shift = (int(hash_val[:6], 16) % 15) - 5
     base_delay = 14 + (spread * 1.8)
-    
     final_seconds = int(base_delay + hash_shift)
-    # Fiarovana: Tsy mihoatra ny 1min30 ny fiandrasana, farafahakeliny 10s
     final_seconds = max(10, min(90, final_seconds)) 
     
     entry = base_time + timedelta(seconds=final_seconds)
     return entry.strftime("%H:%M:%S")
 
 def run_ultra_analysis(h_in, t_in, c_ref):
-    # Hash processing
     h_num = int(hashlib.sha256(h_in.encode()).hexdigest()[:16], 16)
     h_norm = (h_num % 1000) / 1000
     np.random.seed(h_num & 0xffffffff)
     
-    # 12,000 Simulations (Extreme Precision Mode)
     sims = np.random.lognormal(np.mean([np.log(c_ref + 0.05), 0.25]), 0.35, 12000)
     
     prob_x3 = np.mean(sims >= 3.0) * 100
     moy = np.exp(np.mean(np.log(sims)))
-    max_v = np.percentile(sims, 98) # Max Peak precision
-    min_v = np.percentile(sims, 8)  # Crash risk precision
+    max_v = np.percentile(sims, 98)
+    min_v = np.percentile(sims, 8)
     spread = max_v - min_v
     
-    # Accuracy Logic (Stable & Strict)
     base_conf = 100 - (abs(moy - c_ref) / c_ref * 100)
     final_conf = max(20, min(99.1, base_conf + (len(st.session_state.history) * 3)))
 
-    # Advanced Signal Logic
     rtp_pressure = (c_ref / moy) if moy > 0 else 1
     x3_target = (prob_x3 * 0.6) + (rtp_pressure * 20) + (h_norm * 20)
     x3_target = round(min(99.9, x3_target), 1)
     
-    # Lera tena izy tsy misy décalage
     entry_time = hyper_time_calc(h_in, spread, t_in)
     
-    # Sniper Trigger (Moyenne >= 2.5 sy Prob > 75)
     if moy >= 2.5 and x3_target > 75 and final_conf > 60:
         signal, color = "💎 ULTRA SNIPER (X3+)", "#ff00cc"
     elif moy >= 2.0 and x3_target > 55:
@@ -151,8 +140,27 @@ def run_ultra_analysis(h_in, t_in, c_ref):
     return res
 
 # ==========================================
-# 🖥️ INTERFACE
+# 🖥️ INTERFACE & SECURITY
 # ==========================================
+
+# 1. Password Protection
+if "authenticated" not in st.session_state:
+    st.session_state.authenticated = False
+
+if not st.session_state.authenticated:
+    st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
+    st.markdown("<h2 style='text-align:center;'>🔐 ACCESS CONTROL</h2>", unsafe_allow_html=True)
+    pass_input = st.text_input("Enter System Password:", type="password")
+    if st.button("UNLOCK SYSTEM"):
+        if pass_input == "2026":
+            st.session_state.authenticated = True
+            st.rerun()
+        else:
+            st.error("Incorrect Password. Access Denied.")
+    st.markdown("</div>", unsafe_allow_html=True)
+    st.stop()
+
+# 2. Main Dashboard
 st.markdown(f"<h1 class='main-title'>ANDR-X V13.5 PRO-SYNC</h1>", unsafe_allow_html=True)
 
 col_ctrl, col_res = st.columns([1, 2])
@@ -161,7 +169,6 @@ with col_ctrl:
     st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
     h_in = st.text_input("SERVER HASH CODE", placeholder="D76F4F2D...")
     t_in = st.text_input("LAST ROUND TIME (HH:MM:SS)", placeholder="21:51:16")
-    # Napetraka 2.5 ny default ho an'ny X3 target araka ny paikady
     c_ref = st.number_input("REFERENCE COTE (TREND)", value=2.5, step=0.1) 
     
     if st.button("EXECUTE ANALYSIS"):
@@ -195,18 +202,17 @@ with col_res:
                 <p style='margin-bottom: 0; font-size: 1.1rem; letter-spacing: 3px;'>🎯 EXACT ENTRY TIME</p>
                 <h1 style='font-size: 4.5rem; margin: 0; color: #fff; text-shadow: 0 0 25px {r['color']}'>{r['entry']}</h1>
             </div>
-            <div style='display: flex; justify-content: space-around; margin-top: 20px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 15px;'>
-                <div><small>CRASH RISK MIN</small><br><b>{r['min']}x</b></div>
-                <div><small>MOYENNE</small><br><b style='color:#00ffcc'>{r['moy']}x</b></div>
-                <div><small>MAX PEAK</small><br><b>{r['max']}x</b></div>
-            </div>
         </div>
         """, unsafe_allow_html=True)
     else:
         st.info("Awaiting System Synchronization...")
 
-st.markdown("### 📊 EXACT MISSION LOGS")
+# 3. Prediction History Table
+st.markdown("---")
+st.markdown("### 📊 MISSION LOGS (HISTORIQUE)")
 if st.session_state.history:
     df_hist = pd.DataFrame(st.session_state.history).iloc[::-1]
-    if ['entry', 'signal', 'x3_prob', 'conf', 'moy'] <= list(df_hist.columns):
-        st.table(df_hist[['entry', 'signal', 'x3_prob', 'conf', 'moy']].head(10))
+    # Manamboatra ny tabilao hiseho tsara
+    st.table(df_hist[['entry', 'signal', 'x3_prob', 'conf', 'moy']])
+else:
+    st.write("No predictions in memory. Start an analysis to see history.")
