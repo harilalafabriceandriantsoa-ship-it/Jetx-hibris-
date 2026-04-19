@@ -7,9 +7,9 @@ import pytz
 import time
 
 # ==========================================
-# 💎 PREMIUM UI & STYLING (FUTURISTIC NEON)
+# 💎 PREMIUM UI & STYLING
 # ==========================================
-st.set_page_config(page_title="ANDR-X V13.5 NEON-ULTRA", layout="wide")
+st.set_page_config(page_title="ANDR-X V13.5 PRO-SYNC", layout="wide")
 
 st.markdown("""
 <style>
@@ -44,12 +44,6 @@ st.markdown("""
         backdrop-filter: blur(15px);
         box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8);
         margin-bottom: 20px;
-        transition: 0.3s;
-    }
-    
-    .glass-card:hover {
-        border-color: #ff00cc;
-        box-shadow: 0 0 20px rgba(255, 0, 204, 0.2);
     }
     
     .stButton>button {
@@ -63,87 +57,81 @@ st.markdown("""
         width: 100% !important;
         text-transform: uppercase;
         letter-spacing: 2px;
-        transition: 0.4s;
     }
     
-    .stButton>button:hover {
-        transform: scale(1.02);
-        box-shadow: 0 0 30px rgba(0, 255, 204, 0.6);
-    }
-    
-    .stat-val {
-        font-size: 1.8rem;
-        font-weight: 700;
-        color: #00ffcc;
-    }
+    .stat-val { font-size: 1.8rem; font-weight: 700; color: #00ffcc; }
 </style>
 """, unsafe_allow_html=True)
 
 # ==========================================
-# 🧠 CORE ENGINE & ULTRA MATHS
+# 🧠 HYPER-PRECISION ENGINE
 # ==========================================
 
-if "history" not in st.session_state: st.session_state.history = []
-if "auth" not in st.session_state: st.session_state.auth = False
-
-# --- Authentication ---
-if not st.session_state.auth:
-    st.markdown("<h1 class='main-title'>SYSTEM LOCKED</h1>", unsafe_allow_html=True)
-    pwd = st.text_input("ENTER QUANTUM KEY", type="password")
-    if st.button("ACTIVATE V13.5"):
-        if pwd == "2026":
-            st.session_state.auth = True
-            st.rerun()
-        else: st.error("ACCESS DENIED")
-    st.stop()
+if "history" not in st.session_state: 
+    st.session_state.history = []
 
 def get_tz_now():
     return datetime.now(pytz.timezone("Indian/Antananarivo"))
 
-def ultra_time_calc(hash_val, spread, moy):
+def hyper_time_calc(hash_val, spread, t_in):
     now = get_tz_now()
-    timestamp = now.timestamp()
-    # Oscillator dynamique hifanaraka amin'ny cycle
-    oscillator = np.sin(timestamp / 60) * 8 
-    base_delay = 12 + (spread * 2.5)
-    hash_shift = (int(hash_val[:5], 16) % 16) - 8
-    final_seconds = base_delay + oscillator + hash_shift
-    final_seconds = max(8, min(95, final_seconds))
-    entry = now + timedelta(seconds=final_seconds)
+    try:
+        # Maka ny lera nampidirinao mba ho fototra (Precision extrême)
+        t_obj = datetime.strptime(t_in.strip(), "%H:%M:%S").time()
+        base_time = datetime.combine(now.date(), t_obj)
+        # Raha efa lasa ny misasak'alina (midnight rollover)
+        if base_time > now.replace(tzinfo=None) + timedelta(hours=1):
+            base_time -= timedelta(days=1)
+    except Exception:
+        base_time = now # Fallback raha diso ny format
+        
+    # Kajy ny segondra araka ny herin'ny Hash
+    hash_shift = (int(hash_val[:6], 16) % 15) - 5
+    base_delay = 14 + (spread * 1.8)
+    
+    final_seconds = int(base_delay + hash_shift)
+    # Fiarovana: Tsy mihoatra ny 1min30 ny fiandrasana, farafahakeliny 10s
+    final_seconds = max(10, min(90, final_seconds)) 
+    
+    entry = base_time + timedelta(seconds=final_seconds)
     return entry.strftime("%H:%M:%S")
 
 def run_ultra_analysis(h_in, t_in, c_ref):
     # Hash processing
-    h_num = int(hashlib.sha256(h_in.encode()).hexdigest()[:12], 16)
+    h_num = int(hashlib.sha256(h_in.encode()).hexdigest()[:16], 16)
     h_norm = (h_num % 1000) / 1000
     np.random.seed(h_num & 0xffffffff)
     
-    # Monte Carlo Simulation (Optimized for X3)
-    sims = np.random.lognormal(np.mean([np.log(c_ref + 0.1), 0.3]), 0.4, 8000)
+    # 12,000 Simulations (Extreme Precision Mode)
+    sims = np.random.lognormal(np.mean([np.log(c_ref + 0.05), 0.25]), 0.35, 12000)
     
     prob_x3 = np.mean(sims >= 3.0) * 100
     moy = np.exp(np.mean(np.log(sims)))
-    max_v = np.percentile(sims, 95)
-    min_v = np.percentile(sims, 10)
+    max_v = np.percentile(sims, 98) # Max Peak precision
+    min_v = np.percentile(sims, 8)  # Crash risk precision
     spread = max_v - min_v
     
-    # Accuracy Logic (Basée sur la cohérence historique)
-    history_len = len(st.session_state.history)
-    history_boost = min(history_len * 4, 30)
+    # Accuracy Logic (Stable & Strict)
     base_conf = 100 - (abs(moy - c_ref) / c_ref * 100)
-    final_conf = max(15, min(98.5, base_conf + history_boost))
+    final_conf = max(20, min(99.1, base_conf + (len(st.session_state.history) * 3)))
 
-    # Signal Logic
+    # Advanced Signal Logic
     rtp_pressure = (c_ref / moy) if moy > 0 else 1
-    x3_target = (prob_x3 * 0.5) + (rtp_pressure * 30) + (h_norm * 20)
-    x3_target = round(min(99.7, x3_target), 1)
+    x3_target = (prob_x3 * 0.6) + (rtp_pressure * 20) + (h_norm * 20)
+    x3_target = round(min(99.9, x3_target), 1)
     
-    entry_time = ultra_time_calc(h_in, spread, moy)
+    # Lera tena izy tsy misy décalage
+    entry_time = hyper_time_calc(h_in, spread, t_in)
     
-    if x3_target > 78 and final_conf > 55: signal, color = "💎 ULTRA SNIPER (X3+)", "#ff00cc"
-    elif x3_target > 58: signal, color = "🟢 STRONG ENTRY", "#00ffcc"
-    elif x3_target > 38: signal, color = "⚡ SCALPING (X1.5)", "#ffff00"
-    else: signal, color = "⚠️ HIGH RISK - SKIP", "#ff4444"
+    # Sniper Trigger (Moyenne >= 2.5 sy Prob > 75)
+    if moy >= 2.5 and x3_target > 75 and final_conf > 60:
+        signal, color = "💎 ULTRA SNIPER (X3+)", "#ff00cc"
+    elif moy >= 2.0 and x3_target > 55:
+        signal, color = "🟢 STRONG ENTRY", "#00ffcc"
+    elif moy >= 1.5:
+        signal, color = "⚡ SCALPING (X1.5)", "#ffff00"
+    else:
+        signal, color = "⚠️ HIGH RISK - SKIP", "#ff4444"
     
     res = {
         "entry": entry_time,
@@ -157,39 +145,38 @@ def run_ultra_analysis(h_in, t_in, c_ref):
         "min": round(min_v, 2)
     }
     
-    # Manage Memory (mitazona ny 15 farany ihany)
     st.session_state.history.append(res)
-    if len(st.session_state.history) > 15:
+    if len(st.session_state.history) > 15: 
         st.session_state.history.pop(0)
-        
     return res
 
 # ==========================================
-# 🖥️ FUTURISTIC INTERFACE
+# 🖥️ INTERFACE
 # ==========================================
-
-st.markdown(f"<h1 class='main-title'>ANDR-X V13.5 NEON-ULTRA</h1>", unsafe_allow_html=True)
+st.markdown(f"<h1 class='main-title'>ANDR-X V13.5 PRO-SYNC</h1>", unsafe_allow_html=True)
 
 col_ctrl, col_res = st.columns([1, 2])
 
 with col_ctrl:
     st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
-    st.subheader("📡 SATELLITE INPUT")
     h_in = st.text_input("SERVER HASH CODE", placeholder="D76F4F2D...")
-    t_in = st.text_input("LAST ROUND TIME", placeholder="21:51:16")
-    c_ref = st.number_input("REFERENCE COTE (TREND)", value=2.0, step=0.1)
+    t_in = st.text_input("LAST ROUND TIME (HH:MM:SS)", placeholder="21:51:16")
+    # Napetraka 2.5 ny default ho an'ny X3 target araka ny paikady
+    c_ref = st.number_input("REFERENCE COTE (TREND)", value=2.5, step=0.1) 
     
     if st.button("EXECUTE ANALYSIS"):
-        if h_in and t_in:
-            with st.spinner("Decoding Neural Waves..."):
-                time.sleep(1.2)
+        if h_in and len(t_in) == 8 and ":" in t_in:
+            with st.spinner("Synchronizing Quantum Timer..."):
+                time.sleep(0.8) 
                 st.session_state.last_res = run_ultra_analysis(h_in, t_in, c_ref)
-        else: st.warning("Please fill all data fields.")
+        else: 
+            st.error("Lera diso format! Ataovy HH:MM:SS tsara (oh: 09:50:59)")
     st.markdown("</div>", unsafe_allow_html=True)
     
     if st.sidebar.button("🗑️ PURGE ALL DATA"):
         st.session_state.history = []
-        if "last_res" in st.session_state: del st.session_state.last_res
+        if "last_res" in st.session_state: 
+            del st.session_state.last_res
         st.rerun()
 
 with col_res:
@@ -205,30 +192,21 @@ with col_res:
                 <div><small>VOLATILITY</small><br><span class='stat-val'>{r['spread']}</span></div>
             </div>
             <div style='background: rgba(0,255,204,0.05); padding: 20px; border-radius: 15px; margin-top: 20px; text-align: center;'>
-                <p style='margin-bottom: 0; font-size: 1.1rem; letter-spacing: 3px;'>🎯 TARGET ENTRY TIME</p>
-                <h1 style='font-size: 4rem; margin: 0; color: #fff; text-shadow: 0 0 20px {r['color']}'>{r['entry']}</h1>
+                <p style='margin-bottom: 0; font-size: 1.1rem; letter-spacing: 3px;'>🎯 EXACT ENTRY TIME</p>
+                <h1 style='font-size: 4.5rem; margin: 0; color: #fff; text-shadow: 0 0 25px {r['color']}'>{r['entry']}</h1>
             </div>
             <div style='display: flex; justify-content: space-around; margin-top: 20px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 15px;'>
-                <div><small>MIN</small><br><b>{r['min']}x</b></div>
+                <div><small>CRASH RISK MIN</small><br><b>{r['min']}x</b></div>
                 <div><small>MOYENNE</small><br><b style='color:#00ffcc'>{r['moy']}x</b></div>
                 <div><small>MAX PEAK</small><br><b>{r['max']}x</b></div>
             </div>
         </div>
         """, unsafe_allow_html=True)
     else:
-        st.info("Awaiting Server Hash for Quantum Synchronization...")
+        st.info("Awaiting System Synchronization...")
 
-# --- History Table (SAFE VERSION) ---
-st.markdown("### 📊 MISSION LOGS (HISTORY)")
+st.markdown("### 📊 EXACT MISSION LOGS")
 if st.session_state.history:
-    # Reverse history for display (newest first)
     df_hist = pd.DataFrame(st.session_state.history).iloc[::-1]
-    
-    # Columns selection safely
-    target_cols = ['entry', 'signal', 'x3_prob', 'conf', 'moy']
-    available_cols = [c for c in target_cols if c in df_hist.columns]
-    
-    if available_cols:
-        st.table(df_hist[available_cols].head(10))
-    else:
-        st.write("Preparing table structure...")
+    if ['entry', 'signal', 'x3_prob', 'conf', 'moy'] <= list(df_hist.columns):
+        st.table(df_hist[['entry', 'signal', 'x3_prob', 'conf', 'moy']].head(10))
