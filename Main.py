@@ -84,7 +84,7 @@ def hyper_time_calc(hash_val, spread, t_in):
         base_time = now
         
     hash_shift = (int(hash_val[:6], 16) % 15) - 5
-    base_delay = 14 + (spread * 1.8)
+    base_delay = 14 + (spread * 1.5)
     final_seconds = int(base_delay + hash_shift)
     final_seconds = max(10, min(90, final_seconds)) 
     
@@ -92,13 +92,10 @@ def hyper_time_calc(hash_val, spread, t_in):
     return entry.strftime("%H:%M:%S")
 
 def run_ultra_analysis(h_in, t_in, c_ref):
-    # Hash Processing
     h_num = int(hashlib.sha256(h_in.encode()).hexdigest()[:16], 16)
     h_norm = (h_num % 1000) / 1000
     np.random.seed(h_num & 0xffffffff)
     
-    # Advanced Simulation Logic
-    # Fanitsiana ny simulation mba hifanaraka amin'ny volatility-n'ny Hash
     variance_scale = 0.25 + (h_norm * 0.2)
     sims = np.random.lognormal(np.mean([np.log(c_ref + 0.05), 0.25]), variance_scale, 12000)
     
@@ -108,9 +105,8 @@ def run_ultra_analysis(h_in, t_in, c_ref):
     min_v = np.percentile(sims, 5)  
     spread = max_v - min_v
     
-    # Accuracy Logic
     base_conf = 100 - (abs(moy - c_ref) / c_ref * 100)
-    final_conf = max(20, min(99.1, base_conf + (len(st.session_state.history) * 3)))
+    final_conf = max(20, min(99.1, base_conf + (len(st.session_state.history) * 2)))
 
     rtp_pressure = (c_ref / moy) if moy > 0 else 1
     x3_target = (prob_x3 * 0.6) + (rtp_pressure * 20) + (h_norm * 20)
@@ -118,31 +114,24 @@ def run_ultra_analysis(h_in, t_in, c_ref):
     
     entry_time = hyper_time_calc(h_in, spread, t_in)
     
-    # Signal Logic (Correction Sensitivity)
-    if moy >= (c_ref * 0.9) and x3_target > 70 and final_conf > 55:
+    if moy >= 2.2 and x3_target > 65:
         signal, color = "💎 ULTRA SNIPER (X3+)", "#ff00cc"
-    elif moy >= 1.8 and x3_target > 50:
+    elif moy >= 1.7:
         signal, color = "🟢 STRONG ENTRY", "#00ffcc"
-    elif moy >= 1.3:
-        signal, color = "⚡ SCALPING (X1.5)", "#ffff00"
+    elif moy >= 1.2:
+        signal, color = "⚡ SCALPING (X1.2)", "#ffff00"
     else:
         signal, color = "⚠️ HIGH RISK - SKIP", "#ff4444"
     
     res = {
-        "entry": entry_time,
-        "signal": signal,
-        "color": color,
-        "x3_prob": x3_target,
-        "conf": round(final_conf, 1),
-        "spread": round(spread, 2),
-        "moy": round(moy, 2),
-        "max": round(max_v, 2),
-        "min": round(min_v, 2)
+        "entry": entry_time, "signal": signal, "color": color,
+        "x3_prob": x3_target, "conf": round(final_conf, 1),
+        "spread": round(spread, 2), "moy": round(moy, 2),
+        "max": round(max_v, 2), "min": round(min_v, 2)
     }
     
     st.session_state.history.append(res)
-    if len(st.session_state.history) > 15: 
-        st.session_state.history.pop(0)
+    if len(st.session_state.history) > 15: st.session_state.history.pop(0)
     return res
 
 # ==========================================
@@ -160,12 +149,11 @@ if not st.session_state.authenticated:
         if pass_input == "2026":
             st.session_state.authenticated = True
             st.rerun()
-        else:
-            st.error("Incorrect Password. Access Denied.")
+        else: st.error("Incorrect Password.")
     st.markdown("</div>", unsafe_allow_html=True)
     st.stop()
 
-st.markdown(f"<h1 class='main-title'>ANDR-X V13.5 PRO-SYNC</h1>", unsafe_allow_html=True)
+st.markdown("<h1 class='main-title'>ANDR-X V13.5 PRO-SYNC</h1>", unsafe_allow_html=True)
 
 col_ctrl, col_res = st.columns([1, 2])
 
@@ -176,50 +164,29 @@ with col_ctrl:
     c_ref = st.number_input("REFERENCE COTE (TREND)", value=2.5, step=0.1) 
     
     if st.button("EXECUTE ANALYSIS"):
-        if h_in and len(t_in) == 8 and ":" in t_in:
-            with st.spinner("Synchronizing Quantum Timer..."):
-                time.sleep(0.8) 
+        if h_in and len(t_in) == 8:
+            with st.spinner("Sync..."):
+                time.sleep(0.5)
                 st.session_state.last_res = run_ultra_analysis(h_in, t_in, c_ref)
-        else: 
-            st.error("Lera diso format! Ataovy HH:MM:SS tsara")
+        else: st.error("Format Lera diso!")
     st.markdown("</div>", unsafe_allow_html=True)
     
     if st.sidebar.button("🗑️ PURGE ALL DATA"):
         st.session_state.history = []
-        if "last_res" in st.session_state: 
-            del st.session_state.last_res
+        if "last_res" in st.session_state: del st.session_state.last_res
         st.rerun()
 
 with col_res:
     if "last_res" in st.session_state:
         r = st.session_state.last_res
+        # Eto no namboarina mba tsy hisy error intsony
         st.markdown(f"""
-        <div class='glass-card' style='border-left: 10px solid {r['color']}'>
-            <h2 style='color: {r['color']}; text-align: left;'>{r['signal']}</h2>
-            <hr style='opacity: 0.1'>
-            <div style='display: flex; justify-content: space-between;'>
-                <div><small>X3+ PROBABILITY</small><br><span class='stat-val' style='color:{r['color']}'>{r['x3_prob']}%</span></div>
-                <div><small>ACCURACY</small><br><span class='stat-val'>{r['conf']}%</span></div>
-                <div><small>VOLATILITY</small><br><span class='stat-val'>{r['spread']}</span></div>
+        <div class="glass-card" style="border-left: 10px solid {r['color']}">
+            <h2 style="color: {r['color']}; margin: 0;">{r['signal']}</h2>
+            <hr style="opacity: 0.1; margin: 10px 0;">
+            <div style="display: flex; justify-content: space-between;">
+                <div><small>X3+ PROB</small><br><span class="stat-val" style="color:{r['color']}">{r['x3_prob']}%</span></div>
+                <div><small>ACCURACY</small><br><span class="stat-val">{r['conf']}%</span></div>
+                <div><small>VOLATILITY</small><br><span class="stat-val">{r['spread']}</span></div>
             </div>
-            
-            <div style='background: rgba(0,255,204,0.05); padding: 20px; border-radius: 15px; margin-top: 20px; text-align: center;'>
-                <p style='margin-bottom: 0; font-size: 1.1rem; letter-spacing: 3px;'>🎯 EXACT ENTRY TIME</p>
-                <h1 style='font-size: 4.5rem; margin: 0; color: #fff; text-shadow: 0 0 25px {r['color']}'>{r['entry']}</h1>
-            </div>
-
-            <div style='display: flex; justify-content: space-around; margin-top: 20px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 15px;'>
-                <div style='text-align:center;'><small>CRASH MIN</small><br><b style='color:#ff4444; font-size:1.2rem;'>{r['min']}x</b></div>
-                <div style='text-align:center;'><small>MOYENNE</small><br><b style='color:#00ffcc; font-size:1.2rem;'>{r['moy']}x</b></div>
-                <div style='text-align:center;'><small>PEAK MAX</small><br><b style='color:#ff00cc; font-size:1.2rem;'>{r['max']}x</b></div>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-    else:
-        st.info("Awaiting System Synchronization...")
-
-st.markdown("---")
-st.markdown("### 📊 MISSION LOGS (HISTORIQUE)")
-if st.session_state.history:
-    df_hist = pd.DataFrame(st.session_state.history).iloc[::-1]
-    st.table(df_hist[['entry', 'signal', 'x3_prob', 'conf', 'moy', 'max']])
+            <div style="background: rgba(255,255,255,0.05); padding
