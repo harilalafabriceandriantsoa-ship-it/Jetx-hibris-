@@ -9,7 +9,7 @@ import time
 # ==========================================
 # 💎 PREMIUM UI & STYLING
 # ==========================================
-st.set_page_config(page_title="ANDR-X V13.5 PRO-SYNC", layout="wide")
+st.set_page_config(page_title="JETX-ANDR V13.5 PRO-SYNC", layout="wide")
 
 st.markdown("""
 <style>
