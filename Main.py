@@ -179,7 +179,6 @@ with col_ctrl:
 with col_res:
     if "last_res" in st.session_state:
         r = st.session_state.last_res
-        # Eto no namboarina mba tsy hisy error intsony
         st.markdown(f"""
         <div class="glass-card" style="border-left: 10px solid {r['color']}">
             <h2 style="color: {r['color']}; margin: 0;">{r['signal']}</h2>
@@ -189,4 +188,20 @@ with col_res:
                 <div><small>ACCURACY</small><br><span class="stat-val">{r['conf']}%</span></div>
                 <div><small>VOLATILITY</small><br><span class="stat-val">{r['spread']}</span></div>
             </div>
-            <div style="background: rgba(255,255,255,0.05); padding
+            <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 15px; margin-top: 15px; text-align: center;">
+                <p style="margin: 0; font-size: 0.9rem; letter-spacing: 2px; opacity: 0.7;">🎯 EXACT ENTRY TIME</p>
+                <h1 style="font-size: 4rem; margin: 0; color: #fff; text-shadow: 0 0 20px {r['color']}">{r['entry']}</h1>
+            </div>
+            <div style="display: flex; justify-content: space-around; margin-top: 15px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 10px;">
+                <div style="text-align:center;"><small>MIN</small><br><b style="color:#ff4444;">{r['min']}x</b></div>
+                <div style="text-align:center;"><small>MOYENNE</small><br><b style="color:#00ffcc;">{r['moy']}x</b></div>
+                <div style="text-align:center;"><small>MAX</small><br><b style="color:#ff00cc;">{r['max']}x</b></div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+    else: st.info("Awaiting System Synchronization...")
+
+st.markdown("### 📊 MISSION LOGS")
+if st.session_state.history:
+    df_h = pd.DataFrame(st.session_state.history).iloc[::-1]
+    st.table(df_h[['entry', 'signal', 'x3_prob', 'conf', 'moy', 'max']])
