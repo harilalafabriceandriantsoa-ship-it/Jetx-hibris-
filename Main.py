@@ -98,14 +98,14 @@ def run_ultra_analysis(h_in, t_in, c_ref):
     np.random.seed(h_num & 0xffffffff)
     
     # Advanced Simulation Logic
-    # Mampiasa ny herin'ny Hash hanitsiana ny variance (spread)
+    # Fanitsiana ny simulation mba hifanaraka amin'ny volatility-n'ny Hash
     variance_scale = 0.25 + (h_norm * 0.2)
     sims = np.random.lognormal(np.mean([np.log(c_ref + 0.05), 0.25]), variance_scale, 12000)
     
     prob_x3 = np.mean(sims >= 3.0) * 100
     moy = np.exp(np.mean(np.log(sims)))
-    max_v = np.percentile(sims, 98) # Peak detection
-    min_v = np.percentile(sims, 5)  # Safe floor detection
+    max_v = np.percentile(sims, 98) 
+    min_v = np.percentile(sims, 5)  
     spread = max_v - min_v
     
     # Accuracy Logic
@@ -118,12 +118,12 @@ def run_ultra_analysis(h_in, t_in, c_ref):
     
     entry_time = hyper_time_calc(h_in, spread, t_in)
     
-    # Signal Sorting
-    if moy >= 2.5 and x3_target > 75 and final_conf > 60:
+    # Signal Logic (Correction Sensitivity)
+    if moy >= (c_ref * 0.9) and x3_target > 70 and final_conf > 55:
         signal, color = "💎 ULTRA SNIPER (X3+)", "#ff00cc"
-    elif moy >= 2.0 and x3_target > 55:
+    elif moy >= 1.8 and x3_target > 50:
         signal, color = "🟢 STRONG ENTRY", "#00ffcc"
-    elif moy >= 1.5:
+    elif moy >= 1.3:
         signal, color = "⚡ SCALPING (X1.5)", "#ffff00"
     else:
         signal, color = "⚠️ HIGH RISK - SKIP", "#ff4444"
@@ -149,7 +149,6 @@ def run_ultra_analysis(h_in, t_in, c_ref):
 # 🖥️ INTERFACE & SECURITY
 # ==========================================
 
-# 1. Password Protection
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
 
@@ -166,7 +165,6 @@ if not st.session_state.authenticated:
     st.markdown("</div>", unsafe_allow_html=True)
     st.stop()
 
-# 2. Main Dashboard
 st.markdown(f"<h1 class='main-title'>ANDR-X V13.5 PRO-SYNC</h1>", unsafe_allow_html=True)
 
 col_ctrl, col_res = st.columns([1, 2])
@@ -183,7 +181,7 @@ with col_ctrl:
                 time.sleep(0.8) 
                 st.session_state.last_res = run_ultra_analysis(h_in, t_in, c_ref)
         else: 
-            st.error("Lera diso format! Ataovy HH:MM:SS tsara (oh: 09:50:59)")
+            st.error("Lera diso format! Ataovy HH:MM:SS tsara")
     st.markdown("</div>", unsafe_allow_html=True)
     
     if st.sidebar.button("🗑️ PURGE ALL DATA"):
@@ -220,11 +218,8 @@ with col_res:
     else:
         st.info("Awaiting System Synchronization...")
 
-# 3. Prediction History Table
 st.markdown("---")
 st.markdown("### 📊 MISSION LOGS (HISTORIQUE)")
 if st.session_state.history:
     df_hist = pd.DataFrame(st.session_state.history).iloc[::-1]
     st.table(df_hist[['entry', 'signal', 'x3_prob', 'conf', 'moy', 'max']])
-else:
-    st.write("No predictions in memory. Start an analysis to see history.")
