@@ -92,18 +92,23 @@ def hyper_time_calc(hash_val, spread, t_in):
     return entry.strftime("%H:%M:%S")
 
 def run_ultra_analysis(h_in, t_in, c_ref):
+    # Hash Processing
     h_num = int(hashlib.sha256(h_in.encode()).hexdigest()[:16], 16)
     h_norm = (h_num % 1000) / 1000
     np.random.seed(h_num & 0xffffffff)
     
-    sims = np.random.lognormal(np.mean([np.log(c_ref + 0.05), 0.25]), 0.35, 12000)
+    # Advanced Simulation Logic
+    # Mampiasa ny herin'ny Hash hanitsiana ny variance (spread)
+    variance_scale = 0.25 + (h_norm * 0.2)
+    sims = np.random.lognormal(np.mean([np.log(c_ref + 0.05), 0.25]), variance_scale, 12000)
     
     prob_x3 = np.mean(sims >= 3.0) * 100
     moy = np.exp(np.mean(np.log(sims)))
-    max_v = np.percentile(sims, 98)
-    min_v = np.percentile(sims, 8)
+    max_v = np.percentile(sims, 98) # Peak detection
+    min_v = np.percentile(sims, 5)  # Safe floor detection
     spread = max_v - min_v
     
+    # Accuracy Logic
     base_conf = 100 - (abs(moy - c_ref) / c_ref * 100)
     final_conf = max(20, min(99.1, base_conf + (len(st.session_state.history) * 3)))
 
@@ -113,6 +118,7 @@ def run_ultra_analysis(h_in, t_in, c_ref):
     
     entry_time = hyper_time_calc(h_in, spread, t_in)
     
+    # Signal Sorting
     if moy >= 2.5 and x3_target > 75 and final_conf > 60:
         signal, color = "💎 ULTRA SNIPER (X3+)", "#ff00cc"
     elif moy >= 2.0 and x3_target > 55:
@@ -198,9 +204,16 @@ with col_res:
                 <div><small>ACCURACY</small><br><span class='stat-val'>{r['conf']}%</span></div>
                 <div><small>VOLATILITY</small><br><span class='stat-val'>{r['spread']}</span></div>
             </div>
+            
             <div style='background: rgba(0,255,204,0.05); padding: 20px; border-radius: 15px; margin-top: 20px; text-align: center;'>
                 <p style='margin-bottom: 0; font-size: 1.1rem; letter-spacing: 3px;'>🎯 EXACT ENTRY TIME</p>
                 <h1 style='font-size: 4.5rem; margin: 0; color: #fff; text-shadow: 0 0 25px {r['color']}'>{r['entry']}</h1>
+            </div>
+
+            <div style='display: flex; justify-content: space-around; margin-top: 20px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 15px;'>
+                <div style='text-align:center;'><small>CRASH MIN</small><br><b style='color:#ff4444; font-size:1.2rem;'>{r['min']}x</b></div>
+                <div style='text-align:center;'><small>MOYENNE</small><br><b style='color:#00ffcc; font-size:1.2rem;'>{r['moy']}x</b></div>
+                <div style='text-align:center;'><small>PEAK MAX</small><br><b style='color:#ff00cc; font-size:1.2rem;'>{r['max']}x</b></div>
             </div>
         </div>
         """, unsafe_allow_html=True)
@@ -212,7 +225,6 @@ st.markdown("---")
 st.markdown("### 📊 MISSION LOGS (HISTORIQUE)")
 if st.session_state.history:
     df_hist = pd.DataFrame(st.session_state.history).iloc[::-1]
-    # Manamboatra ny tabilao hiseho tsara
-    st.table(df_hist[['entry', 'signal', 'x3_prob', 'conf', 'moy']])
+    st.table(df_hist[['entry', 'signal', 'x3_prob', 'conf', 'moy', 'max']])
 else:
     st.write("No predictions in memory. Start an analysis to see history.")
