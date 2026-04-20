@@ -72,18 +72,26 @@ if "ml_model" not in st.session_state:
 if "ml_ready" not in st.session_state:
     st.session_state.ml_ready = False
 
+if "authenticated" not in st.session_state:
+    st.session_state.authenticated = False
+
 
 # ==========================================
-# FIX LAST COTE (X10 PROTECTION)
+# 🔐 LOGIN
 # ==========================================
-def normalize_last_cote(last_cote, c_ref):
-    if last_cote > 10:
-        return min(last_cote, c_ref * 2)   # x10+ trap fix
-    elif last_cote > 6:
-        return 4.0
-    elif last_cote > 4:
-        return (last_cote + 4) / 2
-    return last_cote
+if not st.session_state.authenticated:
+    st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
+    password = st.text_input("Password", type="password")
+
+    if st.button("LOGIN"):
+        if password == "2026":
+            st.session_state.authenticated = True
+            st.rerun()
+        else:
+            st.error("Wrong password")
+
+    st.markdown("</div>", unsafe_allow_html=True)
+    st.stop()
 
 
 # ==========================================
@@ -94,7 +102,7 @@ def get_tz_now():
 
 
 # ==========================================
-# AI TRAINING
+# AI TRAINING (TSY OVAINA)
 # ==========================================
 def train_real_ai():
     data = []
@@ -128,11 +136,10 @@ def ai_predict(prob, conf, moy, spread):
 
 
 # ==========================================
-# ENTRY TIME
+# ⏱ ENTRY TIME (TSY OVAINA)
 # ==========================================
 def hyper_time_calc(hash_val, spread, t_in, strength):
     now = get_tz_now()
-
     try:
         t_obj = datetime.strptime(t_in.strip(), "%H:%M:%S").time()
         base_time = datetime.combine(now.date(), t_obj)
@@ -155,12 +162,35 @@ def hyper_time_calc(hash_val, spread, t_in, strength):
 
 
 # ==========================================
-# CORE ENGINE
+# 🔥 LAST COTE ENGINE (UPGRADE ONLY)
+# ==========================================
+def normalize_last_cote(last_cote):
+
+    # 🔥 FIX: x10+ stabilisation
+    if last_cote >= 10:
+        last_cote = 6.5 + (last_cote % 2)
+
+    # 🔥 STRONG smoothing
+    elif last_cote > 6:
+        last_cote = 4.5 + (last_cote - 6) * 0.3
+
+    elif last_cote > 4:
+        last_cote = (last_cote + 4) / 2
+
+    # safe zone
+    elif last_cote < 1.2:
+        last_cote = 1.2
+
+    return last_cote
+
+
+# ==========================================
+# CORE ENGINE (ENHANCED)
 # ==========================================
 def run_ultra_analysis(h_in, t_in, c_ref, last_cote):
 
-    # 🔥 FIX APPLIED HERE
-    last_cote = normalize_last_cote(last_cote, c_ref)
+    # 🔥 NORMALIZE LAST COTE (NEW)
+    last_cote = normalize_last_cote(last_cote)
 
     h_num = int(hashlib.sha256(h_in.encode()).hexdigest()[:16], 16)
     h_norm = (h_num % 1000) / 1000
@@ -172,9 +202,9 @@ def run_ultra_analysis(h_in, t_in, c_ref, last_cote):
 
     trend_boost = 1.0
     if last_cote < 1.5:
-        trend_boost = 1.15
+        trend_boost = 1.2
     elif last_cote > 3:
-        trend_boost = 0.85
+        trend_boost = 0.8
 
     sims = np.random.lognormal(base_mean, variance_scale, 12000) * trend_boost
 
@@ -185,23 +215,24 @@ def run_ultra_analysis(h_in, t_in, c_ref, last_cote):
 
     spread = max_v - min_v
 
-    conf = (prob_x3_real * 0.65) + ((moy / max(c_ref,1)) * 35)
+    conf = (prob_x3_real * 0.7) + ((moy / c_ref) * 30)
     conf = max(20, min(99, conf))
 
     ai_score = ai_predict(prob_x3_real, conf, moy, spread)
 
-    final_strength = (prob_x3_real * 0.6 + (ai_score or 50) * 0.4)
+    final_strength = (prob_x3_real * 0.6 + (ai_score or 0) * 0.4)
 
     entry_time = hyper_time_calc(h_in, spread, t_in, final_strength)
 
-    if final_strength > 70:
+    # SIGNAL LOGIC
+    if final_strength > 70 and moy > 2.0:
         signal, color = "💎 ULTRA AI BUY", "#ff00cc"
     elif final_strength > 55:
         signal, color = "🟢 AI STRONG BUY", "#00ffcc"
     elif final_strength > 40:
         signal, color = "⚡ AI SCALP", "#ffff00"
     else:
-        signal, color = "⚠️ WATCH ZONE", "#ff4444"
+        signal, color = "⚠️ AI SKIP", "#ff4444"
 
     res = {
         "entry": entry_time,
@@ -213,11 +244,11 @@ def run_ultra_analysis(h_in, t_in, c_ref, last_cote):
         "moy": round(moy, 2),
         "max": round(max_v, 2),
         "min": round(min_v, 2),
+        "last_cote_used": round(last_cote, 2),
         "ai_score": ai_score
     }
 
     st.session_state.history.append(res)
-
     if len(st.session_state.history) > 20:
         st.session_state.history.pop(0)
 
@@ -241,19 +272,18 @@ with col1:
     last_cote = st.number_input("LAST COTE", value=2.0)
 
     if st.button("RUN AI"):
-        if h_in and len(t_in) == 8:
+        if h_in and len(t_in)==8:
             st.session_state.last_res = run_ultra_analysis(h_in,t_in,c_ref,last_cote)
 
     st.markdown("</div>", unsafe_allow_html=True)
 
     if st.sidebar.button("RESET DATA"):
-        st.session_state.history = []
+        st.session_state.history=[]
         st.rerun()
-
 
 with col2:
     if "last_res" in st.session_state:
-        r = st.session_state.last_res
+        r=st.session_state.last_res
 
         st.markdown(f"""
         <div class="glass-card" style="border-left: 8px solid {r['color']}">
@@ -272,6 +302,9 @@ with col2:
         <div>MOY<br><b>{r['moy']}x</b></div>
         <div>MAX<br><b>{r['max']}x</b></div>
         </div>
+
+        <small>LAST COTE USED: {r['last_cote_used']}</small>
+
         </div>
         """, unsafe_allow_html=True)
 
