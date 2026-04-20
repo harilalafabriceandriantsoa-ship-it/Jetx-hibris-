@@ -9,41 +9,46 @@ from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.preprocessing import StandardScaler
 
 # ==========================================
-# 🔐 PASSWORD PROTECTION (Amélioré - caché mieux)
+# 🔐 PASSWORD PROTECTION - TSY MISEHO INTSONY
 # ==========================================
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
 
+# Login Page (mot de passe totalement caché)
 if not st.session_state.authenticated:
     st.markdown("""
     <style>
         .stApp { background: linear-gradient(135deg, #0a0a1f, #1a0033); }
         .login-title {
-            font-size: 4.5rem; font-weight: 900; text-align: center;
-            background: linear-gradient(90deg, #00ffcc, #ff00ff);
+            font-size: 4.8rem; font-weight: 900; text-align: center;
+            background: linear-gradient(90deg, #00ffcc, #ff00ff, #00ccff);
             -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
         }
+        .login-subtitle { text-align: center; color: #00ffcc; font-size: 1.6rem; margin-bottom: 40px; }
     </style>
     """, unsafe_allow_html=True)
-    
-    st.markdown("<h1 class='login-title'>JETX ANDR</h1>", unsafe_allow_html=True)
-    st.markdown("<h2 style='text-align:center; color:#00ffcc; margin-bottom:30px;'>V14 ULTRA STYLÉ</h2>", unsafe_allow_html=True)
 
-    password = st.text_input("🔑 Entrez le mot de passe pour accéder :", 
+    st.markdown("<h1 class='login-title'>JETX ANDR</h1>", unsafe_allow_html=True)
+    st.markdown("<p class='login-subtitle'>V14 ULTRA STYLÉ</p>", unsafe_allow_html=True)
+
+    # Champ mot de passe (tsy hiseho mihitsy ny valeur)
+    password = st.text_input("🔑 Entrez le mot de passe :", 
                              type="password", 
-                             placeholder="Entrez JET2026 ici")
-    
-    if st.button("✅ Valider l'accès"):
+                             placeholder="••••••••••",
+                             label_visibility="hidden")
+
+    if st.button("✅ Accéder à l'application", use_container_width=True):
         if password == "JET2026":
             st.session_state.authenticated = True
-            st.success("✅ Accès autorisé !")
+            st.success("✅ Accès autorisé ! Bienvenue")
             st.rerun()
         else:
-            st.error("❌ Mot de passe incorrect. Essayez à nouveau.")
+            st.error("❌ Mot de passe incorrect")
     st.stop()
 
 # ==========================================
-# 💎 INTERFACE ULTRA STYLÉE
+# 💎 INTERFACE PRINCIPALE - ULTRA STYLÉE
 # ==========================================
 st.set_page_config(page_title="JETX ANDR V14 ULTRA", layout="wide")
 
@@ -58,22 +63,23 @@ st.markdown("""
 
     .main-title {
         font-family: 'Orbitron', sans-serif;
-        font-size: 4rem;
+        font-size: 4.2rem;
         font-weight: 900;
         text-align: center;
         background: linear-gradient(90deg, #00ffcc, #ff00ff, #00ccff);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
-        text-shadow: 0 0 30px rgba(0, 255, 204, 0.5);
+        text-shadow: 0 0 35px rgba(0, 255, 204, 0.6);
+        margin-bottom: 8px;
     }
 
     .glass-card {
-        background: rgba(15, 15, 40, 0.8);
-        border: 1px solid rgba(0, 255, 204, 0.6);
+        background: rgba(15, 15, 40, 0.82);
+        border: 1px solid rgba(0, 255, 204, 0.55);
         border-radius: 25px;
-        padding: 30px;
-        backdrop-filter: blur(20px);
-        box-shadow: 0 10px 40px rgba(0, 255, 204, 0.2);
+        padding: 32px;
+        backdrop-filter: blur(25px);
+        box-shadow: 0 10px 45px rgba(0, 255, 204, 0.25);
     }
 
     .signal-ultra { color: #00ffcc; text-shadow: 0 0 25px #00ffcc; }
@@ -87,16 +93,10 @@ st.markdown("""
         color: #000 !important;
         font-family: 'Orbitron', sans-serif !important;
         font-weight: 700 !important;
-        font-size: 1.3rem !important;
+        font-size: 1.35rem !important;
         border-radius: 50px !important;
-        height: 70px !important;
-        box-shadow: 0 0 35px rgba(0, 255, 204, 0.8);
-        transition: all 0.3s;
-    }
-
-    .stButton>button:hover {
-        transform: scale(1.08);
-        box-shadow: 0 0 50px rgba(255, 0, 255, 0.9);
+        height: 72px !important;
+        box-shadow: 0 0 40px rgba(0, 255, 204, 0.8);
     }
 </style>
 """, unsafe_allow_html=True)
@@ -121,16 +121,14 @@ def get_time():
 
 def get_current_streak(history):
     marked = [h.get("real_result") for h in history if h.get("real_result") in ["win", "loss"]]
-    if not marked:
-        return 0, 0, None
+    if not marked: return 0, 0, None
     streak_win = streak_loss = 0
     last = marked[-1]
     for res in reversed(marked):
         if res == last:
             if res == "win": streak_win += 1
             else: streak_loss += 1
-        else:
-            break
+        else: break
     return streak_win, streak_loss, last
 
 def prepare_ml_data(history):
@@ -259,25 +257,25 @@ def run_engine_ultra(h_in, t_in, last_cote):
 # UI PRINCIPALE
 # ==========================================
 st.markdown("<h1 class='main-title'>JETX ANDR V14</h1>", unsafe_allow_html=True)
-st.markdown("<p style='text-align:center; color:#00ffcc; font-size:1.4rem;'>ULTRA STYLÉ • AI + STREAK</p>", unsafe_allow_html=True)
+st.markdown("<p style='text-align:center; color:#00ffcc; font-size:1.5rem;'>ULTRA STYLÉ • AI + STREAK LEARNING</p>", unsafe_allow_html=True)
 
-col1, col2 = st.columns([1, 2])
+col1, col2 = st.columns([1, 2.1])
 
 with col1:
     st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
     st.subheader("🔑 Paramètres du Round")
 
-    h_in = st.text_input("HASH (Provably Fair)", placeholder="Collez le hash complet...")
-    t_in = st.text_input("TIME (HH:MM:SS)", placeholder="Ex: 21:35:12")
+    h_in = st.text_input("HASH (Provably Fair)", placeholder="Collez le hash complet ici...")
+    t_in = st.text_input("TIME (HH:MM:SS)", placeholder="Ex: 21:36:16")
     last_cote = st.number_input("LAST COTE (Round précédent)", value=2.3, step=0.1, format="%.2f")
 
-    if st.button("🚀 LANCER LE CALCUL ULTRA"):
-        if h_in.strip() and len(t_in.strip()) >= 8:
-            with st.spinner("Calcul ultra en cours..."):
+    if st.button("🚀 LANCER LE CALCUL ULTRA", use_container_width=True):
+        if h_in and len(t_in) >= 8:
+            with st.spinner("Analyse hash + IA en cours..."):
                 st.session_state.last = run_engine_ultra(h_in, t_in, last_cote)
-                st.success("✅ Signal généré avec succès !")
+                st.success("✅ Signal généré !")
         else:
-            st.warning("Veuillez remplir correctement le HASH et le TIME.")
+            st.warning("Veuillez remplir le HASH et le TIME.")
     st.markdown("</div>", unsafe_allow_html=True)
 
     if st.sidebar.button("🔄 Réinitialiser tout"):
@@ -292,10 +290,10 @@ with col2:
         st.markdown(f"""
         <div class="glass-card">
             <h2 class="{r['signal_class']}">{r['signal']}</h2>
-            <h3>X3 PROB : <span style="color:#ff00ff; font-size:1.8rem;">{r['x3_prob']}%</span> | CONF : {r['conf']}</h3>
-            <h1 style="font-size:4rem; color:#00ffcc;">{r['entry']}</h1>
+            <h3>X3 PROB : <span style="color:#ff00ff; font-size:1.9rem;">{r['x3_prob']}%</span> | CONF : {r['conf']}</h3>
+            <h1 style="font-size:4.4rem; color:#00ffcc; margin:10px 0;">{r['entry']}</h1>
             <p>MIN: {r['min']} | MOY: {r['moy']} | MAX: {r['max']}</p>
-            <small>Strength: <b>{r['strength']}</b> | Win Streak: {r['win_streak']} | Loss Streak: {r['loss_streak']}</small>
+            <small>Strength : <b>{r['strength']}</b> • Win Streak : {r['win_streak']} • Loss Streak : {r['loss_streak']}</small>
         </div>
         """, unsafe_allow_html=True)
 
@@ -312,13 +310,13 @@ if st.session_state.history:
         use_container_width=True
     )
 
-    if st.button("💾 Sauvegarder & Réentraîner l'IA"):
+    if st.button("💾 Sauvegarder & Réentraîner l'IA Ultra"):
         for d_idx, row in edited_df.iterrows():
             orig_idx = len(st.session_state.history) - 1 - d_idx
             if orig_idx < len(st.session_state.history):
                 st.session_state.history[orig_idx]["real_result"] = row["real_result"]
         train_ai_ultra()
-        st.success("✅ IA mise à jour avec vos résultats réels et streaks !")
+        st.success("✅ L'IA a bien appris de vos résultats réels et streaks !")
         st.rerun()
 
-st.caption("JETX ANDR V14 ULTRA STYLÉ • Mot de passe : JET2026")
+st.caption("JETX ANDR V14 ULTRA STYLÉ • Mot de passe protégé")
