@@ -4,9 +4,9 @@ import hashlib
 import pandas as pd
 from datetime import datetime, timedelta
 import pytz
+
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.preprocessing import StandardScaler
-import time
 
 # ==========================================
 # 🔐 PASSWORD PROTECTION
@@ -20,8 +20,7 @@ if not st.session_state.authenticated:
         .stApp { background: linear-gradient(135deg, #0a0a1f, #1a0033); }
         .login-title { font-size: 5rem; font-weight: 900; text-align: center;
                        background: linear-gradient(90deg, #00ffcc, #ff00ff, #00ccff);
-                       -webkit-background-clip: text; -webkit-text-fill-color: transparent; 
-                       font-family: 'Orbitron', sans-serif; }
+                       -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
     </style>
     """, unsafe_allow_html=True)
     st.markdown("<h1 class='login-title'>JETX ANDR</h1>", unsafe_allow_html=True)
@@ -38,48 +37,32 @@ if not st.session_state.authenticated:
     st.stop()
 
 # ==========================================
-# 💎 UI CONFIG & STYLE (Fixed for f-strings)
+# 💎 UI TRÈS STYLÉE
 # ==========================================
 st.set_page_config(page_title="JETX ANDR V14 ULTRA", layout="wide")
 
-# Nampiasaina ny {{ }} amin'ny CSS mba tsy hisy error amin'ny Python
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@500;600;700&display=swap');
-    
-    .stApp {{ background: linear-gradient(135deg, #0a0a1f 0%, #1a0033 100%); color: #e0fbfc; }}
-    
-    .main-title {{ 
-        font-family: 'Orbitron', sans-serif; font-size: 4.5rem; font-weight: 900; text-align: center;
-        background: linear-gradient(90deg, #00ffcc, #ff00ff, #00ccff, #ffff00);
-        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-        text-shadow: 0 0 40px rgba(0,255,204,0.7); margin-bottom: 8px; 
-    }}
-    
-    .glass-card {{ 
-        background: rgba(15,15,40,0.88); border: 1px solid rgba(0,255,204,0.65);
-        border-radius: 28px; padding: 32px; backdrop-filter: blur(28px);
-        box-shadow: 0 15px 55px rgba(0,255,204,0.35); margin-bottom: 20px;
-    }}
-    
-    .signal-ultra {{ color: #00ffcc; text-shadow: 0 0 30px #00ffcc; font-weight: 900; font-family: 'Orbitron'; }}
-    .signal-strong {{ color: #ff00ff; text-shadow: 0 0 25px #ff00ff; font-weight: 900; font-family: 'Orbitron'; }}
-    .signal-good {{ color: #ffff00; font-weight: bold; font-family: 'Orbitron'; }}
-    .signal-light {{ color: #00ccff; font-weight: bold; }}
-    .signal-skip {{ color: #ff3366; opacity: 0.7; }}
-
-    .stButton>button {{ 
-        background: linear-gradient(135deg, #00ff88, #ff00ff, #00ccff) !important;
-        color: #000 !important; font-family: 'Orbitron', sans-serif !important;
-        font-weight: 700 !important; border-radius: 50px !important; height: 72px !important;
-        font-size: 1.4rem !important; box-shadow: 0 0 40px rgba(0,255,204,0.8);
-        border: none !important;
-    }}
+    .stApp { background: linear-gradient(135deg, #0a0a1f 0%, #1a0033 100%); color: #e0fbfc; }
+    .main-title { font-family: 'Orbitron', sans-serif; font-size: 4.5rem; font-weight: 900; text-align: center;
+                  background: linear-gradient(90deg, #00ffcc, #ff00ff, #00ccff, #ffff00);
+                  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+                  text-shadow: 0 0 40px rgba(0,255,204,0.7); margin-bottom: 8px; }
+    .glass-card { background: rgba(15,15,40,0.88); border: 1px solid rgba(0,255,204,0.65);
+                  border-radius: 28px; padding: 32px; backdrop-filter: blur(28px);
+                  box-shadow: 0 15px 55px rgba(0,255,204,0.35); }
+    .signal-ultra { color: #00ffcc; text-shadow: 0 0 30px #00ffcc; }
+    .signal-strong { color: #ff00ff; text-shadow: 0 0 25px #ff00ff; }
+    .stButton>button { background: linear-gradient(135deg, #00ff88, #ff00ff, #00ccff) !important;
+                       color: #000 !important; font-family: 'Orbitron', sans-serif !important;
+                       font-weight: 700 !important; border-radius: 50px !important; height: 72px !important;
+                       font-size: 1.4rem !important; box-shadow: 0 0 40px rgba(0,255,204,0.8); }
 </style>
 """, unsafe_allow_html=True)
 
 # ==========================================
-# 🧠 AI & SESSION STATE
+# SESSION STATE
 # ==========================================
 if "history" not in st.session_state:
     st.session_state.history = []
@@ -125,12 +108,11 @@ def prepare_ml_data(history):
 
 def train_ai_ultra():
     data = prepare_ml_data(st.session_state.history)
-    if len(data) < 5: return # Reduced for testing, keep 10+ for better AI
+    if len(data) < 10: return
     df = pd.DataFrame(data)
     X = df.iloc[:, :-1]
     y = df.iloc[:, -1]
-    st.session_state.scaler.fit(X)
-    X_scaled = st.session_state.scaler.transform(X)
+    X_scaled = st.session_state.scaler.fit_transform(X)
     st.session_state.ml_clf.fit(X_scaled, y)
     st.session_state.ml_reg.fit(X_scaled, X.iloc[:, 0])
     st.session_state.ml_ready = True
@@ -147,7 +129,7 @@ def ai_predict_ultra(features):
         return None
 
 # ==========================================
-# 🚀 CALCULATION ENGINE
+# CALCUL CIBLÉ X3+ ULTRA PUISSANTE + ENTRY ULTRA
 # ==========================================
 def run_engine_ultra(h_in, t_in, last_cote):
     h_hex = hashlib.sha256(h_in.encode()).hexdigest()
@@ -158,9 +140,10 @@ def run_engine_ultra(h_in, t_in, last_cote):
     if last_cote > 4.8:
         last_cote = (last_cote + 3.0) / 2
 
-    # Simulations Log-Normal
-    base = 1.52 + (h_num % 780) / 92
-    sigma = 0.29 - (last_cote * 0.006)
+    # === CIBLÉ X3+ MATANJAKA BE ===
+    base = 1.48 + (h_num % 780) / 92          
+    sigma = 0.295 - (last_cote * 0.006)       
+
     sims = np.random.lognormal(np.log(base), sigma, 30000)
 
     prob_x3 = round(np.mean(sims >= 3.0) * 100, 1)
@@ -168,6 +151,7 @@ def run_engine_ultra(h_in, t_in, last_cote):
     maxv = round(np.percentile(sims, 96.5), 2)
     minv = round(np.percentile(sims, 3.5), 2)
     spread = round(maxv - minv, 2)
+
     conf = round(max(35, min(98, prob_x3 * 0.70 + moy * 19 + last_cote * 9)), 1)
 
     win_s, loss_s, _ = get_current_streak(st.session_state.history)
@@ -175,12 +159,13 @@ def run_engine_ultra(h_in, t_in, last_cote):
     volatility = round(np.std(vols) if len(vols) > 4 else 1.2, 2)
 
     ai_score = ai_predict_ultra([prob_x3, conf, moy, spread, last_cote, conf, win_s, loss_s, volatility])
+
     base_strength = prob_x3 * 0.59 + (ai_score or conf) * 0.41
     streak_adj = win_s * 3.2 - loss_s * 2.8
     strength = round(base_strength + streak_adj + (volatility * 2.5), 1)
     strength = max(28, min(98, strength))
 
-    # Entry Time Engine
+    # === ENTRY TIME ULTRA PUISSANTE ===
     now = get_time()
     try:
         t_obj = datetime.strptime(t_in.strip(), "%H:%M:%S").time()
@@ -195,147 +180,144 @@ def run_engine_ultra(h_in, t_in, last_cote):
     strength_factor = 5 if strength > 82 else (3 if strength > 68 else 1)
 
     final_seconds = int(base_delay + (spread * 0.35) + hash_shift + prob_factor + strength_factor)
-    final_seconds = max(18, min(58, final_seconds))
-    entry = (base_time.replace(microsecond=0) + timedelta(seconds=final_seconds)).strftime("%H:%M:%S")
+    final_seconds = max(18, min(58, final_seconds))   
 
-    # Signal Classifier
+    base_time = base_time.replace(microsecond=0)
+    entry = (base_time + timedelta(seconds=final_seconds)).strftime("%H:%M:%S")
+
+    # Signal
     if strength > 83:
-        sig, s_class = "💎💎💎 ULTRA X3+ BUY", "signal-ultra"
+        signal = "💎💎💎 ULTRA X3+ BUY"
+        signal_class = "signal-ultra"
     elif strength > 72:
-        sig, s_class = "🔥 STRONG X3 TARGET", "signal-strong"
+        signal = "🔥 STRONG X3 TARGET"
+        signal_class = "signal-strong"
     elif strength > 58:
-        sig, s_class = "🟢 GOOD X3 SCALP", "signal-good"
+        signal = "🟢 GOOD X3 SCALP"
+        signal_class = "signal-good"
     elif strength > 44:
-        sig, s_class = "⚡ LIGHT ENTRY", "signal-light"
+        signal = "⚡ LIGHT ENTRY"
+        signal_class = "signal-light"
     else:
-        sig, s_class = "⚠️ SKIP - Low X3 Chance", "signal-skip"
+        signal = "⚠️ SKIP - Low X3 Chance"
+        signal_class = "signal-skip"
 
     res = {
-        "entry": entry, "signal": sig, "signal_class": s_class,
+        "entry": entry, "signal": signal, "signal_class": signal_class,
         "x3_prob": prob_x3, "conf": conf, "moy": moy, "max": maxv, "min": minv,
         "spread": spread, "last_cote_used": round(last_cote, 2),
-        "strength": strength, "win_streak": win_s, "loss_streak": loss_s,
-        "volatility": volatility, "real_result": None
+        "ai_score": ai_score, "strength": strength,
+        "win_streak": win_s, "loss_streak": loss_s, "volatility": volatility,
+        "real_result": None
     }
+
     st.session_state.history.append(res)
-    if len(st.session_state.history) > 40: st.session_state.history.pop(0)
+    if len(st.session_state.history) > 40:
+        st.session_state.history.pop(0)
     train_ai_ultra()
     return res
 
 # ==========================================
-# 🖥️ INTERFACE MAIN
+# INTERFACE
 # ==========================================
 st.markdown("<h1 class='main-title'>JETX ANDR V14</h1>", unsafe_allow_html=True)
-st.markdown("<p style='text-align:center; color:#00ffcc; font-size:1.6rem; font-family:Rajdhani;'>ULTRA STYLÉ • X3+ CIBLÉ • ENTRY ULTRA PUISSANTE</p>", unsafe_allow_html=True)
+st.markdown("<p style='text-align:center; color:#00ffcc; font-size:1.6rem;'>ULTRA STYLÉ • X3+ CIBLÉ • ENTRY ULTRA PUISSANTE</p>", unsafe_allow_html=True)
 
 col1, col2 = st.columns([1, 2.1])
 
 with col1:
     st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
-    h_in = st.text_input("HASH (Provably Fair)", placeholder="Collez le hash...")
-    t_in = st.text_input("TIME (HH:MM:SS)", placeholder="Ex: 22:08:20")
-    l_in = st.number_input("LAST COTE", value=2.3, step=0.1, format="%.2f")
+    h_in = st.text_input("HASH (Provably Fair)", placeholder="Collez le hash complet...")
+    t_in = st.text_input("TIME (HH:MM:SS)", placeholder="Ex: 22:07:55")
+    last_cote = st.number_input("LAST COTE", value=2.3, step=0.1, format="%.2f")
 
     if st.button("🚀 LANCER LE CALCUL ULTRA", use_container_width=True):
         if h_in and len(t_in) >= 8:
-            with st.spinner("Simulation AI X3+ en cours..."):
-                time.sleep(1)
-                st.session_state.last = run_engine_ultra(h_in, t_in, l_in)
-        else:
-            st.error("Fenoy tsara ny Hash sy ny Lera!")
+            with st.spinner("Simulation X3+ 30 000x + Entry ultra puissante..."):
+                st.session_state.last = run_engine_ultra(h_in, t_in, last_cote)
     st.markdown("</div>", unsafe_allow_html=True)
 
-    if st.sidebar.button("🔄 Reset Data"):
+    if st.sidebar.button("🔄 Reset All Data"):
         st.session_state.history = []
-        if "last" in st.session_state: del st.session_state.last
+        if "last" in st.session_state:
+            del st.session_state.last
         st.rerun()
 
 with col2:
     if "last" in st.session_state:
         r = st.session_state.last
+        # Ny fandaminana ny CSS eto dia mampiasa {{ }} mba tsy hisian'ny error amin'ny f-string
         st.markdown(f"""
         <div class="glass-card">
-            <h2 class="{r['signal_class']}" style="text-align:center;">{r['signal']}</h2>
-            <h3 style="text-align:center;">X3 PROB : <span style="color:#ff00ff;font-size:2.1rem;">{r['x3_prob']}%</span> | CONF : {r['conf']}</h3>
-            <h1 style="font-size:5rem;color:#00ffcc;margin:15px 0;text-align:center;font-family:Orbitron;text-shadow:0 0 30px #00ffcc;">{r['entry']}</h1>
+            <h2 class="{r['signal_class']}">{r['signal']}</h2>
+            <h3>X3 PROB : <span style="color:#ff00ff;font-size:2.1rem;">{r['x3_prob']}%</span> | CONF : {r['conf']}</h3>
+            <h1 style="font-size:4.6rem;color:#00ffcc;margin:15px 0;">{r['entry']}</h1>
             
             <div style="display:flex; gap:12px; margin:20px 0;">
                 <div style="background:#00cc88;color:#000;padding:14px;border-radius:15px;flex:1;text-align:center;">
-                    <small>MIN (Safe)</small><br><b style="font-size:1.5rem;">{r['min']}</b>
+                    <small>MIN</small><br><b>{r['min']}</b>
                 </div>
                 <div style="background:#ffcc00;color:#000;padding:14px;border-radius:15px;flex:1;text-align:center;">
-                    <small>MOYENNE</small><br><b style="font-size:1.5rem;">{r['moy']}</b>
+                    <small>MOY</small><br><b>{r['moy']}</b>
                 </div>
                 <div style="background:#ff3366;color:#fff;padding:14px;border-radius:15px;flex:1;text-align:center;">
-                    <small>MAX (X3+)</small><br><b style="font-size:1.5rem;">{r['max']}</b>
+                    <small>MAX</small><br><b>{r['max']}</b>
                 </div>
             </div>
 
-            <div style="background:rgba(255,255,255,0.05); padding:15px; border-radius:15px;">
-                <p style="margin-bottom:5px;"><b>💡 Cashout Strategies :</b></p>
-                <small>• MIN → Cashout voalohany mba tsy ho resy.</small><br>
-                <small>• MOY → Tanjona mahazatra (Moderate risk).</small><br>
-                <small>• MAX → Cashout amin'ny 3x na mihoatra raha ULTRA.</small>
-            </div>
-
-            <p style="color:#ff3366; margin-top:20px; text-align:center; font-weight:bold;">
-                ⚠️ Raha vao crash amin'ny ora {r['entry']} dia aza miditra intsony!
-            </p>
+            <p><b>💡 Cashout :</b><br>
+            • MIN → cashout voalohany (safe)<br>
+            • MOY → cashout mahazatra<br>
+            • MAX → cashout amin'ny 3x na mihoatra raha ULTRA</p>
             
-            <hr style="opacity:0.2;">
-            <div style="display:flex; justify-content:space-between; font-size:0.8rem; opacity:0.8;">
-                <span>Strength: <b>{r['strength']}</b></span>
-                <span>Win/Loss Streak: {r['win_streak']}/{r['loss_streak']}</span>
-                <span>Volatility: {r['volatility']}</span>
+            <p style="color:#ff3366;"><b>⚠️ Raha crash amin'ny ora {r['entry']} dia aza miditra intsony!</b></p>
+            
+            <div style="margin-top:20px; border-top:1px solid rgba(255,255,255,0.1); padding-top:10px;">
+                <small>Strength: <b>{r['strength']}</b> | Win Streak: {r['win_streak']} | Volatility: {r['volatility']}</small>
             </div>
         </div>
         """, unsafe_allow_html=True)
 
-        # Quick mark
         st.markdown("**Marque ce round :**")
-        cw, cl = st.columns(2)
-        with cw:
+        col_win, col_loss = st.columns(2)
+        with col_win:
             if st.button("✅ WIN", use_container_width=True):
-                st.session_state.history[-1]["real_result"] = "win"
-                st.rerun()
-        with cl:
+                if st.session_state.history:
+                    st.session_state.history[-1]["real_result"] = "win"
+                    st.success("✅ WIN enregistré")
+                    st.rerun()
+        with col_loss:
             if st.button("❌ LOSS", use_container_width=True):
-                st.session_state.history[-1]["real_result"] = "loss"
-                st.rerun()
-    else:
-        st.markdown("<div class='glass-card' style='height:400px; display:flex; align-items:center; justify-content:center; opacity:0.4;'><h2>AWAITING HASH...</h2></div>", unsafe_allow_html=True)
+                if st.session_state.history:
+                    st.session_state.history[-1]["real_result"] = "loss"
+                    st.success("❌ LOSS enregistré")
+                    st.rerun()
 
-# ==========================================
-# 📜 HISTORY (FIXED LOGIC)
-# ==========================================
+# Historique
 st.markdown("### 📜 Historique des Prédictions")
 if st.session_state.history:
-    # Ataontsika dataframe ilay history
-    df_hist = pd.DataFrame(st.session_state.history)
-    
-    # Amboarina ny fisehony (Reversed for view only)
-    display_df = df_hist[::-1].copy()
-    
+    df_hist = pd.DataFrame(st.session_state.history)[::-1]
     edited_df = st.data_editor(
-        display_df,
+        df_hist,
         column_config={
             "real_result": st.column_config.SelectboxColumn("✅ Résultat", options=["win", "loss", None]),
             "signal": st.column_config.TextColumn("Signal"),
             "entry": st.column_config.TextColumn("Heure d'entrée"),
             "x3_prob": st.column_config.NumberColumn("X3 %", format="%.1f%%"),
             "strength": st.column_config.NumberColumn("Strength", format="%.1f"),
+            "moy": st.column_config.NumberColumn("MOY")
         },
-        hide_index=False, # Re-enable index to map correctly
+        hide_index=True,
         use_container_width=True
     )
 
-    if st.button("💾 Sauvegarder & Réentraîner l'IA"):
-        # Map the edits back to session_state using the original index
-        for idx, row in edited_df.iterrows():
-            st.session_state.history[idx]["real_result"] = row["real_result"]
-        
+    if st.button("💾 Sauvegarder & Réentraîner l'IA Ultra"):
+        for d_idx, row in edited_df.iterrows():
+            orig_idx = len(st.session_state.history) - 1 - d_idx
+            if orig_idx < len(st.session_state.history):
+                st.session_state.history[orig_idx]["real_result"] = row["real_result"]
         train_ai_ultra()
-        st.success("✅ IA Mise à jour!")
+        st.success("✅ IA mise à jour – X3+ ultra ciblé!")
         st.rerun()
 
-st.caption("JETX ANDR V14 ULTRA • Optimized for Pydroid • AI Targeted X3+")
+st.caption("JETX ANDR V14 ULTRA • Ciblé X3+ renforcé • Entry time ultra puissante")
