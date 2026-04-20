@@ -9,66 +9,91 @@ from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.preprocessing import StandardScaler
 
 # ==========================================
-# 🔐 PASSWORD (tsy miseho)
+# 🔐 PASSWORD PROTECTION (tsy miseho mihitsy)
 # ==========================================
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
 
 if not st.session_state.authenticated:
-    st.markdown("<h1 style='text-align:center;font-size:4.8rem;background:linear-gradient(90deg,#00ffcc,#ff00ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;'>JETX ANDR</h1>", unsafe_allow_html=True)
-    st.markdown("<h2 style='text-align:center;color:#00ffcc;'>V14 ULTRA STYLÉ</h2>", unsafe_allow_html=True)
-    pw = st.text_input("🔑 Mot de passe :", type="password", placeholder="••••••••••")
-    if st.button("✅ Accéder", use_container_width=True):
+    st.markdown("""
+    <style>
+        .stApp { background: linear-gradient(135deg, #0a0a1f, #1a0033); }
+        .login-title { font-size: 5rem; font-weight: 900; text-align: center;
+                       background: linear-gradient(90deg, #00ffcc, #ff00ff, #00ccff);
+                       -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    </style>
+    """, unsafe_allow_html=True)
+    st.markdown("<h1 class='login-title'>JETX ANDR</h1>", unsafe_allow_html=True)
+    st.markdown("<h2 style='text-align:center; color:#00ffcc; margin-bottom:40px;'>V14 ULTRA STYLÉ</h2>", unsafe_allow_html=True)
+    
+    pw = st.text_input("🔑 Entrez le mot de passe :", type="password", placeholder="••••••••••")
+    if st.button("✅ Accéder à l'application", use_container_width=True):
         if pw == "JET2026":
             st.session_state.authenticated = True
+            st.success("✅ Accès autorisé !")
             st.rerun()
         else:
-            st.error("Mot de passe incorrect")
+            st.error("❌ Mot de passe incorrect")
     st.stop()
 
 # ==========================================
-# UI ULTRA STYLÉE + PREDICTION MATANJAKA
+# 💎 INTERFACE TRÈS STYLÉE
 # ==========================================
 st.set_page_config(page_title="JETX ANDR V14 ULTRA", layout="wide")
 
 st.markdown("""
 <style>
-    .stApp {background: linear-gradient(135deg, #0a0a1f, #1a0033); color:#e0fbfc;}
-    .main-title {font-family:'Orbitron'; font-size:4.4rem; font-weight:900; text-align:center;
-                 background:linear-gradient(90deg,#00ffcc,#ff00ff,#00ccff); -webkit-background-clip:text;
-                 -webkit-text-fill-color:transparent; text-shadow:0 0 40px #00ffcc;}
-    .glass-card {background:rgba(15,15,40,0.88); border:1px solid rgba(0,255,204,0.65);
-                 border-radius:28px; padding:32px; backdrop-filter:blur(28px);
-                 box-shadow:0 15px 50px rgba(0,255,204,0.3);}
-    .signal-ultra {color:#00ffcc; text-shadow:0 0 30px #00ffcc; font-size:2rem;}
-    .signal-strong {color:#ff00ff; text-shadow:0 0 25px #ff00ff;}
-    .history-table {border-radius:20px; overflow:hidden;}
-    .stButton>button {background:linear-gradient(135deg,#00ff88,#ff00ff,#00ccff)!important;
-                      color:#000!important; font-weight:700; border-radius:50px; height:72px; font-size:1.35rem;}
+    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@500;600;700&display=swap');
+    .stApp { background: linear-gradient(135deg, #0a0a1f 0%, #1a0033 100%); color: #e0fbfc; }
+    .main-title { font-family: 'Orbitron', sans-serif; font-size: 4.5rem; font-weight: 900; text-align: center;
+                  background: linear-gradient(90deg, #00ffcc, #ff00ff, #00ccff, #ffff00);
+                  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+                  text-shadow: 0 0 40px rgba(0,255,204,0.7); margin-bottom: 8px; }
+    .glass-card { background: rgba(15,15,40,0.88); border: 1px solid rgba(0,255,204,0.65);
+                  border-radius: 28px; padding: 32px; backdrop-filter: blur(28px);
+                  box-shadow: 0 15px 55px rgba(0,255,204,0.35); }
+    .signal-ultra { color: #00ffcc; text-shadow: 0 0 30px #00ffcc; }
+    .signal-strong { color: #ff00ff; text-shadow: 0 0 25px #ff00ff; }
+    .stButton>button { background: linear-gradient(135deg, #00ff88, #ff00ff, #00ccff) !important;
+                       color: #000 !important; font-family: 'Orbitron', sans-serif !important;
+                       font-weight: 700 !important; border-radius: 50px !important; height: 72px !important;
+                       font-size: 1.4rem !important; box-shadow: 0 0 40px rgba(0,255,204,0.8); }
+    .history-table { border-radius: 20px; overflow: hidden; }
 </style>
 """, unsafe_allow_html=True)
 
 # ==========================================
-# SESSION & FONCTIONS (PREDICTION MATANJAKA)
+# SESSION STATE & FONCTIONS
 # ==========================================
-if "history" not in st.session_state: st.session_state.history = []
-if "ml_clf" not in st.session_state: st.session_state.ml_clf = RandomForestClassifier(n_estimators=300, max_depth=10, random_state=42)
-if "ml_reg" not in st.session_state: st.session_state.ml_reg = RandomForestRegressor(n_estimators=200, max_depth=9, random_state=42)
-if "ml_ready" not in st.session_state: st.session_state.ml_ready = False
-if "scaler" not in st.session_state: st.session_state.scaler = StandardScaler()
+if "history" not in st.session_state:
+    st.session_state.history = []
 
-def get_time(): return datetime.now(pytz.timezone("Indian/Antananarivo"))
+if "ml_clf" not in st.session_state:
+    st.session_state.ml_clf = RandomForestClassifier(n_estimators=300, max_depth=10, random_state=42)
+if "ml_reg" not in st.session_state:
+    st.session_state.ml_reg = RandomForestRegressor(n_estimators=200, max_depth=9, random_state=42)
+if "ml_ready" not in st.session_state:
+    st.session_state.ml_ready = False
+if "scaler" not in st.session_state:
+    st.session_state.scaler = StandardScaler()
+
+def get_time():
+    return datetime.now(pytz.timezone("Indian/Antananarivo"))
 
 def get_current_streak(history):
     marked = [h.get("real_result") for h in history if h.get("real_result") in ["win", "loss"]]
-    if not marked: return 0, 0, None
+    if not marked:
+        return 0, 0, None
     streak_win = streak_loss = 0
     last = marked[-1]
     for res in reversed(marked):
         if res == last:
-            if res == "win": streak_win += 1
-            else: streak_loss += 1
-        else: break
+            if res == "win":
+                streak_win += 1
+            else:
+                streak_loss += 1
+        else:
+            break
     return streak_win, streak_loss, last
 
 def prepare_ml_data(history):
@@ -88,7 +113,8 @@ def prepare_ml_data(history):
 
 def train_ai_ultra():
     data = prepare_ml_data(st.session_state.history)
-    if len(data) < 10: return
+    if len(data) < 10:
+        return
     df = pd.DataFrame(data)
     X = df.iloc[:, :-1]
     y = df.iloc[:, -1]
@@ -98,7 +124,8 @@ def train_ai_ultra():
     st.session_state.ml_ready = True
 
 def ai_predict_ultra(features):
-    if not st.session_state.ml_ready: return None
+    if not st.session_state.ml_ready:
+        return None
     try:
         X = np.array(features).reshape(1, -1)
         X_scaled = st.session_state.scaler.transform(X)
@@ -130,9 +157,9 @@ def run_engine_ultra(h_in, t_in, last_cote):
     np.random.seed(h_num & 0xffffffff)
 
     last_cote = min(last_cote, 7.0)
-    if last_cote > 4.8: last_cote = (last_cote + 3.0) / 2
+    if last_cote > 4.8:
+        last_cote = (last_cote + 3.0) / 2
 
-    # PREDICTION MATANJAKA BE (30 000 simulations)
     base = 1.22 + (h_num % 920) / 98
     sigma = 0.325 - (last_cote * 0.009)
     sims = np.random.lognormal(np.log(base), sigma, 30000)
@@ -184,14 +211,16 @@ def run_engine_ultra(h_in, t_in, last_cote):
     }
 
     st.session_state.history.append(res)
-    if len(st.session_state.history) > 40: st.session_state.history.pop(0)
+    if len(st.session_state.history) > 40:
+        st.session_state.history.pop(0)
     train_ai_ultra()
     return res
 
 # ==========================================
-# INTERFACE
+# INTERFACE PRINCIPALE
 # ==========================================
 st.markdown("<h1 class='main-title'>JETX ANDR V14</h1>", unsafe_allow_html=True)
+st.markdown("<p style='text-align:center; color:#00ffcc; font-size:1.6rem;'>ULTRA STYLÉ • AI + 30 000 SIMULATIONS</p>", unsafe_allow_html=True)
 
 col1, col2 = st.columns([1, 2.1])
 
@@ -205,7 +234,15 @@ with col1:
         if h_in and len(t_in) >= 8:
             with st.spinner("Simulation 30 000x + IA en cours..."):
                 st.session_state.last = run_engine_ultra(h_in, t_in, last_cote)
+                st.success("✅ Signal généré !")
     st.markdown("</div>", unsafe_allow_html=True)
+
+    # Reset Data
+    if st.sidebar.button("🔄 Reset All Data"):
+        st.session_state.history = []
+        if "last" in st.session_state:
+            del st.session_state.last
+        st.rerun()
 
 with col2:
     if "last" in st.session_state:
@@ -217,13 +254,13 @@ with col2:
             <h1 style="font-size:4.6rem;color:#00ffcc;margin:15px 0;">{r['entry']}</h1>
             
             <div style="display:flex; gap:12px; margin:20px 0;">
-                <div style="background:#00cc88;color:#000;padding:12px;border-radius:15px;flex:1;text-align:center;">
+                <div style="background:#00cc88;color:#000;padding:14px;border-radius:15px;flex:1;text-align:center;">
                     <small>MIN</small><br><b>{r['min']}</b>
                 </div>
-                <div style="background:#ffcc00;color:#000;padding:12px;border-radius:15px;flex:1;text-align:center;">
+                <div style="background:#ffcc00;color:#000;padding:14px;border-radius:15px;flex:1;text-align:center;">
                     <small>MOY</small><br><b>{r['moy']}</b>
                 </div>
-                <div style="background:#ff3366;color:#fff;padding:12px;border-radius:15px;flex:1;text-align:center;">
+                <div style="background:#ff3366;color:#fff;padding:14px;border-radius:15px;flex:1;text-align:center;">
                     <small>MAX</small><br><b>{r['max']}</b>
                 </div>
             </div>
@@ -239,6 +276,7 @@ with col2:
         </div>
         """, unsafe_allow_html=True)
 
+        # Boutons Win / Loss stylés
         st.markdown("**Marque ce round :**")
         col_win, col_loss = st.columns(2)
         with col_win:
@@ -255,7 +293,7 @@ with col2:
                     st.rerun()
 
 # ==========================================
-# HISTORIQUE STYLÉ
+# HISTORIQUE TRÈS STYLÉ
 # ==========================================
 st.markdown("### 📜 Historique des Prédictions")
 if st.session_state.history:
@@ -283,7 +321,7 @@ if st.session_state.history:
             if orig_idx < len(st.session_state.history):
                 st.session_state.history[orig_idx]["real_result"] = row["real_result"]
         train_ai_ultra()
-        st.success("✅ IA Ultra mise à jour – prediction encore plus matanjaka!")
+        st.success("✅ IA mise à jour – prediction tena matanjaka!")
         st.rerun()
 
-st.caption("JETX ANDR V14 ULTRA • Prediction 30 000 simulations • Mot de passe protégé")
+st.caption("JETX ANDR V14 ULTRA STYLÉ • Prediction renforcée • Mot de passe : JET2026")
