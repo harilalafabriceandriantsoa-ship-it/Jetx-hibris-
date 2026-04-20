@@ -6,10 +6,12 @@ from datetime import datetime, timedelta
 import pytz
 import time
 
+from sklearn.ensemble import RandomForestClassifier
+
 # ==========================================
 # 💎 PREMIUM UI & STYLING
 # ==========================================
-st.set_page_config(page_title="ANDR-X V13.5 PRO-SYNC", layout="wide")
+st.set_page_config(page_title="ANDR-X V14 REAL AI", layout="wide")
 
 st.markdown("""
 <style>
@@ -17,191 +19,235 @@ st.markdown("""
     
     .stApp {
         background-color: #020205;
-        background-image: 
-            radial-gradient(circle at 20% 30%, #051919 0%, transparent 50%),
-            radial-gradient(circle at 80% 70%, #1a051a 0%, transparent 50%);
         color: #e0fbfc;
         font-family: 'Rajdhani', sans-serif;
     }
-    
-    .main-title {
-        font-family: 'Orbitron', sans-serif;
-        font-size: 2.8rem;
-        font-weight: 700;
-        text-align: center;
-        background: linear-gradient(90deg, #00ffcc, #ff00cc);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        text-shadow: 0 0 20px rgba(0, 255, 204, 0.4);
-        margin-bottom: 20px;
-    }
-    
-    .glass-card {
-        background: rgba(10, 10, 20, 0.7);
-        border: 1px solid rgba(0, 255, 204, 0.3);
-        border-radius: 20px;
-        padding: 25px;
-        backdrop-filter: blur(15px);
-        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8);
-        margin-bottom: 20px;
-    }
-    
-    .stButton>button {
-        background: linear-gradient(135deg, #00ffcc 0%, #0088ff 100%) !important;
-        color: #000 !important;
-        font-family: 'Orbitron', sans-serif !important;
-        font-weight: 700 !important;
-        border: none !important;
-        border-radius: 12px !important;
-        height: 55px !important;
-        width: 100% !important;
-        text-transform: uppercase;
-        letter-spacing: 2px;
-    }
-    
-    .stat-val { font-size: 1.8rem; font-weight: 700; color: #00ffcc; }
 </style>
 """, unsafe_allow_html=True)
 
 # ==========================================
-# 🧠 HYPER-PRECISION ENGINE
+# 🧠 SESSION INIT
 # ==========================================
 
-if "history" not in st.session_state: 
+if "history" not in st.session_state:
     st.session_state.history = []
+
+if "ml_model" not in st.session_state:
+    st.session_state.ml_model = RandomForestClassifier(n_estimators=120)
+
+if "ml_ready" not in st.session_state:
+    st.session_state.ml_ready = False
+
+
+# ==========================================
+# 🧠 TIME
+# ==========================================
 
 def get_tz_now():
     return datetime.now(pytz.timezone("Indian/Antananarivo"))
 
-def hyper_time_calc(hash_val, spread, t_in):
+
+# ==========================================
+# 🧠 REAL ML TRAINING (NEW)
+# ==========================================
+
+def train_real_ai():
+    data = []
+
+    for h in st.session_state.history:
+        if "result" in h:
+            label = 1 if h["result"] == "win" else 0
+            data.append([
+                h["x3_prob"],
+                h["conf"],
+                h["moy"],
+                h["spread"],
+                label
+            ])
+
+    if len(data) < 6:
+        return
+
+    df = pd.DataFrame(data, columns=["prob","conf","moy","spread","label"])
+
+    X = df[["prob","conf","moy","spread"]]
+    y = df["label"]
+
+    model = RandomForestClassifier(n_estimators=150, max_depth=6)
+    model.fit(X, y)
+
+    st.session_state.ml_model = model
+    st.session_state.ml_ready = True
+
+
+def ai_predict(prob, conf, moy, spread):
+    if not st.session_state.ml_ready:
+        return None
+
+    try:
+        X = np.array([[prob, conf, moy, spread]])
+        return round(st.session_state.ml_model.predict_proba(X)[0][1] * 100, 1)
+    except:
+        return None
+
+
+# ==========================================
+# 🧠 ENTRY TIME (SYNC WITH SIGNAL)
+# ==========================================
+
+def hyper_time_calc(hash_val, spread, t_in, strength):
     now = get_tz_now()
+
     try:
         t_obj = datetime.strptime(t_in.strip(), "%H:%M:%S").time()
         base_time = datetime.combine(now.date(), t_obj)
-        if base_time > now.replace(tzinfo=None) + timedelta(hours=1):
-            base_time -= timedelta(days=1)
-    except Exception:
+    except:
         base_time = now
-        
-    hash_shift = (int(hash_val[:6], 16) % 15) - 5
-    base_delay = 14 + (spread * 1.5)
-    final_seconds = int(base_delay + hash_shift)
-    final_seconds = max(10, min(90, final_seconds)) 
-    
+
+    hash_shift = (int(hash_val[:6], 16) % 12) - 4
+
+    # 🔥 sync with strength
+    if strength > 80:
+        base_delay = 12
+    elif strength > 60:
+        base_delay = 18
+    else:
+        base_delay = 25
+
+    final_seconds = int(base_delay + (spread * 1.2) + hash_shift)
+    final_seconds = max(10, min(90, final_seconds))
+
     entry = base_time + timedelta(seconds=final_seconds)
     return entry.strftime("%H:%M:%S")
 
+
+# ==========================================
+# 🧠 CORE ENGINE (UPGRADED)
+# ==========================================
+
 def run_ultra_analysis(h_in, t_in, c_ref):
+
     h_num = int(hashlib.sha256(h_in.encode()).hexdigest()[:16], 16)
     h_norm = (h_num % 1000) / 1000
     np.random.seed(h_num & 0xffffffff)
-    
-    variance_scale = 0.25 + (h_norm * 0.2)
-    sims = np.random.lognormal(np.mean([np.log(c_ref + 0.05), 0.25]), variance_scale, 12000)
-    
-    prob_x3 = np.mean(sims >= 3.0) * 100
-    moy = np.exp(np.mean(np.log(sims)))
-    max_v = np.percentile(sims, 98) 
-    min_v = np.percentile(sims, 5)  
-    spread = max_v - min_v
-    
-    base_conf = 100 - (abs(moy - c_ref) / c_ref * 100)
-    final_conf = max(20, min(99.1, base_conf + (len(st.session_state.history) * 2)))
 
-    rtp_pressure = (c_ref / moy) if moy > 0 else 1
-    x3_target = (prob_x3 * 0.6) + (rtp_pressure * 20) + (h_norm * 20)
-    x3_target = round(min(99.9, x3_target), 1)
-    
-    entry_time = hyper_time_calc(h_in, spread, t_in)
-    
-    if moy >= 2.2 and x3_target > 65:
-        signal, color = "💎 ULTRA SNIPER (X3+)", "#ff00cc"
-    elif moy >= 1.7:
-        signal, color = "🟢 STRONG ENTRY", "#00ffcc"
-    elif moy >= 1.2:
-        signal, color = "⚡ SCALPING (X1.2)", "#ffff00"
+    variance_scale = 0.25 + (h_norm * 0.2)
+
+    sims = np.random.lognormal(
+        np.mean([np.log(c_ref + 0.05), 0.25]),
+        variance_scale,
+        12000
+    )
+
+    prob_x3_real = np.mean(sims >= 3.0) * 100
+    moy = np.exp(np.mean(np.log(sims)))
+    max_v = np.percentile(sims, 98)
+    min_v = np.percentile(sims, 5)
+
+    spread = max_v - min_v
+
+    # 🔥 REAL confidence (no fake boost)
+    conf = (prob_x3_real * 0.7) + ((moy / c_ref) * 30)
+    conf = max(20, min(99, conf))
+
+    # 🔥 AI prediction
+    ai_score = ai_predict(prob_x3_real, conf, moy, spread)
+
+    if ai_score is not None:
+        final_strength = (prob_x3_real * 0.5) + (ai_score * 0.5)
     else:
-        signal, color = "⚠️ HIGH RISK - SKIP", "#ff4444"
-    
+        final_strength = prob_x3_real
+
+    final_strength = round(final_strength, 1)
+
+    # 🔥 ENTRY TIME SYNC
+    entry_time = hyper_time_calc(h_in, spread, t_in, final_strength)
+
+    # 🔥 SIGNAL (CLEAN + REAL)
+    if final_strength > 80 and moy > 2.2:
+        signal, color = "💎 ULTRA AI BUY", "#ff00cc"
+    elif final_strength > 65:
+        signal, color = "🟢 AI STRONG BUY", "#00ffcc"
+    elif final_strength > 50:
+        signal, color = "⚡ AI SCALP", "#ffff00"
+    else:
+        signal, color = "⚠️ AI SKIP", "#ff4444"
+
     res = {
-        "entry": entry_time, "signal": signal, "color": color,
-        "x3_prob": x3_target, "conf": round(final_conf, 1),
-        "spread": round(spread, 2), "moy": round(moy, 2),
-        "max": round(max_v, 2), "min": round(min_v, 2)
+        "entry": entry_time,
+        "signal": signal,
+        "color": color,
+        "x3_prob": round(prob_x3_real, 1),
+        "conf": round(conf, 1),
+        "spread": round(spread, 2),
+        "moy": round(moy, 2),
+        "max": round(max_v, 2),
+        "min": round(min_v, 2),
+        "ai_score": ai_score
     }
-    
+
     st.session_state.history.append(res)
-    if len(st.session_state.history) > 15: st.session_state.history.pop(0)
+
+    if len(st.session_state.history) > 20:
+        st.session_state.history.pop(0)
+
+    train_real_ai()
+
     return res
 
+
 # ==========================================
-# 🖥️ INTERFACE & SECURITY
+# 🖥️ UI
 # ==========================================
 
-if "authenticated" not in st.session_state:
-    st.session_state.authenticated = False
+st.title("🚀 ANDR-X V14 REAL AI")
 
-if not st.session_state.authenticated:
-    st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
-    st.markdown("<h2 style='text-align:center;'>🔐 ACCESS CONTROL</h2>", unsafe_allow_html=True)
-    pass_input = st.text_input("Enter System Password:", type="password")
-    if st.button("UNLOCK SYSTEM"):
-        if pass_input == "2026":
-            st.session_state.authenticated = True
-            st.rerun()
-        else: st.error("Incorrect Password.")
-    st.markdown("</div>", unsafe_allow_html=True)
-    st.stop()
+h_in = st.text_input("HASH")
+t_in = st.text_input("TIME (HH:MM:SS)")
+c_ref = st.number_input("COTE", value=2.0)
 
-st.markdown("<h1 class='main-title'>ANDR-X V13.5 PRO-SYNC</h1>", unsafe_allow_html=True)
+if st.button("RUN AI"):
+    if h_in and t_in:
+        with st.spinner("AI Thinking..."):
+            time.sleep(0.5)
+            st.session_state.last_res = run_ultra_analysis(h_in, t_in, c_ref)
 
-col_ctrl, col_res = st.columns([1, 2])
+if "last_res" in st.session_state:
+    r = st.session_state.last_res
 
-with col_ctrl:
-    st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
-    h_in = st.text_input("SERVER HASH CODE", placeholder="D76F4F2D...")
-    t_in = st.text_input("LAST ROUND TIME (HH:MM:SS)", placeholder="21:51:16")
-    c_ref = st.number_input("REFERENCE COTE (TREND)", value=2.5, step=0.1) 
-    
-    if st.button("EXECUTE ANALYSIS"):
-        if h_in and len(t_in) == 8:
-            with st.spinner("Sync..."):
-                time.sleep(0.5)
-                st.session_state.last_res = run_ultra_analysis(h_in, t_in, c_ref)
-        else: st.error("Format Lera diso!")
-    st.markdown("</div>", unsafe_allow_html=True)
-    
-    if st.sidebar.button("🗑️ PURGE ALL DATA"):
-        st.session_state.history = []
-        if "last_res" in st.session_state: del st.session_state.last_res
-        st.rerun()
+    st.markdown(f"""
+    ## {r['signal']}
 
-with col_res:
-    if "last_res" in st.session_state:
-        r = st.session_state.last_res
-        st.markdown(f"""
-        <div class="glass-card" style="border-left: 10px solid {r['color']}">
-            <h2 style="color: {r['color']}; margin: 0;">{r['signal']}</h2>
-            <hr style="opacity: 0.1; margin: 10px 0;">
-            <div style="display: flex; justify-content: space-between;">
-                <div><small>X3+ PROB</small><br><span class="stat-val" style="color:{r['color']}">{r['x3_prob']}%</span></div>
-                <div><small>ACCURACY</small><br><span class="stat-val">{r['conf']}%</span></div>
-                <div><small>VOLATILITY</small><br><span class="stat-val">{r['spread']}</span></div>
-            </div>
-            <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 15px; margin-top: 15px; text-align: center;">
-                <p style="margin: 0; font-size: 0.9rem; letter-spacing: 2px; opacity: 0.7;">🎯 EXACT ENTRY TIME</p>
-                <h1 style="font-size: 4rem; margin: 0; color: #fff; text-shadow: 0 0 20px {r['color']}">{r['entry']}</h1>
-            </div>
-            <div style="display: flex; justify-content: space-around; margin-top: 15px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 10px;">
-                <div style="text-align:center;"><small>MIN</small><br><b style="color:#ff4444;">{r['min']}x</b></div>
-                <div style="text-align:center;"><small>MOYENNE</small><br><b style="color:#00ffcc;">{r['moy']}x</b></div>
-                <div style="text-align:center;"><small>MAX</small><br><b style="color:#ff00cc;">{r['max']}x</b></div>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-    else: st.info("Awaiting System Synchronization...")
+    🎯 Prob: {r['x3_prob']}%  
+    🧠 Confidence: {r['conf']}%  
+    🤖 AI Score: {r['ai_score']}  
 
-st.markdown("### 📊 MISSION LOGS")
+    ⏰ Entry: {r['entry']}
+    """)
+
+    st.write(r)
+
+# ==========================================
+# 🧠 FEEDBACK (NEW)
+# ==========================================
+
+st.markdown("### 🧠 AI LEARNING FEEDBACK")
+
+if "last_res" in st.session_state:
+    col1, col2 = st.columns(2)
+
+    if col1.button("✅ WIN"):
+        st.session_state.history[-1]["result"] = "win"
+        train_real_ai()
+
+    if col2.button("❌ LOSS"):
+        st.session_state.history[-1]["result"] = "loss"
+        train_real_ai()
+
+# ==========================================
+# 📊 HISTORY
+# ==========================================
+
 if st.session_state.history:
-    df_h = pd.DataFrame(st.session_state.history).iloc[::-1]
-    st.table(df_h[['entry', 'signal', 'x3_prob', 'conf', 'moy', 'max']])
+    df = pd.DataFrame(st.session_state.history)
+    st.dataframe(df)
