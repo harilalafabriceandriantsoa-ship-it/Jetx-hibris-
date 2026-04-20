@@ -245,22 +245,22 @@ with col2:
     if "last" in st.session_state:
         r = st.session_state.last
         
-        # NOTE: Voahitsy tsara ilay st.markdown tsy misy erreur intsony
+        # NOTE: Nampiasaiko ny r.get() mba tsy hisy error na dia cache taloha aza
         st.markdown(f"""
         <div class="glass-card">
-            <h2 class="{r['signal_class']}">{r['signal']}</h2>
-            <h3>X3 PROB : <span style="color:#ff00ff;font-size:2.1rem;">{r['x3_prob']}%</span> | CONF : {r['conf']}</h3>
-            <h1 style="font-size:4.6rem;color:#00ffcc;margin:15px 0;">{r['entry']}</h1>
+            <h2 class="{r.get('signal_class', 'signal-light')}">{r.get('signal', 'Calcul...')}</h2>
+            <h3>X3 PROB : <span style="color:#ff00ff;font-size:2.1rem;">{r.get('x3_prob', 0)}%</span> | CONF : {r.get('conf', 0)}</h3>
+            <h1 style="font-size:4.6rem;color:#00ffcc;margin:15px 0;">{r.get('entry', '00:00:00')}</h1>
             
             <div style="display:flex; gap:12px; margin:20px 0;">
                 <div style="background:#00cc88;color:#000;padding:14px;border-radius:15px;flex:1;text-align:center;">
-                    <small>MIN</small><br><b>{r['min']}</b>
+                    <small>MIN</small><br><b>{r.get('min', 0)}</b>
                 </div>
                 <div style="background:#ffcc00;color:#000;padding:14px;border-radius:15px;flex:1;text-align:center;">
-                    <small>MOY</small><br><b>{r['moy']}</b>
+                    <small>MOY</small><br><b>{r.get('moy', 0)}</b>
                 </div>
                 <div style="background:#ff3366;color:#fff;padding:14px;border-radius:15px;flex:1;text-align:center;">
-                    <small>MAX</small><br><b>{r['max']}</b>
+                    <small>MAX</small><br><b>{r.get('max', 0)}</b>
                 </div>
             </div>
 
@@ -269,9 +269,9 @@ with col2:
             • MOY → cashout mahazatra<br>
             • MAX → cashout amin'ny 3x na mihoatra raha ULTRA</p>
             
-            <p style="color:#ff3366;"><b>⚠️ Raha crash amin'ny ora {r['entry']} dia aza miditra intsony!</b></p>
+            <p style="color:#ff3366;"><b>⚠️ Raha crash amin'ny ora {r.get('entry', '00:00:00')} dia aza miditra intsony!</b></p>
             
-            <small>Strength: <b>{r['strength']}</b> | Win Streak: {r['win_streak']} | Loss Streak: {r['loss_streak']}</small>
+            <small>Strength: <b>{r.get('strength', 0)}</b> | Win Streak: {r.get('win_streak', 0)} | Loss Streak: {r.get('loss_streak', 0)}</small>
         </div>
         """, unsafe_allow_html=True)
 
