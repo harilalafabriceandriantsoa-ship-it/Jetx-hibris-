@@ -129,7 +129,7 @@ def ai_predict_ultra(features):
         return None
 
 # ==========================================
-# CALCUL CIBLÉ X3+ ULTRA PUISSANTE + ENTRY ULTRA
+# CALCUL CIBLÉ X3+ + ENTRY ULTRA PUISSANTE
 # ==========================================
 def run_engine_ultra(h_in, t_in, last_cote):
     h_hex = hashlib.sha256(h_in.encode()).hexdigest()
@@ -140,9 +140,9 @@ def run_engine_ultra(h_in, t_in, last_cote):
     if last_cote > 4.8:
         last_cote = (last_cote + 3.0) / 2
 
-    # === CIBLÉ X3+ MATANJAKA BE ===
-    base = 1.48 + (h_num % 780) / 92          # Base ambony kokoa mba hisian'ny X3+
-    sigma = 0.295 - (last_cote * 0.006)       # Queue plus longue pour X3+
+    # Ciblé X3+ ultra matanjaka
+    base = 1.52 + (h_num % 780) / 92
+    sigma = 0.29 - (last_cote * 0.006)
 
     sims = np.random.lognormal(np.log(base), sigma, 30000)
 
@@ -165,7 +165,7 @@ def run_engine_ultra(h_in, t_in, last_cote):
     strength = round(base_strength + streak_adj + (volatility * 2.5), 1)
     strength = max(28, min(98, strength))
 
-    # === ENTRY TIME ULTRA PUISSANTE ===
+    # Entry time ultra puissante
     now = get_time()
     try:
         t_obj = datetime.strptime(t_in.strip(), "%H:%M:%S").time()
@@ -180,12 +180,11 @@ def run_engine_ultra(h_in, t_in, last_cote):
     strength_factor = 5 if strength > 82 else (3 if strength > 68 else 1)
 
     final_seconds = int(base_delay + (spread * 0.35) + hash_shift + prob_factor + strength_factor)
-    final_seconds = max(18, min(58, final_seconds))   # Minimum 18 secondes
+    final_seconds = max(18, min(58, final_seconds))
 
     base_time = base_time.replace(microsecond=0)
     entry = (base_time + timedelta(seconds=final_seconds)).strftime("%H:%M:%S")
 
-    # Signal
     if strength > 83:
         signal = "💎💎💎 ULTRA X3+ BUY"
         signal_class = "signal-ultra"
@@ -228,7 +227,7 @@ col1, col2 = st.columns([1, 2.1])
 with col1:
     st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
     h_in = st.text_input("HASH (Provably Fair)", placeholder="Collez le hash complet...")
-    t_in = st.text_input("TIME (HH:MM:SS)", placeholder="Ex: 22:07:55")
+    t_in = st.text_input("TIME (HH:MM:SS)", placeholder="Ex: 22:08:20")
     last_cote = st.number_input("LAST COTE", value=2.3, step=0.1, format="%.2f")
 
     if st.button("🚀 LANCER LE CALCUL ULTRA", use_container_width=True):
