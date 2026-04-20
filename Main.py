@@ -9,28 +9,68 @@ import time
 from sklearn.ensemble import RandomForestClassifier
 
 # ==========================================
-# 💎 CONFIG UI
+# 💎 PREMIUM UI & STYLING (TSY NIOVAINA)
 # ==========================================
 st.set_page_config(page_title="ANDR-X V14 REAL AI", layout="wide")
 
 st.markdown("""
 <style>
-.stApp {
-    background-color: #020205;
-    color: #00ffcc;
-    font-family: monospace;
-}
+    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Rajdhani:wght@500;700&display=swap');
+    
+    .stApp {
+        background-color: #020205;
+        background-image: 
+            radial-gradient(circle at 20% 30%, #051919 0%, transparent 50%),
+            radial-gradient(circle at 80% 70%, #1a051a 0%, transparent 50%);
+        color: #e0fbfc;
+        font-family: 'Rajdhani', sans-serif;
+    }
+    
+    .main-title {
+        font-family: 'Orbitron', sans-serif;
+        font-size: 2.8rem;
+        font-weight: 700;
+        text-align: center;
+        background: linear-gradient(90deg, #00ffcc, #ff00cc);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        text-shadow: 0 0 20px rgba(0, 255, 204, 0.4);
+        margin-bottom: 20px;
+    }
+    
+    .glass-card {
+        background: rgba(10, 10, 20, 0.7);
+        border: 1px solid rgba(0, 255, 204, 0.3);
+        border-radius: 20px;
+        padding: 25px;
+        backdrop-filter: blur(15px);
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8);
+        margin-bottom: 20px;
+    }
+    
+    .stButton>button {
+        background: linear-gradient(135deg, #00ffcc 0%, #0088ff 100%) !important;
+        color: #000 !important;
+        font-family: 'Orbitron', sans-serif !important;
+        font-weight: 700 !important;
+        border: none !important;
+        border-radius: 12px !important;
+        height: 55px !important;
+        width: 100% !important;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+    }
+    
+    .stat-val { font-size: 1.8rem; font-weight: 700; color: #00ffcc; }
 </style>
 """, unsafe_allow_html=True)
 
 # ==========================================
 # 🧠 SESSION INIT
 # ==========================================
+
 if "history" not in st.session_state:
     st.session_state.history = []
-
-if "authenticated" not in st.session_state:
-    st.session_state.authenticated = False
 
 if "ml_model" not in st.session_state:
     st.session_state.ml_model = RandomForestClassifier(n_estimators=120)
@@ -38,40 +78,51 @@ if "ml_model" not in st.session_state:
 if "ml_ready" not in st.session_state:
     st.session_state.ml_ready = False
 
+if "authenticated" not in st.session_state:
+    st.session_state.authenticated = False
+
+
 # ==========================================
-# 🔐 LOGIN SYSTEM (RESTORED)
+# 🔐 LOGIN (NIVERINA)
 # ==========================================
+
 if not st.session_state.authenticated:
-    st.title("🔐 ANDR-X V14 ACCESS")
-
-    pwd = st.text_input("ENTER PASSWORD", type="password")
-
-    if st.button("LOGIN"):
+    st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
+    st.markdown("<h2 style='text-align:center;'>🔐 ACCESS CONTROL</h2>", unsafe_allow_html=True)
+    
+    pwd = st.text_input("Enter System Password:", type="password")
+    
+    if st.button("UNLOCK SYSTEM"):
         if pwd == "2026":
             st.session_state.authenticated = True
             st.rerun()
         else:
-            st.error("Wrong password")
-
+            st.error("Incorrect Password")
+    
+    st.markdown("</div>", unsafe_allow_html=True)
     st.stop()
+
 
 # ==========================================
 # 🧠 TIME
 # ==========================================
-def get_now():
+
+def get_tz_now():
     return datetime.now(pytz.timezone("Indian/Antananarivo"))
 
+
 # ==========================================
-# 🧠 AI TRAINING
+# 🧠 REAL AI TRAINING
 # ==========================================
-def train_ai():
+
+def train_real_ai():
     data = []
 
     for h in st.session_state.history:
         if "result" in h:
             label = 1 if h["result"] == "win" else 0
             data.append([
-                h["prob"],
+                h["x3_prob"],
                 h["conf"],
                 h["moy"],
                 h["spread"],
@@ -92,6 +143,7 @@ def train_ai():
     st.session_state.ml_model = model
     st.session_state.ml_ready = True
 
+
 def ai_predict(prob, conf, moy, spread):
     if not st.session_state.ml_ready:
         return None
@@ -102,11 +154,13 @@ def ai_predict(prob, conf, moy, spread):
     except:
         return None
 
+
 # ==========================================
-# 🧠 ENTRY TIME
+# 🧠 ENTRY TIME SYNC
 # ==========================================
-def calc_entry(hash_val, spread, t_in, strength):
-    now = get_now()
+
+def hyper_time_calc(hash_val, spread, t_in, strength):
+    now = get_tz_now()
 
     try:
         t_obj = datetime.strptime(t_in.strip(), "%H:%M:%S").time()
@@ -123,149 +177,154 @@ def calc_entry(hash_val, spread, t_in, strength):
     else:
         base_delay = 25
 
-    final = int(base_delay + (spread * 1.2) + hash_shift)
-    final = max(10, min(90, final))
+    final_seconds = int(base_delay + (spread * 1.2) + hash_shift)
+    final_seconds = max(10, min(90, final_seconds))
 
-    entry = base_time + timedelta(seconds=final)
+    entry = base_time + timedelta(seconds=final_seconds)
     return entry.strftime("%H:%M:%S")
+
 
 # ==========================================
 # 🧠 CORE ENGINE
 # ==========================================
-def run_ai(hash_in, time_in, cote):
 
-    h_num = int(hashlib.sha256(hash_in.encode()).hexdigest()[:16], 16)
+def run_ultra_analysis(h_in, t_in, c_ref):
+
+    h_num = int(hashlib.sha256(h_in.encode()).hexdigest()[:16], 16)
     h_norm = (h_num % 1000) / 1000
     np.random.seed(h_num & 0xffffffff)
 
-    variance = 0.25 + (h_norm * 0.2)
+    variance_scale = 0.25 + (h_norm * 0.2)
 
     sims = np.random.lognormal(
-        np.mean([np.log(cote + 0.05), 0.25]),
-        variance,
+        np.mean([np.log(c_ref + 0.05), 0.25]),
+        variance_scale,
         12000
     )
 
-    prob = np.mean(sims >= 3.0) * 100
+    prob_x3_real = np.mean(sims >= 3.0) * 100
     moy = np.exp(np.mean(np.log(sims)))
     max_v = np.percentile(sims, 98)
     min_v = np.percentile(sims, 5)
 
     spread = max_v - min_v
 
-    conf = (prob * 0.7) + ((moy / cote) * 30)
+    conf = (prob_x3_real * 0.7) + ((moy / c_ref) * 30)
     conf = max(20, min(99, conf))
 
-    ai_score = ai_predict(prob, conf, moy, spread)
+    ai_score = ai_predict(prob_x3_real, conf, moy, spread)
 
-    if ai_score:
-        strength = (prob * 0.5) + (ai_score * 0.5)
+    if ai_score is not None:
+        final_strength = (prob_x3_real * 0.5) + (ai_score * 0.5)
     else:
-        strength = prob
+        final_strength = prob_x3_real
 
-    entry = calc_entry(hash_in, spread, time_in, strength)
+    final_strength = round(final_strength, 1)
 
-    if strength > 80 and moy > 2.2:
-        signal = "💎 ULTRA BUY"
-    elif strength > 65:
-        signal = "🟢 STRONG BUY"
-    elif strength > 50:
-        signal = "⚡ SCALP"
+    entry_time = hyper_time_calc(h_in, spread, t_in, final_strength)
+
+    if final_strength > 80 and moy > 2.2:
+        signal, color = "💎 ULTRA AI BUY", "#ff00cc"
+    elif final_strength > 65:
+        signal, color = "🟢 AI STRONG BUY", "#00ffcc"
+    elif final_strength > 50:
+        signal, color = "⚡ AI SCALP", "#ffff00"
     else:
-        signal = "❌ SKIP"
+        signal, color = "⚠️ AI SKIP", "#ff4444"
 
     res = {
-        "entry": entry,
+        "entry": entry_time,
         "signal": signal,
-        "prob": round(prob,1),
-        "conf": round(conf,1),
-        "moy": round(moy,2),
-        "max": round(max_v,2),
-        "min": round(min_v,2),
-        "spread": round(spread,2),
+        "color": color,
+        "x3_prob": round(prob_x3_real, 1),
+        "conf": round(conf, 1),
+        "spread": round(spread, 2),
+        "moy": round(moy, 2),
+        "max": round(max_v, 2),
+        "min": round(min_v, 2),
         "ai_score": ai_score
     }
 
     st.session_state.history.append(res)
 
-    if len(st.session_state.history) > 30:
+    if len(st.session_state.history) > 20:
         st.session_state.history.pop(0)
 
-    train_ai()
+    train_real_ai()
 
     return res
 
+
 # ==========================================
-# 🖥 UI MAIN
+# 🖥️ UI (TSY NIOVAINA)
 # ==========================================
-st.title("🚀 ANDR-X V14 REAL AI")
+
+st.markdown("<h1 class='main-title'>ANDR-X V14 REAL AI</h1>", unsafe_allow_html=True)
 
 col1, col2 = st.columns([1,2])
 
 with col1:
-    hash_in = st.text_input("HASH")
-    time_in = st.text_input("TIME (HH:MM:SS)")
-    cote = st.number_input("COTE", value=2.2)
+    st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
+    
+    h_in = st.text_input("SERVER HASH CODE")
+    t_in = st.text_input("LAST ROUND TIME (HH:MM:SS)")
+    c_ref = st.number_input("REFERENCE COTE", value=2.2, step=0.1)
 
-    if st.button("RUN AI"):
-        if hash_in and time_in:
-            with st.spinner("Processing..."):
+    if st.button("EXECUTE ANALYSIS"):
+        if h_in and len(t_in) == 8:
+            with st.spinner("AI Thinking..."):
                 time.sleep(0.5)
-                st.session_state.last = run_ai(hash_in, time_in, cote)
+                st.session_state.last_res = run_ultra_analysis(h_in, t_in, c_ref)
         else:
-            st.error("Fill all fields")
+            st.error("Format Lera diso!")
 
-    if st.button("🗑 RESET DATA"):
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    # 🗑️ RESET (NIVERINA)
+    if st.sidebar.button("🗑️ RESET DATA"):
         st.session_state.history = []
-        if "last" in st.session_state:
-            del st.session_state.last
+        if "last_res" in st.session_state:
+            del st.session_state.last_res
         st.rerun()
 
 with col2:
-    if "last" in st.session_state:
-        r = st.session_state.last
+    if "last_res" in st.session_state:
+        r = st.session_state.last_res
 
         st.markdown(f"""
-        ## {r['signal']}
-
-        🎯 Prob: {r['prob']}%  
-        🧠 Confidence: {r['conf']}%  
-        🤖 AI Score: {r['ai_score']}  
-
-        ⏰ Entry: {r['entry']}
-        """)
-
-        st.write(r)
+        <div class="glass-card" style="border-left: 10px solid {r['color']}">
+            <h2 style="color:{r['color']}">{r['signal']}</h2>
+            <p>🎯 Prob: {r['x3_prob']}%</p>
+            <p>🧠 Confidence: {r['conf']}%</p>
+            <p>🤖 AI Score: {r['ai_score']}</p>
+            <h1>⏰ {r['entry']}</h1>
+        </div>
+        """, unsafe_allow_html=True)
 
 # ==========================================
 # 🧠 FEEDBACK
 # ==========================================
-st.markdown("### 🧠 AI LEARNING")
 
-if "last" in st.session_state:
+if "last_res" in st.session_state:
     c1, c2 = st.columns(2)
 
     if c1.button("✅ WIN"):
         st.session_state.history[-1]["result"] = "win"
-        train_ai()
+        train_real_ai()
 
     if c2.button("❌ LOSS"):
         st.session_state.history[-1]["result"] = "loss"
-        train_ai()
+        train_real_ai()
+
 
 # ==========================================
-# 📜 HISTORY (RESTORED)
+# 📜 HISTORY (NIVERINA)
 # ==========================================
+
 st.markdown("### 📜 HISTORY")
 
 if st.session_state.history:
     df = pd.DataFrame(st.session_state.history)
-    st.dataframe(df[::-1])
+    st.dataframe(df)
 else:
-    st.info("No history yet")
-
-# ==========================================
-# ⏰ SIDEBAR TIME
-# ==========================================
-st.sidebar.markdown("### ⏰ TIME")
-st.sidebar.write(get_now().strftime("%d/%m/%Y %H:%M:%S"))
+    st.info("Mbola tsy misy historique")
