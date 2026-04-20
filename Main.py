@@ -74,14 +74,27 @@ if "ml_ready" not in st.session_state:
 
 
 # ==========================================
-# TIME SAFE
+# FIX LAST COTE (X10 PROTECTION)
+# ==========================================
+def normalize_last_cote(last_cote, c_ref):
+    if last_cote > 10:
+        return min(last_cote, c_ref * 2)   # x10+ trap fix
+    elif last_cote > 6:
+        return 4.0
+    elif last_cote > 4:
+        return (last_cote + 4) / 2
+    return last_cote
+
+
+# ==========================================
+# TIME
 # ==========================================
 def get_tz_now():
     return datetime.now(pytz.timezone("Indian/Antananarivo"))
 
 
 # ==========================================
-# AI TRAIN SAFE
+# AI TRAINING
 # ==========================================
 def train_real_ai():
     data = []
@@ -115,7 +128,7 @@ def ai_predict(prob, conf, moy, spread):
 
 
 # ==========================================
-# ENTRY TIME FIX (STABLE)
+# ENTRY TIME
 # ==========================================
 def hyper_time_calc(hash_val, spread, t_in, strength):
     now = get_tz_now()
@@ -128,7 +141,6 @@ def hyper_time_calc(hash_val, spread, t_in, strength):
 
     hash_shift = (int(hash_val[:6], 16) % 12) - 4
 
-    base_delay = 15
     if strength > 70:
         base_delay = 12
     elif strength > 55:
@@ -136,19 +148,19 @@ def hyper_time_calc(hash_val, spread, t_in, strength):
     else:
         base_delay = 25
 
-    spread_fix = min(max(spread * 0.8, 2), 15)
-
-    final_seconds = int(base_delay + spread_fix + hash_shift)
-
+    final_seconds = int(base_delay + (spread * 1.2) + hash_shift)
     final_seconds = max(10, min(90, final_seconds))
 
     return (base_time + timedelta(seconds=final_seconds)).strftime("%H:%M:%S")
 
 
 # ==========================================
-# CORE ENGINE FIXED
+# CORE ENGINE
 # ==========================================
 def run_ultra_analysis(h_in, t_in, c_ref, last_cote):
+
+    # 🔥 FIX APPLIED HERE
+    last_cote = normalize_last_cote(last_cote, c_ref)
 
     h_num = int(hashlib.sha256(h_in.encode()).hexdigest()[:16], 16)
     h_norm = (h_num % 1000) / 1000
@@ -182,7 +194,6 @@ def run_ultra_analysis(h_in, t_in, c_ref, last_cote):
 
     entry_time = hyper_time_calc(h_in, spread, t_in, final_strength)
 
-    # SIGNAL FIX (tsy SKIP be intsony)
     if final_strength > 70:
         signal, color = "💎 ULTRA AI BUY", "#ff00cc"
     elif final_strength > 55:
