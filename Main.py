@@ -1,4 +1,4 @@
-import streamlit as st 
+import streamlit as st
 import numpy as np
 import hashlib
 import pandas as pd
@@ -11,7 +11,7 @@ from sklearn.preprocessing import StandardScaler
 # ==========================================
 # 💎 UI
 # ==========================================
-st.set_page_config(page_title="JETX ANDR V14 ULTRA FIXED", layout="wide")
+st.set_page_config(page_title="JETX ANDR V14 ULTRA", layout="wide")
 
 st.markdown("""
 <style>
@@ -33,7 +33,9 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Session State
+# ==========================================
+# SESSION STATE
+# ==========================================
 if "history" not in st.session_state:
     st.session_state.history = []
 
@@ -50,7 +52,7 @@ def get_time():
     return datetime.now(pytz.timezone("Indian/Antananarivo"))
 
 # ==========================================
-# 🔥 STREAK (inchangé)
+# STREAK ANALYSIS
 # ==========================================
 def get_current_streak(history):
     marked = [h.get("real_result") for h in history if h.get("real_result") in ["win", "loss"]]
@@ -67,7 +69,7 @@ def get_current_streak(history):
     return streak_win, streak_loss, last
 
 # ==========================================
-# 🧠 AI TRAINING + STREAK + VOLATILITY
+# AI TRAINING
 # ==========================================
 def prepare_ml_data(history):
     data = []
@@ -75,8 +77,6 @@ def prepare_ml_data(history):
         h = history[i]
         prev = history[:i]
         win_s, loss_s, _ = get_current_streak(prev)
-        
-        # Volatility simple (écart-type des derniers moy)
         vols = [p.get("moy", 2.5) for p in prev[-10:]]
         volatility = round(np.std(vols) if len(vols) > 3 else 1.0, 2)
 
@@ -114,7 +114,7 @@ def ai_predict_ultra(features):
         return None
 
 # ==========================================
-# ⏰ ENTRY TIME ENGINE - FIXED & HASH DEPENDANT (Tena Matanjaka)
+# ENTRY TIME ENGINE (Hash Dependent)
 # ==========================================
 def entry_calc_fixed(hash_val, spread, t_in, strength, x3_prob):
     now = get_time()
@@ -124,39 +124,32 @@ def entry_calc_fixed(hash_val, spread, t_in, strength, x3_prob):
     except:
         base_time = now
 
-    # === PLUS ARKARAKA NY HASH ===
-    # On prend plus de bytes du hash pour plus de variation
-    h_int = int(hash_val[:12], 16)          # 12 premiers caractères hex = très sensible
-    hash_shift = (h_int % 23) - 11          # shift entre -11 et +11 secondes
-
-    # Delay base plus variable selon hash + probabilité X3
-    base_delay = 14 + (h_int % 9)           # entre 14 et 22 secondes de base
+    h_int = int(hash_val[:12], 16)
+    hash_shift = (h_int % 23) - 11
+    base_delay = 14 + (h_int % 9)
     prob_factor = 8 if x3_prob > 70 else (4 if x3_prob > 50 else 0)
 
     final_seconds = int(base_delay + (spread * 0.45) + hash_shift + prob_factor)
-    final_seconds = max(18, min(52, final_seconds))   # plage réaliste et variable
+    final_seconds = max(18, min(52, final_seconds))
 
     base_time = base_time.replace(microsecond=0)
-    entry_time = base_time + timedelta(seconds=final_seconds)
-    return entry_time.strftime("%H:%M:%S")
+    return (base_time + timedelta(seconds=final_seconds)).strftime("%H:%M:%S")
 
 # ==========================================
-# 🚀 ENGINE CORE - ALGORITHM PLUS MATANJAKA
+# MAIN ENGINE
 # ==========================================
-def run_engine_ultra(h_in, t_in, c_ref, last_cote):
+def run_engine_ultra(h_in, t_in, last_cote):
     h_hex = hashlib.sha256(h_in.encode()).hexdigest()
     h_num = int(h_hex[:20], 16)
 
     np.random.seed(h_num & 0xffffffff)
 
-    # Ajustement last_cote
     last_cote = min(last_cote, 7.0)
     if last_cote > 4.8:
         last_cote = (last_cote + 3.0) / 2
 
-    # Base + simulation plus réaliste pour JetX (beaucoup de <2x + queue longue)
     base = 1.18 + (h_num % 950) / 105
-    sigma = 0.34 - (last_cote * 0.008)   # variance légèrement réduite si last cote élevé
+    sigma = 0.34 - (last_cote * 0.008)
 
     sims = np.random.lognormal(np.log(base), sigma, 22000)
 
@@ -168,23 +161,19 @@ def run_engine_ultra(h_in, t_in, c_ref, last_cote):
 
     conf = round(max(28, min(97, prob_x3 * 0.62 + moy * 17 + last_cote * 7)), 1)
 
-    # Streak + Volatility
     win_s, loss_s, _ = get_current_streak(st.session_state.history)
     vols = [h.get("moy", 2.5) for h in st.session_state.history[-12:]]
     volatility = round(np.std(vols) if len(vols) > 4 else 1.2, 2)
 
     ai_score = ai_predict_ultra([prob_x3, conf, moy, spread, last_cote, conf, win_s, loss_s, volatility])
 
-    # Strength ultra
     base_strength = prob_x3 * 0.53 + (ai_score or conf) * 0.42
     streak_adj = win_s * 2.1 - loss_s * 2.4
     strength = round(base_strength + streak_adj + (volatility * 1.8), 1)
     strength = max(22, min(96, strength))
 
-    # Entry Time FIXÉ & HASH DEPENDANT
     entry = entry_calc_fixed(h_hex, spread, t_in, strength, prob_x3)
 
-    # Signaux ciblés X3+
     if strength > 82:
         signal = "💎💎💎 ULTRA X3+ BUY"
     elif strength > 71:
@@ -222,34 +211,34 @@ def run_engine_ultra(h_in, t_in, c_ref, last_cote):
     return res
 
 # ==========================================
-# UI
+# UI PRINCIPALE
 # ==========================================
-st.markdown("<h1 class='main-title'>JETX ANDR V14 ULTRA - ENTRY FIXED</h1>", unsafe_allow_html=True)
+st.markdown("<h1 class='main-title'>JETX ANDR V14 ULTRA</h1>", unsafe_allow_html=True)
 
 col1, col2 = st.columns([1, 2.2])
 
 with col1:
     st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
-    h_in = st.text_input("HASH (provably fair)", placeholder="Colle le hash complet...")
-    t_in = st.text_input("TIME (HH:MM:SS)", placeholder="Ex: 21:15:30")
-    last_cote = st.number_input("LAST COTE", value=2.3, step=0.1)
+    h_in = st.text_input("HASH (provably fair)", placeholder="Colle le hash 64 caractères...")
+    t_in = st.text_input("TIME (HH:MM:SS)", placeholder="Ex: 21:35:12")
+    last_cote = st.number_input("LAST COTE (round précédent)", value=2.3, step=0.1)
 
     if st.button("🚀 RUN ULTRA ENGINE"):
         if h_in and len(t_in) >= 8:
-            with st.spinner("Calcul hash + entry time en cours..."):
-                st.session_state.last = run_engine_ultra(h_in, t_in, 2.5, last_cote)
-                st.success("Signal prêt !")
+            with st.spinner("Calcul en cours..."):
+                st.session_state.last = run_engine_ultra(h_in, t_in, last_cote)
+                st.success("Signal généré !")
     st.markdown("</div>", unsafe_allow_html=True)
 
-    if st.sidebar.button("🔄 RESET ALL"):
+    if st.sidebar.button("🔄 RESET ALL DATA"):
         st.session_state.history = []
-        if "last" in st.session_state: del st.session_state.last
+        if "last" in st.session_state:
+            del st.session_state.last
         st.rerun()
 
 with col2:
     if "last" in st.session_state:
         r = st.session_state.last
-        streak_text = f"Win: {r['win_streak']} | Loss: {r['loss_streak']} | Vol: {r.get('volatility', 1.2):.1f}"
         st.markdown(f"""
         <div class="glass-card">
             <h2 style="color:#00ffcc;">{r['signal']}</h2>
@@ -257,23 +246,39 @@ with col2:
             <h1 style="font-size:3.6rem; color:#00ffcc;">{r['entry']}</h1>
             <p>MIN: {r['min']} | MOY: {r['moy']} | MAX: {r['max']}</p>
             <small>Strength: {r['strength']} | AI: {r.get('ai_score','N/A')}</small><br>
-            <small style="color:#ffff00;">{streak_text}</small>
+            <small>Win Streak: {r['win_streak']} | Loss Streak: {r['loss_streak']}</small>
         </div>
         """, unsafe_allow_html=True)
 
-# History + Editor
-st.markdown("### 📜 HISTORY - Marque WIN/LOSS")
+# ==========================================
+# HISTORY + WIN/LOSS EDITOR
+# ==========================================
+st.markdown("### 📜 HISTORY - Marque WIN na LOSS eto")
 if st.session_state.history:
     df_hist = pd.DataFrame(st.session_state.history)[::-1]
-    edited = st.data_editor(df_hist, use_container_width=True,
-        column_config={"real_result": st.column_config.SelectboxColumn("Résultat Réel", options=["win","loss",None])})
+    
+    edited_df = st.data_editor(
+        df_hist,
+        column_config={
+            "real_result": st.column_config.SelectboxColumn(
+                "✅ Résultat Réel",
+                options=["win", "loss", None],
+                default=None
+            )
+        },
+        hide_index=True,
+        use_container_width=True
+    )
 
     if st.button("💾 Sauvegarder & Réentraîner AI"):
-        for idx, row in edited.iterrows():
-            orig_idx = len(st.session_state.history) - 1 - idx
-            st.session_state.history[orig_idx]["real_result"] = row["real_result"]
+        # Mise à jour historique
+        for d_idx, row in edited_df.iterrows():
+            orig_idx = len(st.session_state.history) - 1 - d_idx
+            if orig_idx < len(st.session_state.history):
+                st.session_state.history[orig_idx]["real_result"] = row["real_result"]
+        
         train_ai_ultra()
-        st.success("AI mise à jour avec streak + vrais résultats !")
+        st.success("✅ Résultats sauvegardés ! L'IA a réappris tamin'ny résultats réels sy streak.")
         st.rerun()
 
-st.caption("JETX ANDR V14 ULTRA - Entry time fixé & 100% dépendant du hash | Algorithm renforcé pour X3+")
+st.caption("JETX ANDR V14 ULTRA - Entry time 100% hash dependent | AI + Streak Learning")
