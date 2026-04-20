@@ -212,7 +212,7 @@ def run_engine_ultra(h_in, t_in, last_cote):
     vols = [h.get("moy", 2.5) for h in st.session_state.history[-12:]]
     volatility = round(np.std(vols) if len(vols) > 4 else 1.2, 2)
 
-    ai_score = ai_predict_ultra([prob_x3, conf, moy, spread, last_cote, conf, win_s, loss_s, volatility])
+    ai_score = ai_predict_ultra([prob_x3, length, moy, spread, last_cote, conf, win_s, loss_s, volatility])
 
     base_strength = prob_x3 * 0.53 + (ai_score or conf) * 0.42
     streak_adj = win_s * 2.1 - loss_s * 2.4
@@ -296,6 +296,26 @@ with col2:
             <small>Strength : <b>{r['strength']}</b> • Win Streak : {r['win_streak']} • Loss Streak : {r['loss_streak']}</small>
         </div>
         """, unsafe_allow_html=True)
+
+        # ==========================================
+        # NY BOUTON WIN / LOSS NANAMPY
+        # ==========================================
+        st.markdown("<br>", unsafe_allow_html=True)
+        c_win, c_loss = st.columns(2)
+        with c_win:
+            if st.button("✅ WIN", use_container_width=True):
+                if st.session_state.history:
+                    st.session_state.history[-1]["real_result"] = "win"
+                    train_ai_ultra()
+                    st.success("Round marqué comme WIN !")
+                    st.rerun()
+        with c_loss:
+            if st.button("❌ LOSS", use_container_width=True):
+                if st.session_state.history:
+                    st.session_state.history[-1]["real_result"] = "loss"
+                    train_ai_ultra()
+                    st.error("Round marqué comme LOSS")
+                    st.rerun()
 
 # Historique
 st.markdown("### 📜 Historique des Signaux")
