@@ -9,9 +9,9 @@ import time
 from sklearn.ensemble import RandomForestClassifier
 
 # ==========================================
-# 💎 UI (TSY NIOVANA)
+# 💎 UI (TSY OVAINA)
 # ==========================================
-st.set_page_config(page_title="JETX ANDR V14 PRO-SYNC", layout="wide")
+st.set_page_config(page_title="ANDR-X V13.5 PRO-SYNC", layout="wide")
 
 st.markdown("""
 <style>
@@ -61,7 +61,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ==========================================
-# 🔐 SESSION (TSY OVAINA)
+# 🔐 SESSION
 # ==========================================
 if "history" not in st.session_state:
     st.session_state.history = []
@@ -75,8 +75,9 @@ if "ml_ready" not in st.session_state:
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
 
+
 # ==========================================
-# 🔐 LOGIN (TSY OVAINA)
+# 🔐 LOGIN
 # ==========================================
 if not st.session_state.authenticated:
     st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
@@ -92,14 +93,16 @@ if not st.session_state.authenticated:
     st.markdown("</div>", unsafe_allow_html=True)
     st.stop()
 
+
 # ==========================================
 # TIME
 # ==========================================
 def get_tz_now():
     return datetime.now(pytz.timezone("Indian/Antananarivo"))
 
+
 # ==========================================
-# AI TRAIN (TSY OVAINA)
+# AI TRAINING (stable)
 # ==========================================
 def train_real_ai():
     data = []
@@ -121,6 +124,7 @@ def train_real_ai():
     st.session_state.ml_model = model
     st.session_state.ml_ready = True
 
+
 def ai_predict(prob, conf, moy, spread):
     if not st.session_state.ml_ready:
         return None
@@ -129,6 +133,7 @@ def ai_predict(prob, conf, moy, spread):
         return round(st.session_state.ml_model.predict_proba(X)[0][1] * 100, 1)
     except:
         return None
+
 
 # ==========================================
 # ENTRY TIME
@@ -143,20 +148,18 @@ def hyper_time_calc(hash_val, spread, t_in, strength):
 
     hash_shift = (int(hash_val[:6], 16) % 12) - 4
 
-    if strength > 70:
-        base_delay = 12
-    elif strength > 55:
-        base_delay = 18
-    else:
-        base_delay = 25
+    base_delay = 18 if strength > 70 else 22 if strength > 50 else 28
 
-    final_seconds = int(base_delay + (spread * 1.2) + hash_shift)
-    final_seconds = max(10, min(90, final_seconds))
+    final_seconds = int(base_delay + (spread * 1.1) + hash_shift)
+
+    # 🛡️ STABILITY FIX
+    final_seconds = max(15, min(60, final_seconds))
 
     return (base_time + timedelta(seconds=final_seconds)).strftime("%H:%M:%S")
 
+
 # ==========================================
-# CORE ENGINE (TSY NIOVANA)
+# MAIN ENGINE (STABLE VERSION)
 # ==========================================
 def run_ultra_analysis(h_in, t_in, c_ref, last_cote):
 
@@ -164,13 +167,23 @@ def run_ultra_analysis(h_in, t_in, c_ref, last_cote):
     h_norm = (h_num % 1000) / 1000
     np.random.seed(h_num & 0xffffffff)
 
-    variance_scale = 0.25 + (h_norm * 0.2)
+    # 🛡️ FIX LAST COTE SPIKE (IMPORTANT)
+    if last_cote > 6:
+        last_cote = 4.0
+    elif last_cote > 4:
+        last_cote = (last_cote + 4) / 2
+
+    variance_scale = 0.25 + (h_norm * 0.15)
 
     base_mean = np.log((c_ref + last_cote) / 2 + 0.05)
 
     sims = np.random.lognormal(base_mean, variance_scale, 12000)
 
     prob_x3_real = np.mean(sims >= 3.0) * 100
+
+    # 🛡️ STABILITY CLAMP
+    prob_x3_real = np.clip(prob_x3_real, 5, 90)
+
     moy = np.exp(np.mean(np.log(sims)))
     max_v = np.percentile(sims, 98)
     min_v = np.percentile(sims, 5)
@@ -182,18 +195,23 @@ def run_ultra_analysis(h_in, t_in, c_ref, last_cote):
 
     ai_score = ai_predict(prob_x3_real, conf, moy, spread)
 
-    final_strength = (prob_x3_real * 0.6 + (ai_score or 0) * 0.4)
+    final_strength = (prob_x3_real * 0.6 + (ai_score or 50) * 0.4)
 
     entry_time = hyper_time_calc(h_in, spread, t_in, final_strength)
 
-    if final_strength > 70 and moy > 2.0:
-        signal, color = "💎 ULTRA AI BUY", "#ff00cc"
+    # 🚨 STRONG FILTER (REDUCE LOSS)
+    if prob_x3_real < 45 or conf < 50 or moy < 1.6:
+        signal = "⚠️ SKIP (SAFE MODE)"
+        color = "#ff4444"
+    elif final_strength > 70:
+        signal = "💎 ULTRA BUY"
+        color = "#ff00cc"
     elif final_strength > 55:
-        signal, color = "🟢 AI STRONG BUY", "#00ffcc"
-    elif final_strength > 40:
-        signal, color = "⚡ AI SCALP", "#ffff00"
+        signal = "🟢 BUY"
+        color = "#00ffcc"
     else:
-        signal, color = "⚠️ AI SKIP", "#ff4444"
+        signal = "⚡ SCALP"
+        color = "#ffff00"
 
     res = {
         "entry": entry_time,
@@ -205,22 +223,23 @@ def run_ultra_analysis(h_in, t_in, c_ref, last_cote):
         "moy": round(moy, 2),
         "max": round(max_v, 2),
         "min": round(min_v, 2),
-
-        # 🔥 FIX KEY ERROR SAFETY FIELD
-        "last_cote_used": round(last_cote, 2)
+        "ai_score": ai_score,
+        "last_cote_used": last_cote
     }
 
     st.session_state.history.append(res)
+
     if len(st.session_state.history) > 20:
         st.session_state.history.pop(0)
 
     train_real_ai()
     return res
 
+
 # ==========================================
 # UI
 # ==========================================
-st.markdown("<h1 class='main-title'>JETX ANDR V14 REAL AI</h1>", unsafe_allow_html=True)
+st.markdown("<h1 class='main-title'>JETX ANDR V14 STABLE AI</h1>", unsafe_allow_html=True)
 
 col1, col2 = st.columns([1,2])
 
@@ -233,18 +252,18 @@ with col1:
     last_cote = st.number_input("LAST COTE", value=2.0)
 
     if st.button("RUN AI"):
-        if h_in and len(t_in)==8:
-            st.session_state.last_res = run_ultra_analysis(h_in,t_in,c_ref,last_cote)
+        if h_in and len(t_in) == 8:
+            st.session_state.last_res = run_ultra_analysis(h_in, t_in, c_ref, last_cote)
 
     st.markdown("</div>", unsafe_allow_html=True)
 
     if st.sidebar.button("RESET DATA"):
-        st.session_state.history=[]
+        st.session_state.history = []
         st.rerun()
 
 with col2:
     if "last_res" in st.session_state:
-        r=st.session_state.last_res
+        r = st.session_state.last_res
 
         st.markdown(f"""
         <div class="glass-card" style="border-left: 8px solid {r['color']}">
@@ -264,7 +283,7 @@ with col2:
         <div>MAX<br><b>{r['max']}x</b></div>
         </div>
 
-        <small>LAST COTE USED: {r.get('last_cote_used','N/A')}</small>
+        <small>LAST COTE USED: {r['last_cote_used']}</small>
 
         </div>
         """, unsafe_allow_html=True)
