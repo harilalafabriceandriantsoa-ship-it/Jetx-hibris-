@@ -62,7 +62,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ==========================================
-# SESSION STATE & FONCTIONS
+# SESSION STATE
 # ==========================================
 if "history" not in st.session_state:
     st.session_state.history = []
@@ -129,7 +129,7 @@ def ai_predict_ultra(features):
         return None
 
 # ==========================================
-# CALCUL CIBLÉ X3+ + ENTRY ULTRA PUISSANTE
+# CALCUL CIBLÉ X3+ ULTRA PUISSANTE + ENTRY ULTRA
 # ==========================================
 def run_engine_ultra(h_in, t_in, last_cote):
     h_hex = hashlib.sha256(h_in.encode()).hexdigest()
@@ -140,9 +140,10 @@ def run_engine_ultra(h_in, t_in, last_cote):
     if last_cote > 4.8:
         last_cote = (last_cote + 3.0) / 2
 
-    # Ciblé X3+ ultra matanjaka
-    base = 1.35 + (h_num % 850) / 95
-    sigma = 0.31 - (last_cote * 0.007)
+    # === CIBLÉ X3+ MATANJAKA BE ===
+    base = 1.48 + (h_num % 780) / 92          # Base ambony kokoa mba hisian'ny X3+
+    sigma = 0.295 - (last_cote * 0.006)       # Queue plus longue pour X3+
+
     sims = np.random.lognormal(np.log(base), sigma, 30000)
 
     prob_x3 = round(np.mean(sims >= 3.0) * 100, 1)
@@ -151,7 +152,7 @@ def run_engine_ultra(h_in, t_in, last_cote):
     minv = round(np.percentile(sims, 3.5), 2)
     spread = round(maxv - minv, 2)
 
-    conf = round(max(32, min(98, prob_x3 * 0.68 + moy * 18 + last_cote * 9)), 1)
+    conf = round(max(35, min(98, prob_x3 * 0.70 + moy * 19 + last_cote * 9)), 1)
 
     win_s, loss_s, _ = get_current_streak(st.session_state.history)
     vols = [h.get("moy", 2.5) for h in st.session_state.history[-12:]]
@@ -159,12 +160,12 @@ def run_engine_ultra(h_in, t_in, last_cote):
 
     ai_score = ai_predict_ultra([prob_x3, conf, moy, spread, last_cote, conf, win_s, loss_s, volatility])
 
-    base_strength = prob_x3 * 0.58 + (ai_score or conf) * 0.42
-    streak_adj = win_s * 3.0 - loss_s * 2.7
-    strength = round(base_strength + streak_adj + (volatility * 2.4), 1)
-    strength = max(25, min(98, strength))
+    base_strength = prob_x3 * 0.59 + (ai_score or conf) * 0.41
+    streak_adj = win_s * 3.2 - loss_s * 2.8
+    strength = round(base_strength + streak_adj + (volatility * 2.5), 1)
+    strength = max(28, min(98, strength))
 
-    # Entry time ultra puissante
+    # === ENTRY TIME ULTRA PUISSANTE ===
     now = get_time()
     try:
         t_obj = datetime.strptime(t_in.strip(), "%H:%M:%S").time()
@@ -173,17 +174,18 @@ def run_engine_ultra(h_in, t_in, last_cote):
         base_time = now
 
     h_int = int(h_hex[:14], 16)
-    hash_shift = (h_int % 27) - 13
-    base_delay = 13 + (h_int % 11)
-    prob_factor = 12 if prob_x3 > 75 else (7 if prob_x3 > 55 else 2)
-    strength_factor = 4 if strength > 80 else (2 if strength > 65 else 0)
+    hash_shift = (h_int % 29) - 14
+    base_delay = 15 + (h_int % 12)
+    prob_factor = 13 if prob_x3 > 78 else (8 if prob_x3 > 60 else 3)
+    strength_factor = 5 if strength > 82 else (3 if strength > 68 else 1)
 
-    final_seconds = int(base_delay + (spread * 0.38) + hash_shift + prob_factor + strength_factor)
-    final_seconds = max(16, min(55, final_seconds))
+    final_seconds = int(base_delay + (spread * 0.35) + hash_shift + prob_factor + strength_factor)
+    final_seconds = max(18, min(58, final_seconds))   # Minimum 18 secondes
 
     base_time = base_time.replace(microsecond=0)
     entry = (base_time + timedelta(seconds=final_seconds)).strftime("%H:%M:%S")
 
+    # Signal
     if strength > 83:
         signal = "💎💎💎 ULTRA X3+ BUY"
         signal_class = "signal-ultra"
@@ -288,13 +290,10 @@ with col2:
                     st.success("❌ LOSS enregistré")
                     st.rerun()
 
-# ==========================================
-# HISTORIQUE STYLÉ (tsy misy matplotlib)
-# ==========================================
+# Historique
 st.markdown("### 📜 Historique des Prédictions")
 if st.session_state.history:
     df_hist = pd.DataFrame(st.session_state.history)[::-1]
-    
     edited_df = st.data_editor(
         df_hist,
         column_config={
