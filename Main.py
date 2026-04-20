@@ -62,7 +62,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ==========================================
-# SESSION STATE
+# SESSION STATE & FONCTIONS
 # ==========================================
 if "history" not in st.session_state:
     st.session_state.history = []
@@ -79,9 +79,6 @@ if "scaler" not in st.session_state:
 def get_time():
     return datetime.now(pytz.timezone("Indian/Antananarivo"))
 
-# ==========================================
-# STREAK & AI
-# ==========================================
 def get_current_streak(history):
     marked = [h.get("real_result") for h in history if h.get("real_result") in ["win", "loss"]]
     if not marked: return 0, 0, None
@@ -132,7 +129,7 @@ def ai_predict_ultra(features):
         return None
 
 # ==========================================
-# 🚀 CALCUL CIBLÉ X3+ ULTRA PUISSANTE (30 000 simulations)
+# CALCUL CIBLÉ X3+ + ENTRY ULTRA PUISSANTE
 # ==========================================
 def run_engine_ultra(h_in, t_in, last_cote):
     h_hex = hashlib.sha256(h_in.encode()).hexdigest()
@@ -143,10 +140,9 @@ def run_engine_ultra(h_in, t_in, last_cote):
     if last_cote > 4.8:
         last_cote = (last_cote + 3.0) / 2
 
-    # === CALCUL CIBLÉ X3+ MATANJAKA ===
-    base = 1.35 + (h_num % 850) / 95          # Base plus haute → plus de X3+
-    sigma = 0.31 - (last_cote * 0.007)        # Queue plus longue pour multiplier ambony
-
+    # Ciblé X3+ ultra matanjaka
+    base = 1.35 + (h_num % 850) / 95
+    sigma = 0.31 - (last_cote * 0.007)
     sims = np.random.lognormal(np.log(base), sigma, 30000)
 
     prob_x3 = round(np.mean(sims >= 3.0) * 100, 1)
@@ -168,9 +164,7 @@ def run_engine_ultra(h_in, t_in, last_cote):
     strength = round(base_strength + streak_adj + (volatility * 2.4), 1)
     strength = max(25, min(98, strength))
 
-    # ==========================================
-    # ⏰ HEURE D'ENTRÉE ULTRA PUISSANTE
-    # ==========================================
+    # Entry time ultra puissante
     now = get_time()
     try:
         t_obj = datetime.strptime(t_in.strip(), "%H:%M:%S").time()
@@ -178,9 +172,9 @@ def run_engine_ultra(h_in, t_in, last_cote):
     except:
         base_time = now
 
-    h_int = int(h_hex[:14], 16)                     # Plus de caractères hash = plus sensible
-    hash_shift = (h_int % 27) - 13                  # Shift plus large
-    base_delay = 13 + (h_int % 11)                  # Delay base ultra variable
+    h_int = int(h_hex[:14], 16)
+    hash_shift = (h_int % 27) - 13
+    base_delay = 13 + (h_int % 11)
     prob_factor = 12 if prob_x3 > 75 else (7 if prob_x3 > 55 else 2)
     strength_factor = 4 if strength > 80 else (2 if strength > 65 else 0)
 
@@ -190,7 +184,6 @@ def run_engine_ultra(h_in, t_in, last_cote):
     base_time = base_time.replace(microsecond=0)
     entry = (base_time + timedelta(seconds=final_seconds)).strftime("%H:%M:%S")
 
-    # Signal
     if strength > 83:
         signal = "💎💎💎 ULTRA X3+ BUY"
         signal_class = "signal-ultra"
@@ -295,21 +288,22 @@ with col2:
                     st.success("❌ LOSS enregistré")
                     st.rerun()
 
-# Historique stylé
+# ==========================================
+# HISTORIQUE STYLÉ (tsy misy matplotlib)
+# ==========================================
 st.markdown("### 📜 Historique des Prédictions")
 if st.session_state.history:
     df_hist = pd.DataFrame(st.session_state.history)[::-1]
-    styled_df = df_hist.style.background_gradient(cmap='RdYlGn', subset=['strength', 'x3_prob'])\
-                           .format({'x3_prob': '{:.1f}%', 'strength': '{:.1f}'})
     
     edited_df = st.data_editor(
-        styled_df,
+        df_hist,
         column_config={
             "real_result": st.column_config.SelectboxColumn("✅ Résultat", options=["win", "loss", None]),
             "signal": st.column_config.TextColumn("Signal"),
             "entry": st.column_config.TextColumn("Heure d'entrée"),
-            "x3_prob": st.column_config.NumberColumn("X3 %"),
-            "strength": st.column_config.NumberColumn("Strength")
+            "x3_prob": st.column_config.NumberColumn("X3 %", format="%.1f%%"),
+            "strength": st.column_config.NumberColumn("Strength", format="%.1f"),
+            "moy": st.column_config.NumberColumn("MOY")
         },
         hide_index=True,
         use_container_width=True
