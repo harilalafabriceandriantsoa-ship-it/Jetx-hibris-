@@ -9,14 +9,14 @@ import time
 from sklearn.ensemble import RandomForestClassifier
 
 # ==========================================
-# 💎 UI (TSY OVAINA STYLE)
+# 💎 UI (TSY OVAINA)
 # ==========================================
 st.set_page_config(page_title="JETX ANDR V14 STABLE", layout="wide")
 
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Rajdhani:wght@500;700&display=swap');
-    
+
     .stApp {
         background-color: #020205;
         background-image: 
@@ -25,7 +25,7 @@ st.markdown("""
         color: #e0fbfc;
         font-family: 'Rajdhani', sans-serif;
     }
-    
+
     .main-title {
         font-family: 'Orbitron', sans-serif;
         font-size: 2.8rem;
@@ -36,7 +36,7 @@ st.markdown("""
         -webkit-text-fill-color: transparent;
         margin-bottom: 20px;
     }
-    
+
     .glass-card {
         background: rgba(10, 10, 20, 0.7);
         border: 1px solid rgba(0, 255, 204, 0.3);
@@ -71,13 +71,13 @@ if "ml_ready" not in st.session_state:
     st.session_state.ml_ready = False
 
 # ==========================================
-# ⏱️ SAFE TIME
+# ⏱️ TIME
 # ==========================================
 def get_time():
     return datetime.now(pytz.timezone("Indian/Antananarivo"))
 
 # ==========================================
-# 🧠 AI TRAIN (SAFE)
+# 🧠 AI TRAIN
 # ==========================================
 def train_ai():
     data = []
@@ -117,7 +117,7 @@ def ai_predict(features):
         return None
 
 # ==========================================
-# ⏰ FIXED ENTRY TIME (NO LAG FIX)
+# ⏰ ENTRY TIME ENGINE
 # ==========================================
 def entry_calc(hash_val, spread, t_in):
     now = get_time()
@@ -128,15 +128,11 @@ def entry_calc(hash_val, spread, t_in):
     except:
         base_time = now
 
-    # 🔥 REDUCE DRIFT (FIXED)
     hash_shift = (int(hash_val[:6], 16) % 6) - 3
 
     base_delay = 18
-    spread_factor = spread * 1.0
+    final_seconds = int(base_delay + spread + hash_shift)
 
-    final_seconds = int(base_delay + spread_factor + hash_shift)
-
-    # ⛔ SAFE WINDOW
     final_seconds = max(20, min(45, final_seconds))
 
     base_time = base_time.replace(microsecond=0)
@@ -144,14 +140,20 @@ def entry_calc(hash_val, spread, t_in):
     return (base_time + timedelta(seconds=final_seconds)).strftime("%H:%M:%S")
 
 # ==========================================
-# 🚀 ENGINE (FIXED LOGIC)
+# 🚀 ENGINE CORE
 # ==========================================
-def run_engine(h_in, t_in, last_cote):
+def run_engine(h_in, t_in, c_ref, last_cote):
 
     h_hex = hashlib.sha256(h_in.encode()).hexdigest()
     h_num = int(h_hex[:16], 16)
 
-    np.random.seed(h_num % (2**32))
+    np.random.seed(h_num & 0xffffffff)
+
+    # FIX LAST COTE
+    if last_cote > 6:
+        last_cote = 4.0
+    elif last_cote > 4:
+        last_cote = (last_cote + 4) / 2
 
     base = (h_num % 1000) / 100 + 1.2
 
@@ -191,10 +193,11 @@ def run_engine(h_in, t_in, last_cote):
         "max": maxv,
         "min": minv,
         "spread": spread,
-        "ai": ai
+        "last_cote_used": last_cote
     }
 
     st.session_state.history.append(res)
+
     if len(st.session_state.history) > 20:
         st.session_state.history.pop(0)
 
@@ -213,27 +216,37 @@ with col1:
 
     h_in = st.text_input("HASH")
     t_in = st.text_input("TIME (HH:MM:SS)")
+    c_ref = st.number_input("COTE REF", value=2.2)
     last_cote = st.number_input("LAST COTE", value=2.0)
 
     if st.button("RUN"):
         if h_in and len(t_in) == 8:
-            st.session_state.last = run_engine(h_in, t_in, last_cote)
+            st.session_state.last = run_engine(h_in, t_in, c_ref, last_cote)
 
     st.markdown("</div>", unsafe_allow_html=True)
+
+    # RESET DATA (TSY VOAFAFA ANY LALINA)
+    if st.sidebar.button("RESET DATA"):
+        st.session_state.history = []
+        if "last" in st.session_state:
+            del st.session_state.last
+        st.rerun()
 
 with col2:
     if "last" in st.session_state:
         r = st.session_state.last
 
         st.markdown(f"""
-        <div class='glass-card'>
+        <div class="glass-card">
         <h2>{r['signal']}</h2>
 
-        PROB: {r['x3_prob']}% | CONF: {r['conf']} | AI: {r['ai']}
+        PROB: {r['x3_prob']}% | CONF: {r['conf']}
 
         <h1>{r['entry']}</h1>
 
         MIN: {r['min']} | MOY: {r['moy']} | MAX: {r['max']}
+
+        <small>LAST COTE USED: {r['last_cote_used']}</small>
         </div>
         """, unsafe_allow_html=True)
 
