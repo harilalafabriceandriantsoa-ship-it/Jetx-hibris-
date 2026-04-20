@@ -9,7 +9,7 @@ import time
 from sklearn.ensemble import RandomForestClassifier
 
 # ==========================================
-# 💎 PREMIUM UI & STYLING (TSY NIOVANA)
+# 💎 UI (TSY NIOVANA)
 # ==========================================
 st.set_page_config(page_title="ANDR-X V13.5 PRO-SYNC", layout="wide")
 
@@ -34,7 +34,6 @@ st.markdown("""
         background: linear-gradient(90deg, #00ffcc, #ff00cc);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
-        text-shadow: 0 0 20px rgba(0, 255, 204, 0.4);
         margin-bottom: 20px;
     }
     
@@ -44,7 +43,6 @@ st.markdown("""
         border-radius: 20px;
         padding: 25px;
         backdrop-filter: blur(15px);
-        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8);
         margin-bottom: 20px;
     }
     
@@ -53,12 +51,9 @@ st.markdown("""
         color: #000 !important;
         font-family: 'Orbitron', sans-serif !important;
         font-weight: 700 !important;
-        border: none !important;
         border-radius: 12px !important;
         height: 55px !important;
         width: 100% !important;
-        text-transform: uppercase;
-        letter-spacing: 2px;
     }
     
     .stat-val { font-size: 1.8rem; font-weight: 700; color: #00ffcc; }
@@ -66,7 +61,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ==========================================
-# 🔐 SESSION INIT
+# 🔐 SESSION
 # ==========================================
 if "history" not in st.session_state:
     st.session_state.history = []
@@ -81,36 +76,33 @@ if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
 
 # ==========================================
-# 🔐 LOGIN SYSTEM (NIVERINA)
+# 🔐 LOGIN
 # ==========================================
 if not st.session_state.authenticated:
     st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
-    st.markdown("<h2 style='text-align:center;'>🔐 ACCESS CONTROL</h2>", unsafe_allow_html=True)
+    password = st.text_input("Password", type="password")
 
-    password = st.text_input("Enter System Password:", type="password")
-
-    if st.button("UNLOCK SYSTEM"):
+    if st.button("LOGIN"):
         if password == "2026":
             st.session_state.authenticated = True
             st.rerun()
         else:
-            st.error("Incorrect Password.")
+            st.error("Wrong password")
 
     st.markdown("</div>", unsafe_allow_html=True)
     st.stop()
 
 # ==========================================
-# 🧠 TIME
+# TIME
 # ==========================================
 def get_tz_now():
     return datetime.now(pytz.timezone("Indian/Antananarivo"))
 
 # ==========================================
-# 🧠 AI TRAINING
+# AI TRAINING
 # ==========================================
 def train_real_ai():
     data = []
-
     for h in st.session_state.history:
         if "result" in h:
             label = 1 if h["result"] == "win" else 0
@@ -120,7 +112,6 @@ def train_real_ai():
         return
 
     df = pd.DataFrame(data, columns=["prob","conf","moy","spread","label"])
-
     X = df[["prob","conf","moy","spread"]]
     y = df["label"]
 
@@ -140,7 +131,7 @@ def ai_predict(prob, conf, moy, spread):
         return None
 
 # ==========================================
-# ⏱ ENTRY TIME
+# ENTRY TIME
 # ==========================================
 def hyper_time_calc(hash_val, spread, t_in, strength):
     now = get_tz_now()
@@ -152,9 +143,9 @@ def hyper_time_calc(hash_val, spread, t_in, strength):
 
     hash_shift = (int(hash_val[:6], 16) % 12) - 4
 
-    if strength > 80:
+    if strength > 70:
         base_delay = 12
-    elif strength > 60:
+    elif strength > 55:
         base_delay = 18
     else:
         base_delay = 25
@@ -162,13 +153,12 @@ def hyper_time_calc(hash_val, spread, t_in, strength):
     final_seconds = int(base_delay + (spread * 1.2) + hash_shift)
     final_seconds = max(10, min(90, final_seconds))
 
-    entry = base_time + timedelta(seconds=final_seconds)
-    return entry.strftime("%H:%M:%S")
+    return (base_time + timedelta(seconds=final_seconds)).strftime("%H:%M:%S")
 
 # ==========================================
-# 🧠 CORE ENGINE
+# CORE ENGINE (FIXED)
 # ==========================================
-def run_ultra_analysis(h_in, t_in, c_ref):
+def run_ultra_analysis(h_in, t_in, c_ref, last_cote):
 
     h_num = int(hashlib.sha256(h_in.encode()).hexdigest()[:16], 16)
     h_norm = (h_num % 1000) / 1000
@@ -176,11 +166,15 @@ def run_ultra_analysis(h_in, t_in, c_ref):
 
     variance_scale = 0.25 + (h_norm * 0.2)
 
-    sims = np.random.lognormal(
-        np.mean([np.log(c_ref + 0.05), 0.25]),
-        variance_scale,
-        12000
-    )
+    base_mean = np.log((c_ref + last_cote) / 2 + 0.05)
+
+    trend_boost = 1.0
+    if last_cote < 1.5:
+        trend_boost = 1.2
+    elif last_cote > 3:
+        trend_boost = 0.8
+
+    sims = np.random.lognormal(base_mean, variance_scale, 12000) * trend_boost
 
     prob_x3_real = np.mean(sims >= 3.0) * 100
     moy = np.exp(np.mean(np.log(sims)))
@@ -194,20 +188,15 @@ def run_ultra_analysis(h_in, t_in, c_ref):
 
     ai_score = ai_predict(prob_x3_real, conf, moy, spread)
 
-    if ai_score is not None:
-        final_strength = (prob_x3_real * 0.5) + (ai_score * 0.5)
-    else:
-        final_strength = prob_x3_real
-
-    final_strength = round(final_strength, 1)
+    final_strength = (prob_x3_real * 0.6 + (ai_score or 0) * 0.4)
 
     entry_time = hyper_time_calc(h_in, spread, t_in, final_strength)
 
-    if final_strength > 80 and moy > 2.2:
+    if final_strength > 70 and moy > 2.0:
         signal, color = "💎 ULTRA AI BUY", "#ff00cc"
-    elif final_strength > 65:
+    elif final_strength > 55:
         signal, color = "🟢 AI STRONG BUY", "#00ffcc"
-    elif final_strength > 50:
+    elif final_strength > 40:
         signal, color = "⚡ AI SCALP", "#ffff00"
     else:
         signal, color = "⚠️ AI SKIP", "#ff4444"
@@ -226,65 +215,61 @@ def run_ultra_analysis(h_in, t_in, c_ref):
     }
 
     st.session_state.history.append(res)
-
     if len(st.session_state.history) > 20:
         st.session_state.history.pop(0)
 
     train_real_ai()
-
     return res
 
 # ==========================================
-# 🖥️ INTERFACE (TSY NIOVANA)
+# UI
 # ==========================================
-st.markdown("<h1 class='main-title'>ANDR-X V14 REAL AI</h1>", unsafe_allow_html=True)
+st.markdown("<h1 class='main-title'>ANDR-X V14.1 REAL AI</h1>", unsafe_allow_html=True)
 
-col_ctrl, col_res = st.columns([1, 2])
+col1, col2 = st.columns([1,2])
 
-with col_ctrl:
+with col1:
     st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
 
-    h_in = st.text_input("SERVER HASH CODE")
-    t_in = st.text_input("LAST ROUND TIME (HH:MM:SS)")
-    c_ref = st.number_input("REFERENCE COTE (TREND)", value=2.5, step=0.1)
+    h_in = st.text_input("HASH")
+    t_in = st.text_input("TIME (HH:MM:SS)")
+    c_ref = st.number_input("COTE REF", value=2.2)
+    last_cote = st.number_input("LAST COTE", value=2.0)
 
-    if st.button("EXECUTE ANALYSIS"):
-        if h_in and len(t_in) == 8:
-            with st.spinner("Sync..."):
-                time.sleep(0.5)
-                st.session_state.last_res = run_ultra_analysis(h_in, t_in, c_ref)
-        else:
-            st.error("Format Lera diso!")
+    if st.button("RUN AI"):
+        if h_in and len(t_in)==8:
+            st.session_state.last_res = run_ultra_analysis(h_in,t_in,c_ref,last_cote)
 
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # 🔥 RESET DATA (NIVERINA)
-    if st.sidebar.button("🗑️ RESET DATA"):
-        st.session_state.history = []
-        if "last_res" in st.session_state:
-            del st.session_state.last_res
+    if st.sidebar.button("RESET DATA"):
+        st.session_state.history=[]
         st.rerun()
 
-with col_res:
+with col2:
     if "last_res" in st.session_state:
-        r = st.session_state.last_res
+        r=st.session_state.last_res
 
         st.markdown(f"""
-        <div class="glass-card" style="border-left: 10px solid {r['color']}">
-            <h2 style="color: {r['color']}; margin: 0;">{r['signal']}</h2>
-            <hr style="opacity: 0.1; margin: 10px 0;">
-            <div style="display: flex; justify-content: space-between;">
-                <div><small>X3+ PROB</small><br><span class="stat-val">{r['x3_prob']}%</span></div>
-                <div><small>ACCURACY</small><br><span class="stat-val">{r['conf']}%</span></div>
-                <div><small>VOLATILITY</small><br><span class="stat-val">{r['spread']}</span></div>
-            </div>
-            <div style="text-align:center; margin-top:15px;">
-                <h1>{r['entry']}</h1>
-            </div>
+        <div class="glass-card" style="border-left: 8px solid {r['color']}">
+        <h2 style="color:{r['color']}">{r['signal']}</h2>
+
+        <div style="display:flex; justify-content:space-between;">
+        <div>PROB<br><b>{r['x3_prob']}%</b></div>
+        <div>CONF<br><b>{r['conf']}%</b></div>
+        <div>VOL<br><b>{r['spread']}</b></div>
+        </div>
+
+        <h1 style="text-align:center;">{r['entry']}</h1>
+
+        <div style="display:flex; justify-content:space-around;">
+        <div>MIN<br><b>{r['min']}x</b></div>
+        <div>MOY<br><b>{r['moy']}x</b></div>
+        <div>MAX<br><b>{r['max']}x</b></div>
+        </div>
         </div>
         """, unsafe_allow_html=True)
 
-st.markdown("### 📊 HISTORY")
+st.markdown("### HISTORY")
 if st.session_state.history:
-    df_h = pd.DataFrame(st.session_state.history).iloc[::-1]
-    st.table(df_h[['entry', 'signal', 'x3_prob', 'conf', 'moy', 'max']])
+    st.table(pd.DataFrame(st.session_state.history)[::-1])
