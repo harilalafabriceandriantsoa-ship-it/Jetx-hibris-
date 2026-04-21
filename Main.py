@@ -62,7 +62,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ==========================================
-# SESSION STATE & FONCTIONS
+# SESSION STATE
 # ==========================================
 if "history" not in st.session_state:
     st.session_state.history = []
@@ -140,11 +140,11 @@ def run_engine_ultra(h_in, t_in, last_cote):
     if last_cote > 4.8:
         last_cote = (last_cote + 3.0) / 2
 
-    # ULTRA CIBLÉ X3+ - Base ambony kokoa + queue lava kokoa
-    base = 1.62 + (h_num % 720) / 88          # Base ambony → MIN miakatra
-    sigma = 0.285 - (last_cote * 0.0055)      # Sigma tsara kokoa ho an'ny X3+
+    # ULTRA CIBLÉ X3+ 
+    base = 1.65 + (h_num % 680) / 85
+    sigma = 0.278 - (last_cote * 0.005)
 
-    sims = np.random.lognormal(np.log(base), sigma, 35000)  # 35 000 simulations
+    sims = np.random.lognormal(np.log(base), sigma, 35000)
 
     prob_x3 = round(np.mean(sims >= 3.0) * 100, 1)
     moy = round(np.mean(sims), 2)
@@ -152,7 +152,7 @@ def run_engine_ultra(h_in, t_in, last_cote):
     minv = round(np.percentile(sims, 3.5), 2)
     spread = round(maxv - minv, 2)
 
-    conf = round(max(35, min(98, prob_x3 * 0.72 + moy * 20 + last_cote * 10)), 1)
+    conf = round(max(38, min(98, prob_x3 * 0.72 + moy * 21 + last_cote * 11)), 1)
 
     win_s, loss_s, _ = get_current_streak(st.session_state.history)
     vols = [h.get("moy", 2.5) for h in st.session_state.history[-12:]]
@@ -160,12 +160,12 @@ def run_engine_ultra(h_in, t_in, last_cote):
 
     ai_score = ai_predict_ultra([prob_x3, conf, moy, spread, last_cote, conf, win_s, loss_s, volatility])
 
-    base_strength = prob_x3 * 0.60 + (ai_score or conf) * 0.40
-    streak_adj = win_s * 3.5 - loss_s * 3.0
-    strength = round(base_strength + streak_adj + (volatility * 2.8), 1)
-    strength = max(30, min(98, strength))
+    base_strength = prob_x3 * 0.61 + (ai_score or conf) * 0.39
+    streak_adj = win_s * 3.8 - loss_s * 3.2
+    strength = round(base_strength + streak_adj + (volatility * 3.0), 1)
+    strength = max(32, min(98, strength))
 
-    # ENTRY TIME ULTRA PUISSANTE
+    # ENTRY TIME ULTRA PUISSANTE - Tsy mety ho mitovy amin'ny ora nampidirinao
     now = get_time()
     try:
         t_obj = datetime.strptime(t_in.strip(), "%H:%M:%S").time()
@@ -174,18 +174,17 @@ def run_engine_ultra(h_in, t_in, last_cote):
         base_time = now
 
     h_int = int(h_hex[:14], 16)
-    hash_shift = (h_int % 31) - 15
-    base_delay = 16 + (h_int % 13)
-    prob_factor = 14 if prob_x3 > 78 else (9 if prob_x3 > 60 else 4)
-    strength_factor = 6 if strength > 82 else (4 if strength > 68 else 2)
+    hash_shift = (h_int % 33) - 16
+    base_delay = 17 + (h_int % 14)
+    prob_factor = 15 if prob_x3 > 80 else (10 if prob_x3 > 62 else 5)
+    strength_factor = 7 if strength > 83 else (4 if strength > 70 else 2)
 
-    final_seconds = int(base_delay + (spread * 0.32) + hash_shift + prob_factor + strength_factor)
-    final_seconds = max(19, min(59, final_seconds))
+    final_seconds = int(base_delay + (spread * 0.30) + hash_shift + prob_factor + strength_factor)
+    final_seconds = max(20, min(62, final_seconds))   # Minimum 20 secondes
 
     base_time = base_time.replace(microsecond=0)
     entry = (base_time + timedelta(seconds=final_seconds)).strftime("%H:%M:%S")
 
-    # Signal
     if strength > 83:
         signal = "💎💎💎 ULTRA X3+ BUY"
         signal_class = "signal-ultra"
@@ -218,7 +217,7 @@ def run_engine_ultra(h_in, t_in, last_cote):
     return res
 
 # ==========================================
-# UI
+# INTERFACE
 # ==========================================
 st.markdown("<h1 class='main-title'>JETX ANDR V14</h1>", unsafe_allow_html=True)
 st.markdown("<p style='text-align:center; color:#00ffcc; font-size:1.6rem;'>ULTRA STYLÉ • X3+ CIBLÉ • ENTRY ULTRA PUISSANTE</p>", unsafe_allow_html=True)
@@ -228,7 +227,7 @@ col1, col2 = st.columns([1, 2.1])
 with col1:
     st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
     h_in = st.text_input("HASH (Provably Fair)", placeholder="Collez le hash complet...")
-    t_in = st.text_input("TIME (HH:MM:SS)", placeholder="Ex: 22:08:20")
+    t_in = st.text_input("TIME (HH:MM:SS)", placeholder="Ex: 13:58:13")
     last_cote = st.number_input("LAST COTE", value=2.3, step=0.1, format="%.2f")
 
     if st.button("🚀 LANCER LE CALCUL ULTRA", use_container_width=True):
