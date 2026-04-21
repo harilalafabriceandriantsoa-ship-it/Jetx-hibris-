@@ -114,7 +114,7 @@ def run_engine_ultra(h_in, t_in, last_cote):
         bt = get_time()
     shift = (int(h_hex[:20], 16) % 72) - 36
     final_sec = 16 + (h_num % 53) + shift + int(volatility*4.5) + (26 if strength > 87 else 17 if strength > 75 else 10)
-    final_sec = max(19, min(96, final_sec)
+    final_sec = max(19, min(96, final_sec))
     entry = (bt + timedelta(seconds=final_sec)).strftime("%H:%M:%S")
 
     if strength > 87:
