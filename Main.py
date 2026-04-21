@@ -140,9 +140,9 @@ def run_engine_ultra(h_in, t_in, last_cote):
     if last_cote > 4.8:
         last_cote = (last_cote + 3.0) / 2
 
-    # ULTRA CIBLÉ X3+
-    base = 1.68 + (h_num % 650) / 82
-    sigma = 0.275 - (last_cote * 0.005)
+    # ULTRA CIBLÉ X3+ 
+    base = 1.72 + (h_num % 620) / 78
+    sigma = 0.27 - (last_cote * 0.005)
 
     sims = np.random.lognormal(np.log(base), sigma, 35000)
 
@@ -152,7 +152,7 @@ def run_engine_ultra(h_in, t_in, last_cote):
     minv = round(np.percentile(sims, 3.5), 2)
     spread = round(maxv - minv, 2)
 
-    conf = round(max(38, min(98, prob_x3 * 0.72 + moy * 21 + last_cote * 11)), 1)
+    conf = round(max(40, min(98, prob_x3 * 0.73 + moy * 22 + last_cote * 12)), 1)
 
     win_s, loss_s, _ = get_current_streak(st.session_state.history)
     vols = [h.get("moy", 2.5) for h in st.session_state.history[-12:]]
@@ -160,10 +160,10 @@ def run_engine_ultra(h_in, t_in, last_cote):
 
     ai_score = ai_predict_ultra([prob_x3, conf, moy, spread, last_cote, conf, win_s, loss_s, volatility])
 
-    base_strength = prob_x3 * 0.61 + (ai_score or conf) * 0.39
-    streak_adj = win_s * 3.8 - loss_s * 3.2
-    strength = round(base_strength + streak_adj + (volatility * 3.0), 1)
-    strength = max(32, min(98, strength))
+    base_strength = prob_x3 * 0.62 + (ai_score or conf) * 0.38
+    streak_adj = win_s * 4.0 - loss_s * 3.5
+    strength = round(base_strength + streak_adj + (volatility * 3.2), 1)
+    strength = max(35, min(98, strength))
 
     # ENTRY TIME ULTRA PUISSANTE
     now = get_time()
@@ -174,27 +174,27 @@ def run_engine_ultra(h_in, t_in, last_cote):
         base_time = now
 
     h_int = int(h_hex[:14], 16)
-    hash_shift = (h_int % 33) - 16
-    base_delay = 17 + (h_int % 14)
-    prob_factor = 15 if prob_x3 > 80 else (10 if prob_x3 > 62 else 5)
-    strength_factor = 7 if strength > 83 else (4 if strength > 70 else 2)
+    hash_shift = (h_int % 35) - 17
+    base_delay = 18 + (h_int % 15)
+    prob_factor = 16 if prob_x3 > 82 else (11 if prob_x3 > 65 else 6)
+    strength_factor = 8 if strength > 85 else (5 if strength > 72 else 3)
 
-    final_seconds = int(base_delay + (spread * 0.30) + hash_shift + prob_factor + strength_factor)
-    final_seconds = max(20, min(62, final_seconds))
+    final_seconds = int(base_delay + (spread * 0.28) + hash_shift + prob_factor + strength_factor)
+    final_seconds = max(21, min(65, final_seconds))
 
     base_time = base_time.replace(microsecond=0)
     entry = (base_time + timedelta(seconds=final_seconds)).strftime("%H:%M:%S")
 
-    if strength > 83:
+    if strength > 85:
         signal = "💎💎💎 ULTRA X3+ BUY"
         signal_class = "signal-ultra"
-    elif strength > 72:
+    elif strength > 74:
         signal = "🔥 STRONG X3 TARGET"
         signal_class = "signal-strong"
-    elif strength > 58:
+    elif strength > 60:
         signal = "🟢 GOOD X3 SCALP"
         signal_class = "signal-good"
-    elif strength > 45:
+    elif strength > 46:
         signal = "⚡ LIGHT ENTRY"
         signal_class = "signal-light"
     else:
@@ -227,7 +227,7 @@ col1, col2 = st.columns([1, 2.1])
 with col1:
     st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
     h_in = st.text_input("HASH (Provably Fair)", placeholder="Collez le hash complet...")
-    t_in = st.text_input("TIME (HH:MM:SS)", placeholder="Ex: 07:41:49")
+    t_in = st.text_input("TIME (HH:MM:SS)", placeholder="Ex: 07:45:07")
     last_cote = st.number_input("LAST COTE", value=2.3, step=0.1, format="%.2f")
 
     if st.button("🚀 LANCER LE CALCUL ULTRA", use_container_width=True):
