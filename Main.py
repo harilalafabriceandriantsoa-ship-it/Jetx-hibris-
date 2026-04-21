@@ -140,8 +140,8 @@ def run_engine_ultra(h_in, t_in, last_cote):
     if last_cote > 4.8:
         last_cote = (last_cote + 3.0) / 2
 
-    base = 1.72 + (h_num % 620) / 78
-    sigma = 0.275 - (last_cote * 0.005)
+    base = 1.75 + (h_num % 600) / 75
+    sigma = 0.27 - (last_cote * 0.005)
 
     sims = np.random.lognormal(np.log(base), sigma, 35000)
 
@@ -151,7 +151,7 @@ def run_engine_ultra(h_in, t_in, last_cote):
     minv = round(np.percentile(sims, 3.5), 2)
     spread = round(maxv - minv, 2)
 
-    conf = round(max(40, min(98, prob_x3 * 0.72 + moy * 21 + last_cote * 11)), 1)
+    conf = round(max(40, min(98, prob_x3 * 0.73 + moy * 22 + last_cote * 12)), 1)
 
     win_s, loss_s, _ = get_current_streak(st.session_state.history)
     vols = [h.get("moy", 2.5) for h in st.session_state.history[-12:]]
@@ -159,9 +159,9 @@ def run_engine_ultra(h_in, t_in, last_cote):
 
     ai_score = ai_predict_ultra([prob_x3, conf, moy, spread, last_cote, conf, win_s, loss_s, volatility])
 
-    base_strength = prob_x3 * 0.62 + (ai_score or conf) * 0.38
-    streak_adj = win_s * 4.0 - loss_s * 3.5
-    strength = round(base_strength + streak_adj + (volatility * 3.2), 1)
+    base_strength = prob_x3 * 0.63 + (ai_score or conf) * 0.37
+    streak_adj = win_s * 4.2 - loss_s * 3.5
+    strength = round(base_strength + streak_adj + (volatility * 3.5), 1)
     strength = max(35, min(98, strength))
 
     # ENTRY TIME ULTRA PUISSANTE
@@ -173,13 +173,13 @@ def run_engine_ultra(h_in, t_in, last_cote):
         base_time = now
 
     h_int = int(h_hex[:14], 16)
-    hash_shift = (h_int % 35) - 17
-    base_delay = 18 + (h_int % 15)
-    prob_factor = 16 if prob_x3 > 82 else (11 if prob_x3 > 65 else 6)
-    strength_factor = 8 if strength > 85 else (5 if strength > 72 else 3)
+    hash_shift = (h_int % 37) - 18
+    base_delay = 19 + (h_int % 16)
+    prob_factor = 17 if prob_x3 > 82 else (12 if prob_x3 > 65 else 7)
+    strength_factor = 9 if strength > 85 else (6 if strength > 72 else 3)
 
     final_seconds = int(base_delay + (spread * 0.28) + hash_shift + prob_factor + strength_factor)
-    final_seconds = max(21, min(65, final_seconds))
+    final_seconds = max(22, min(68, final_seconds))
 
     base_time = base_time.replace(microsecond=0)
     entry = (base_time + timedelta(seconds=final_seconds)).strftime("%H:%M:%S")
@@ -226,7 +226,7 @@ col1, col2 = st.columns([1, 2.1])
 with col1:
     st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
     h_in = st.text_input("HASH (Provably Fair)", placeholder="Collez le hash complet...")
-    t_in = st.text_input("TIME (HH:MM:SS)", placeholder="Ex: 07:48:39")
+    t_in = st.text_input("TIME (HH:MM:SS)", placeholder="Ex: 07:53:28")
     last_cote = st.number_input("LAST COTE", value=2.3, step=0.1, format="%.2f")
 
     if st.button("🚀 LANCER LE CALCUL ULTRA", use_container_width=True):
@@ -244,21 +244,34 @@ with col1:
 with col2:
     if "last" in st.session_state:
         r = st.session_state.last
+        # Sécurité pour éviter erreur si clé tsy misy
+        signal_class = r.get('signal_class', 'signal-strong')
+        signal = r.get('signal', 'Signal')
+        entry = r.get('entry', '--:--:--')
+        x3_prob = r.get('x3_prob', 0)
+        conf = r.get('conf', 0)
+        minv = r.get('min', 0)
+        moy = r.get('moy', 0)
+        maxv = r.get('max', 0)
+        strength = r.get('strength', 0)
+        win_s = r.get('win_streak', 0)
+        loss_s = r.get('loss_streak', 0)
+
         st.markdown(f"""
         <div class="glass-card">
-            <h2 class="{r.get('signal_class', 'signal-strong')}">{r.get('signal', 'Signal')}</h2>
-            <h3>X3 PROB : <span style="color:#ff00ff;font-size:2.1rem;">{r.get('x3_prob', 0)}%</span> | CONF : {r.get('conf', 0)}</h3>
-            <h1 style="font-size:4.6rem;color:#00ffcc;margin:15px 0;">{r.get('entry', '--:--:--')}</h1>
+            <h2 class="{signal_class}">{signal}</h2>
+            <h3>X3 PROB : <span style="color:#ff00ff;font-size:2.1rem;">{x3_prob}%</span> | CONF : {conf}</h3>
+            <h1 style="font-size:4.6rem;color:#00ffcc;margin:15px 0;">{entry}</h1>
             
             <div style="display:flex; gap:12px; margin:20px 0;">
                 <div style="background:#00cc88;color:#000;padding:14px;border-radius:15px;flex:1;text-align:center;">
-                    <small>MIN</small><br><b>{r.get('min', 0)}</b>
+                    <small>MIN</small><br><b>{minv}</b>
                 </div>
                 <div style="background:#ffcc00;color:#000;padding:14px;border-radius:15px;flex:1;text-align:center;">
-                    <small>MOY</small><br><b>{r.get('moy', 0)}</b>
+                    <small>MOY</small><br><b>{moy}</b>
                 </div>
                 <div style="background:#ff3366;color:#fff;padding:14px;border-radius:15px;flex:1;text-align:center;">
-                    <small>MAX</small><br><b>{r.get('max', 0)}</b>
+                    <small>MAX</small><br><b>{maxv}</b>
                 </div>
             </div>
 
@@ -267,9 +280,9 @@ with col2:
             • MOY → cashout mahazatra<br>
             • MAX → cashout amin'ny 3x na mihoatra raha ULTRA</p>
             
-            <p style="color:#ff3366;"><b>⚠️ Raha crash amin'ny ora {r.get('entry', '--:--:--')} dia aza miditra intsony!</b></p>
+            <p style="color:#ff3366;"><b>⚠️ Raha crash amin'ny ora {entry} dia aza miditra intsony!</b></p>
             
-            <small>Strength: <b>{r.get('strength', 0)}</b> | Win Streak: {r.get('win_streak', 0)} | Loss Streak: {r.get('loss_streak', 0)}</small>
+            <small>Strength: <b>{strength}</b> | Win Streak: {win_s} | Loss Streak: {loss_s}</small>
         </div>
         """, unsafe_allow_html=True)
 
