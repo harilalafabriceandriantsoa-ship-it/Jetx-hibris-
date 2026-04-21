@@ -13,16 +13,8 @@ if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
 
 if not st.session_state.authenticated:
-    st.markdown("""
-    <style>
-        .stApp { background: linear-gradient(135deg, #0a0a1f, #1a0033); }
-        .login-title { font-size: 5rem; font-weight: 900; text-align: center;
-                       background: linear-gradient(90deg, #00ffcc, #ff00ff, #00ccff);
-                       -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-    </style>
-    """, unsafe_allow_html=True)
-    st.markdown("<h1 class='login-title'>JETX ANDR</h1>", unsafe_allow_html=True)
-    st.markdown("<h2 style='text-align:center; color:#00ffcc;'>V15.1 MOBILE TSOTRA</h2>", unsafe_allow_html=True)
+    st.markdown("<h1 style='text-align:center;font-size:5rem;background:linear-gradient(90deg,#00ffcc,#ff00ff,#00ccff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;'>JETX ANDR</h1>", unsafe_allow_html=True)
+    st.markdown("<h2 style='text-align:center;color:#00ffcc;'>V15.2 ULTRA COULEUR</h2>", unsafe_allow_html=True)
     
     pw = st.text_input("🔑 Mot de passe", type="password")
     if st.button("✅ Accéder"):
@@ -33,8 +25,8 @@ if not st.session_state.authenticated:
             st.error("❌ Mot de passe incorrect")
     st.stop()
 
-# ===================== CSS =====================
-st.set_page_config(page_title="JETX ANDR V15.1", layout="wide")
+# ===================== CSS + COULEUR TSARA =====================
+st.set_page_config(page_title="JETX ANDR V15.2", layout="wide")
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
@@ -46,7 +38,12 @@ st.markdown("""
                   border-radius: 24px; padding: 28px; box-shadow: 0 15px 50px rgba(0,255,204,0.35); }
     .signal-ultra { color: #00ffcc; text-shadow: 0 0 30px #00ffcc; }
     .signal-strong { color: #ff00ff; text-shadow: 0 0 25px #ff00ff; }
-    .mini-box { padding: 14px; border-radius: 16px; text-align: center; margin: 4px; }
+    
+    .res-min { background: linear-gradient(135deg, #00ff88, #00cc66); color: #000; box-shadow: 0 8px 25px rgba(0,255,136,0.4); }
+    .res-moy { background: linear-gradient(135deg, #ffd700, #ffaa00); color: #000; box-shadow: 0 8px 25px rgba(255,215,0,0.4); }
+    .res-max { background: linear-gradient(135deg, #ff3366, #cc1133); color: #fff; box-shadow: 0 8px 25px rgba(255,51,102,0.5); }
+    
+    .mini-box { padding: 18px; border-radius: 18px; text-align: center; margin: 6px; font-weight: bold; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -77,37 +74,37 @@ def get_current_streak(history):
         else: break
     return win_s, loss_s
 
-# ===================== ULTRA ENGINE =====================
+# ===================== ULTRA ENGINE V15.2 =====================
 def run_engine_ultra(h_in, t_in, last_cote):
     h_hex = hashlib.sha256(h_in.encode()).hexdigest()
     h_num = int(h_hex[:48], 16)
     np.random.seed(h_num & 0xFFFFFFFF)
 
-    base = 1.91 + (h_num % 920) / 112
-    sigma = 0.228 - (last_cote * 0.003)
-    sims = np.random.lognormal(np.log(base), sigma, 92000)
+    base = 1.93 + (h_num % 980) / 118
+    sigma = 0.226 - (last_cote * 0.0028)
+    sims = np.random.lognormal(np.log(base), sigma, 98000)
 
     prob_x3 = round(np.mean(sims >= 3.0) * 100, 1)
     moy = round(np.mean(sims), 2)
-    maxv = round(np.percentile(sims, 97.9), 2)
-    minv = round(np.percentile(sims, 2.1), 2)
+    maxv = round(np.percentile(sims, 98.0), 2)
+    minv = round(np.percentile(sims, 2.0), 2)
 
-    conf = round(max(48, min(99, prob_x3*0.71 + moy*22.5 + (h_num % 190)/3.2 + last_cote*13.5)), 1)
+    conf = round(max(48, min(99, prob_x3*0.73 + moy*23.5 + (h_num % 210)/3 + last_cote*14.2)), 1)
 
     win_s, loss_s = get_current_streak(st.session_state.history)
-    volatility = round(np.std([h.get("moy", 2.5) for h in st.session_state.history[-20:]]) if st.session_state.history else 1.25, 2)
+    volatility = round(np.std([h.get("moy", 2.5) for h in st.session_state.history[-25:]]) if st.session_state.history else 1.26, 2)
 
-    ai_score = round(conf * 0.90, 1)
-    if st.session_state.ml_ready and len(st.session_state.history) > 10:
+    ai_score = round(conf * 0.91, 1)
+    if st.session_state.ml_ready and len(st.session_state.history) > 12:
         try:
             features = [prob_x3, conf, moy, maxv-minv, last_cote, win_s, loss_s, volatility]
             X = st.session_state.scaler.transform(np.array(features).reshape(1, -1))
             prob = st.session_state.ml_clf.predict_proba(X)[0][1] * 100
             reg = st.session_state.ml_reg.predict(X)[0]
-            ai_score = round(0.73*prob + 0.27*reg, 1)
+            ai_score = round(0.75*prob + 0.25*reg, 1)
         except: pass
 
-    strength = round(prob_x3*0.64 + ai_score*0.26 + win_s*7 - loss_s*5 + volatility*7.5, 1)
+    strength = round(prob_x3*0.66 + ai_score*0.24 + win_s*7.5 - loss_s*5.3 + volatility*7.8, 1)
     strength = max(40, min(99, strength))
 
     # Entry Time
@@ -115,9 +112,9 @@ def run_engine_ultra(h_in, t_in, last_cote):
         bt = datetime.combine(get_time().date(), datetime.strptime(t_in.strip(), "%H:%M:%S").time())
     except:
         bt = get_time()
-    shift = (int(h_hex[:20], 16) % 68) - 34
-    final_sec = 17 + (h_num % 50) + shift + int(volatility*4.2) + (24 if strength > 87 else 16 if strength > 75 else 9)
-    final_sec = max(19, min(95, final_sec))
+    shift = (int(h_hex[:20], 16) % 72) - 36
+    final_sec = 16 + (h_num % 53) + shift + int(volatility*4.5) + (26 if strength > 87 else 17 if strength > 75 else 10)
+    final_sec = max(19, min(96, final_sec))
     entry = (bt + timedelta(seconds=final_sec)).strftime("%H:%M:%S")
 
     if strength > 87:
@@ -144,8 +141,8 @@ def run_engine_ultra(h_in, t_in, last_cote):
     return res
 
 # ===================== INTERFACE =====================
-st.markdown("<h1 class='main-title'>JETX ANDR V15.1</h1>", unsafe_allow_html=True)
-st.markdown("<p style='text-align:center; color:#00ffcc; font-size:1.65rem;'>ULTRA PUISSANTE • MOBILE TSOTRA</p>", unsafe_allow_html=True)
+st.markdown("<h1 class='main-title'>JETX ANDR V15.2</h1>", unsafe_allow_html=True)
+st.markdown("<p style='text-align:center; color:#00ffcc; font-size:1.65rem;'>ULTRA PUISSANTE • COULEUR TSARA</p>", unsafe_allow_html=True)
 
 col1, col2 = st.columns([1, 2])
 
@@ -157,7 +154,7 @@ with col1:
 
     if st.button("🚀 LANCER LE CALCUL ULTRA", use_container_width=True):
         if h_in.strip() and len(t_in.strip()) >= 8:
-            with st.spinner("Simulation en cours..."):
+            with st.spinner("Simulation 98 000x..."):
                 st.session_state.last = run_engine_ultra(h_in.strip(), t_in.strip(), last_cote)
     st.markdown("</div>", unsafe_allow_html=True)
 
@@ -172,48 +169,36 @@ with col2:
         st.markdown(f"""
         <div class="glass-card">
             <h2 class="{r['signal_class']}">{r['signal']}</h2>
-            <h3>X3 PROB : <span style="color:#ff00ff;font-size:2.2rem;">{r['x3_prob']}%</span> | 
+            <h3>X3 PROB : <span style="color:#ff00ff;font-size:2.3rem;">{r['x3_prob']}%</span> | 
                 CONF : {r['conf']} | AI : {r['ai_score']}</h3>
-            <h1 style="font-size:4.4rem;color:#00ffcc;text-align:center;margin:12px 0;">{r['entry']}</h1>
+            <h1 style="font-size:4.5rem;color:#00ffcc;text-align:center;margin:12px 0;">{r['entry']}</h1>
         </div>
         """, unsafe_allow_html=True)
 
-        # MIN MOY MAX - Version tsotra nefa stylé
-        cols = st.columns(3)
-        with cols[0]:
-            st.markdown(f"""
-            <div class="mini-box" style="background:#00cc88;color:#000;">
-                <small>MIN</small><br><b style="font-size:1.5rem;">{r['min']}</b>
-            </div>
-            """, unsafe_allow_html=True)
-        with cols[1]:
-            st.markdown(f"""
-            <div class="mini-box" style="background:#ffcc00;color:#000;">
-                <small>MOY</small><br><b style="font-size:1.5rem;">{r['moy']}</b>
-            </div>
-            """, unsafe_allow_html=True)
-        with cols[2]:
-            st.markdown(f"""
-            <div class="mini-box" style="background:#ff3366;color:#fff;">
-                <small>MAX</small><br><b style="font-size:1.5rem;">{r['max']}</b>
-            </div>
-            """, unsafe_allow_html=True)
+        # === COULEUR TSARA + MOBILE FRIENDLY ===
+        c1, c2, c3 = st.columns(3)
+        with c1:
+            st.markdown(f'<div class="mini-box res-min"><small>MIN</small><br><b style="font-size:1.6rem;">{r["min"]}</b></div>', unsafe_allow_html=True)
+        with c2:
+            st.markdown(f'<div class="mini-box res-moy"><small>MOY</small><br><b style="font-size:1.6rem;">{r["moy"]}</b></div>', unsafe_allow_html=True)
+        with c3:
+            st.markdown(f'<div class="mini-box res-max"><small>MAX</small><br><b style="font-size:1.6rem;">{r["max"]}</b></div>', unsafe_allow_html=True)
 
         st.markdown(f"""
-        **💡 Cashout :**  
-        • MIN → Safe  
-        • MOY → Normal  
-        • MAX → 3x+
+        **💡 Cashout Strategy :**  
+        • MIN → Safe Cashout  
+        • MOY → Cashout Normal  
+        • MAX → All-in 3x+
         """)
         
         st.markdown(f"**Strength : {r['strength']}** | Volatility : {r['volatility']}")
 
-        c1, c2 = st.columns(2)
-        with c1:
+        col_win, col_loss = st.columns(2)
+        with col_win:
             if st.button("✅ WIN", use_container_width=True):
                 st.session_state.history[-1]["real_result"] = "win"
                 st.rerun()
-        with c2:
+        with col_loss:
             if st.button("❌ LOSS", use_container_width=True):
                 st.session_state.history[-1]["real_result"] = "loss"
                 st.rerun()
@@ -224,4 +209,4 @@ if st.session_state.history:
     df = pd.DataFrame(st.session_state.history)[::-1]
     st.data_editor(df, use_container_width=True, hide_index=True)
 
-st.caption("JETX ANDR V15.1 • Tsotra nefa Stylé • Mobile OK")
+st.caption("JETX ANDR V15.2 • Couleur Améliorée • Très Ultra Puissante")
