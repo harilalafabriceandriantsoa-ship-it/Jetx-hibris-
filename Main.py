@@ -140,9 +140,8 @@ def run_engine_ultra(h_in, t_in, last_cote):
     if last_cote > 4.8:
         last_cote = (last_cote + 3.0) / 2
 
-    # ULTRA CIBLÉ X3+ 
     base = 1.72 + (h_num % 620) / 78
-    sigma = 0.27 - (last_cote * 0.005)
+    sigma = 0.275 - (last_cote * 0.005)
 
     sims = np.random.lognormal(np.log(base), sigma, 35000)
 
@@ -152,7 +151,7 @@ def run_engine_ultra(h_in, t_in, last_cote):
     minv = round(np.percentile(sims, 3.5), 2)
     spread = round(maxv - minv, 2)
 
-    conf = round(max(40, min(98, prob_x3 * 0.73 + moy * 22 + last_cote * 12)), 1)
+    conf = round(max(40, min(98, prob_x3 * 0.72 + moy * 21 + last_cote * 11)), 1)
 
     win_s, loss_s, _ = get_current_streak(st.session_state.history)
     vols = [h.get("moy", 2.5) for h in st.session_state.history[-12:]]
@@ -227,7 +226,7 @@ col1, col2 = st.columns([1, 2.1])
 with col1:
     st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
     h_in = st.text_input("HASH (Provably Fair)", placeholder="Collez le hash complet...")
-    t_in = st.text_input("TIME (HH:MM:SS)", placeholder="Ex: 07:45:07")
+    t_in = st.text_input("TIME (HH:MM:SS)", placeholder="Ex: 07:48:39")
     last_cote = st.number_input("LAST COTE", value=2.3, step=0.1, format="%.2f")
 
     if st.button("🚀 LANCER LE CALCUL ULTRA", use_container_width=True):
@@ -247,19 +246,19 @@ with col2:
         r = st.session_state.last
         st.markdown(f"""
         <div class="glass-card">
-            <h2 class="{r['signal_class']}">{r['signal']}</h2>
-            <h3>X3 PROB : <span style="color:#ff00ff;font-size:2.1rem;">{r['x3_prob']}%</span> | CONF : {r['conf']}</h3>
-            <h1 style="font-size:4.6rem;color:#00ffcc;margin:15px 0;">{r['entry']}</h1>
+            <h2 class="{r.get('signal_class', 'signal-strong')}">{r.get('signal', 'Signal')}</h2>
+            <h3>X3 PROB : <span style="color:#ff00ff;font-size:2.1rem;">{r.get('x3_prob', 0)}%</span> | CONF : {r.get('conf', 0)}</h3>
+            <h1 style="font-size:4.6rem;color:#00ffcc;margin:15px 0;">{r.get('entry', '--:--:--')}</h1>
             
             <div style="display:flex; gap:12px; margin:20px 0;">
                 <div style="background:#00cc88;color:#000;padding:14px;border-radius:15px;flex:1;text-align:center;">
-                    <small>MIN</small><br><b>{r['min']}</b>
+                    <small>MIN</small><br><b>{r.get('min', 0)}</b>
                 </div>
                 <div style="background:#ffcc00;color:#000;padding:14px;border-radius:15px;flex:1;text-align:center;">
-                    <small>MOY</small><br><b>{r['moy']}</b>
+                    <small>MOY</small><br><b>{r.get('moy', 0)}</b>
                 </div>
                 <div style="background:#ff3366;color:#fff;padding:14px;border-radius:15px;flex:1;text-align:center;">
-                    <small>MAX</small><br><b>{r['max']}</b>
+                    <small>MAX</small><br><b>{r.get('max', 0)}</b>
                 </div>
             </div>
 
@@ -268,9 +267,9 @@ with col2:
             • MOY → cashout mahazatra<br>
             • MAX → cashout amin'ny 3x na mihoatra raha ULTRA</p>
             
-            <p style="color:#ff3366;"><b>⚠️ Raha crash amin'ny ora {r['entry']} dia aza miditra intsony!</b></p>
+            <p style="color:#ff3366;"><b>⚠️ Raha crash amin'ny ora {r.get('entry', '--:--:--')} dia aza miditra intsony!</b></p>
             
-            <small>Strength: <b>{r['strength']}</b> | Win Streak: {r['win_streak']} | Loss Streak: {r['loss_streak']}</small>
+            <small>Strength: <b>{r.get('strength', 0)}</b> | Win Streak: {r.get('win_streak', 0)} | Loss Streak: {r.get('loss_streak', 0)}</small>
         </div>
         """, unsafe_allow_html=True)
 
