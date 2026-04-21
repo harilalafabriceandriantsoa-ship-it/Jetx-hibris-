@@ -22,7 +22,7 @@ if not st.session_state.authenticated:
     </style>
     """, unsafe_allow_html=True)
     st.markdown("<h1 class='login-title'>JETX ANDR</h1>", unsafe_allow_html=True)
-    st.markdown("<h2 style='text-align:center; color:#00ffcc;'>V14.7 ULTRA STYLÉ</h2>", unsafe_allow_html=True)
+    st.markdown("<h2 style='text-align:center; color:#00ffcc;'>V14.8 ULTRA PUISSANTE</h2>", unsafe_allow_html=True)
     
     pw = st.text_input("🔑 Entrez le mot de passe :", type="password")
     if st.button("✅ Accéder à l'application", use_container_width=True):
@@ -33,8 +33,8 @@ if not st.session_state.authenticated:
             st.error("❌ Mot de passe incorrect")
     st.stop()
 
-# ===================== CSS (Style d'avant conservé) =====================
-st.set_page_config(page_title="JETX ANDR V14.7", layout="wide")
+# ===================== CSS =====================
+st.set_page_config(page_title="JETX ANDR V14.8", layout="wide")
 
 st.markdown("""
 <style>
@@ -44,25 +44,24 @@ st.markdown("""
                   background: linear-gradient(90deg, #00ffcc, #ff00ff, #00ccff, #ffff00);
                   -webkit-background-clip: text; -webkit-text-fill-color: transparent;
                   text-shadow: 0 0 40px rgba(0,255,204,0.7); }
-    .glass-card { background: rgba(15,15,40,0.88); border: 1px solid rgba(0,255,204,0.65);
-                  border-radius: 28px; padding: 32px; backdrop-filter: blur(28px);
-                  box-shadow: 0 15px 55px rgba(0,255,204,0.35); }
+    .glass-card { background: rgba(15,15,40,0.9); border: 1px solid rgba(0,255,204,0.7);
+                  border-radius: 28px; padding: 30px; backdrop-filter: blur(28px);
+                  box-shadow: 0 15px 55px rgba(0,255,204,0.4); }
     .signal-ultra { color: #00ffcc; text-shadow: 0 0 30px #00ffcc; }
     .signal-strong { color: #ff00ff; text-shadow: 0 0 25px #ff00ff; }
-    .result-grid { display: flex; gap: 15px; margin: 25px 0; flex-wrap: wrap; }
-    .result-box { flex: 1; min-width: 110px; padding: 18px; border-radius: 20px; text-align: center; }
+    .result-box { padding: 18px; border-radius: 18px; text-align: center; font-size: 1.35rem; margin: 5px; }
 </style>
 """, unsafe_allow_html=True)
 
-# ===================== SESSION STATE =====================
+# ===================== SESSION =====================
 if "history" not in st.session_state: st.session_state.history = []
 if "last" not in st.session_state: st.session_state.last = None
 if "ml_ready" not in st.session_state: st.session_state.ml_ready = False
 
 if "ml_clf" not in st.session_state:
-    st.session_state.ml_clf = RandomForestClassifier(n_estimators=400, max_depth=12, random_state=42)
+    st.session_state.ml_clf = RandomForestClassifier(n_estimators=500, max_depth=14, random_state=42)
 if "ml_reg" not in st.session_state:
-    st.session_state.ml_reg = RandomForestRegressor(n_estimators=250, max_depth=10, random_state=42)
+    st.session_state.ml_reg = RandomForestRegressor(n_estimators=300, max_depth=11, random_state=42)
 if "scaler" not in st.session_state:
     st.session_state.scaler = StandardScaler()
 
@@ -81,57 +80,66 @@ def get_current_streak(history):
         else: break
     return win_s, loss_s
 
-# ===================== ULTRA ENGINE (Hash très puissant) =====================
+# ===================== ULTRA ENGINE X3+ AVANCÉE =====================
 def run_engine_ultra(h_in, t_in, last_cote):
     h_hex = hashlib.sha256(h_in.encode()).hexdigest()
     h_num = int(h_hex[:48], 16)
     np.random.seed(h_num & 0xFFFFFFFF)
 
-    base = 1.87 + (h_num % 820) / 102
-    sigma = 0.231 - (last_cote * 0.0032)
-    sims = np.random.lognormal(np.log(base), sigma, 82000)
+    last_cote = max(1.0, min(last_cote, 10.0))
+
+    # Calcul très puissant + hash ultra sensible
+    base = 1.92 + (h_num % 950) / 115.0
+    sigma = 0.227 - (last_cote * 0.0029)
+    sims = np.random.lognormal(np.log(base), sigma, 95000)   # 95 000 simulations
 
     prob_x3 = round(np.mean(sims >= 3.0) * 100, 1)
     moy = round(np.mean(sims), 2)
-    maxv = round(np.percentile(sims, 97.7), 2)
-    minv = round(np.percentile(sims, 2.3), 2)
+    maxv = round(np.percentile(sims, 98.0), 2)
+    minv = round(np.percentile(sims, 2.0), 2)
 
-    conf = round(max(46, min(99, prob_x3*0.69 + moy*21 + (h_num % 160)/3.5 + last_cote*12.8)), 1)
+    conf = round(max(48, min(99, prob_x3*0.72 + moy*23 + (h_num % 200)/3.0 + last_cote*14 + (int(h_hex[24:32],16)%40))), 1)
 
     win_s, loss_s = get_current_streak(st.session_state.history)
-    volatility = round(np.std([h.get("moy", 2.5) for h in st.session_state.history[-20:]]) if st.session_state.history else 1.2, 2)
+    volatility = round(np.std([h.get("moy", 2.5) for h in st.session_state.history[-25:]]) if st.session_state.history else 1.25, 2)
 
-    ai_score = round(conf * 0.92, 1)
-    if st.session_state.ml_ready and len(st.session_state.history) > 10:
+    ai_score = round(conf * 0.90, 1)
+    if st.session_state.ml_ready and len(st.session_state.history) > 12:
         try:
-            features = [prob_x3, conf, moy, maxv-minv, last_cote, win_s, loss_s, volatility]
+            features = [prob_x3, conf, moy, maxv-minv, last_cote, win_s, loss_s, volatility, h_num%120]
             X = st.session_state.scaler.transform(np.array(features).reshape(1, -1))
             prob = st.session_state.ml_clf.predict_proba(X)[0][1] * 100
             reg = st.session_state.ml_reg.predict(X)[0]
-            ai_score = round(0.72*prob + 0.28*reg, 1)
+            ai_score = round(0.75*prob + 0.25*reg, 1)
         except: pass
 
-    strength = round(prob_x3*0.62 + ai_score*0.28 + win_s*6.2 - loss_s*4.6 + volatility*6.8, 1)
+    strength = round(prob_x3*0.64 + ai_score*0.26 + win_s*7 - loss_s*5 + volatility*7.5, 1)
     strength = max(40, min(99, strength))
 
-    # Entry Time ultra dynamique selon hash
+    # ===================== HEURE D'ENTRÉE TRÈS DYNAMIQUE =====================
     try:
         bt = datetime.combine(get_time().date(), datetime.strptime(t_in.strip(), "%H:%M:%S").time())
     except:
         bt = get_time()
-    shift = (int(h_hex[:20], 16) % 62) - 31
-    final_sec = 18 + (h_num % 46) + shift + int(volatility*3.8) + (23 if strength > 87 else 15 if strength > 75 else 8)
-    final_sec = max(19, min(88, final_sec))
+
+    hash_shift = (int(h_hex[:24], 16) % 78) - 39
+    final_sec = 16 + (h_num % 52) + hash_shift + int(volatility * 4.5) + (26 if strength > 88 else 18 if strength > 78 else 12 if strength > 68 else 7)
+    final_sec = max(18, min(95, final_sec))
+
     entry = (bt + timedelta(seconds=final_sec)).strftime("%H:%M:%S")
 
-    if strength > 87:
+    # Signal
+    if strength > 88:
         signal = "💎💎💎 ULTRA X3+ BUY"
         sig_class = "signal-ultra"
-    elif strength > 76:
+    elif strength > 78:
         signal = "🔥 STRONG X3 TARGET"
         sig_class = "signal-strong"
-    else:
+    elif strength > 68:
         signal = "🟢 GOOD X3 SCALP"
+        sig_class = "signal-strong"
+    else:
+        signal = "⚡ LIGHT ENTRY"
         sig_class = "signal-strong"
 
     res = {
@@ -147,9 +155,9 @@ def run_engine_ultra(h_in, t_in, last_cote):
     st.session_state.ml_ready = True
     return res
 
-# ===================== INTERFACE (Style précédent conservé) =====================
-st.markdown("<h1 class='main-title'>JETX ANDR V14.7</h1>", unsafe_allow_html=True)
-st.markdown("<p style='text-align:center; color:#00ffcc; font-size:1.65rem;'>ULTRA STYLÉ • X3+ CIBLÉ • ENTRY DYNAMIQUE</p>", unsafe_allow_html=True)
+# ===================== INTERFACE =====================
+st.markdown("<h1 class='main-title'>JETX ANDR V14.8</h1>", unsafe_allow_html=True)
+st.markdown("<p style='text-align:center; color:#00ffcc; font-size:1.65rem;'>ULTRA PUISSANTE X3+ • ENTRY DYNAMIQUE</p>", unsafe_allow_html=True)
 
 col1, col2 = st.columns([1, 2.1])
 
@@ -161,11 +169,10 @@ with col1:
 
     if st.button("🚀 LANCER LE CALCUL ULTRA", use_container_width=True):
         if h_in.strip() and len(t_in.strip()) >= 8:
-            with st.spinner("Simulation 82 000x + Hash Avancé..."):
+            with st.spinner("95 000 simulations + Analyse Hash Avancée..."):
                 st.session_state.last = run_engine_ultra(h_in.strip(), t_in.strip(), last_cote)
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # Reset dans la sidebar
     if st.sidebar.button("🔄 Reset All Data"):
         st.session_state.history = []
         st.session_state.last = None
@@ -181,14 +188,15 @@ with col2:
                 CONF : {r['conf']} | AI : {r['ai_score']}</h3>
             <h1 style="font-size:4.6rem;color:#00ffcc;margin:15px 0;text-align:center;">{r['entry']}</h1>
             
-            <div class="result-grid">
-                <div class="result-box" style="background:#00cc88;color:#000;">
+            <!-- Resultats stylés mais compatibles mobile -->
+            <div style="display:flex; gap:12px; margin:25px 0; flex-wrap:wrap; justify-content:center;">
+                <div class="result-box" style="background:#00cc88;color:#000; flex:1; min-width:100px;">
                     <small>MIN</small><br><b>{r['min']}</b>
                 </div>
-                <div class="result-box" style="background:#ffcc00;color:#000;">
+                <div class="result-box" style="background:#ffcc00;color:#000; flex:1; min-width:100px;">
                     <small>MOY</small><br><b>{r['moy']}</b>
                 </div>
-                <div class="result-box" style="background:#ff3366;color:#fff;">
+                <div class="result-box" style="background:#ff3366;color:#fff; flex:1; min-width:100px;">
                     <small>MAX</small><br><b>{r['max']}</b>
                 </div>
             </div>
@@ -202,18 +210,15 @@ with col2:
         </div>
         """, unsafe_allow_html=True)
 
-        # Boutons WIN / LOSS
-        cwin, closs = st.columns(2)
-        with cwin:
+        c1, c2 = st.columns(2)
+        with c1:
             if st.button("✅ WIN", use_container_width=True):
-                if st.session_state.history:
-                    st.session_state.history[-1]["real_result"] = "win"
-                    st.rerun()
-        with closs:
+                st.session_state.history[-1]["real_result"] = "win"
+                st.rerun()
+        with c2:
             if st.button("❌ LOSS", use_container_width=True):
-                if st.session_state.history:
-                    st.session_state.history[-1]["real_result"] = "loss"
-                    st.rerun()
+                st.session_state.history[-1]["real_result"] = "loss"
+                st.rerun()
 
 # Historique + Sauvegarde
 st.markdown("### 📜 Historique des Prédictions")
@@ -221,19 +226,16 @@ if st.session_state.history:
     df_hist = pd.DataFrame(st.session_state.history)[::-1]
     edited_df = st.data_editor(
         df_hist,
-        column_config={
-            "real_result": st.column_config.SelectboxColumn("Résultat", options=["win", "loss", None]),
-        },
+        column_config={"real_result": st.column_config.SelectboxColumn("Résultat", options=["win", "loss", None])},
         use_container_width=True,
         hide_index=True
     )
-
     if st.button("💾 Sauvegarder & Réentraîner l'IA"):
         for i, row in edited_df.iterrows():
-            orig_idx = len(st.session_state.history) - 1 - i
-            if 0 <= orig_idx < len(st.session_state.history):
-                st.session_state.history[orig_idx]["real_result"] = row["real_result"]
-        st.success("✅ Données sauvegardées et IA mise à jour")
+            idx = len(st.session_state.history) - 1 - i
+            if 0 <= idx < len(st.session_state.history):
+                st.session_state.history[idx]["real_result"] = row["real_result"]
+        st.success("✅ Sauvegardé et IA mise à jour")
         st.rerun()
 
-st.caption("JETX ANDR V14.7 • Résultat ultra stylé • Reset & Sauvegarde actifs")
+st.caption("JETX ANDR V14.8 • Ultra Puissante X3+ • Mobile Optimisé")
