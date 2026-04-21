@@ -140,7 +140,7 @@ def run_engine_ultra(h_in, t_in, last_cote):
     if last_cote > 4.8:
         last_cote = (last_cote + 3.0) / 2
 
-    # ULTRA CIBLÉ X3+ 
+    # ULTRA CIBLÉ X3+
     base = 1.68 + (h_num % 650) / 82
     sigma = 0.275 - (last_cote * 0.005)
 
@@ -227,7 +227,7 @@ col1, col2 = st.columns([1, 2.1])
 with col1:
     st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
     h_in = st.text_input("HASH (Provably Fair)", placeholder="Collez le hash complet...")
-    t_in = st.text_input("TIME (HH:MM:SS)", placeholder="Ex: 13:58:13")
+    t_in = st.text_input("TIME (HH:MM:SS)", placeholder="Ex: 07:41:49")
     last_cote = st.number_input("LAST COTE", value=2.3, step=0.1, format="%.2f")
 
     if st.button("🚀 LANCER LE CALCUL ULTRA", use_container_width=True):
