@@ -62,7 +62,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ==========================================
-# SESSION STATE
+# SESSION STATE & FONCTIONS
 # ==========================================
 if "history" not in st.session_state:
     st.session_state.history = []
@@ -141,8 +141,8 @@ def run_engine_ultra(h_in, t_in, last_cote):
         last_cote = (last_cote + 3.0) / 2
 
     # ULTRA CIBLÉ X3+ 
-    base = 1.65 + (h_num % 680) / 85
-    sigma = 0.278 - (last_cote * 0.005)
+    base = 1.68 + (h_num % 650) / 82
+    sigma = 0.275 - (last_cote * 0.005)
 
     sims = np.random.lognormal(np.log(base), sigma, 35000)
 
@@ -165,7 +165,7 @@ def run_engine_ultra(h_in, t_in, last_cote):
     strength = round(base_strength + streak_adj + (volatility * 3.0), 1)
     strength = max(32, min(98, strength))
 
-    # ENTRY TIME ULTRA PUISSANTE - Tsy mety ho mitovy amin'ny ora nampidirinao
+    # ENTRY TIME ULTRA PUISSANTE
     now = get_time()
     try:
         t_obj = datetime.strptime(t_in.strip(), "%H:%M:%S").time()
@@ -180,7 +180,7 @@ def run_engine_ultra(h_in, t_in, last_cote):
     strength_factor = 7 if strength > 83 else (4 if strength > 70 else 2)
 
     final_seconds = int(base_delay + (spread * 0.30) + hash_shift + prob_factor + strength_factor)
-    final_seconds = max(20, min(62, final_seconds))   # Minimum 20 secondes
+    final_seconds = max(20, min(62, final_seconds))
 
     base_time = base_time.replace(microsecond=0)
     entry = (base_time + timedelta(seconds=final_seconds)).strftime("%H:%M:%S")
