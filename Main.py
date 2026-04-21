@@ -161,7 +161,7 @@ def try_train_ml(history):
     if len(labeled) < 3: return False
     X = np.array([h["features"] for h in labeled])
     y_clf = np.array([1 if h["real_result"] == "win" else 0 for h in labeled])
-    y_reg = np.array([h.get("real_cote", h["moy"]) for h in labeled])
+    y_reg = np.array([h.get("real_cote", h["moy_val"]) for h in labeled])
     try:
         st.session_state.ml_clf.fit(X, y_clf)
         st.session_state.ml_reg.fit(X, y_reg)
@@ -184,7 +184,7 @@ def run_engine_cosmos(h_in, t_in, last_cote):
     win_s, loss_s, mode, win_rate = get_streak_info(st.session_state.history)
     mode_val = {"hot": 1, "cold": -1, "neutral": 0}[mode]
     
-    volatility = round(float(np.std([h.get("moy", 2.5) for h in st.session_state.history[-20:]])) if len(st.session_state.history) >= 3 else 1.2, 2)
+    volatility = round(float(np.std([h.get("moy_val", 2.5) for h in st.session_state.history[-20:]])) if len(st.session_state.history) >= 3 else 1.2, 2)
     conf = round(max(48, min(99, prob_x3*0.7 + moy*22 + (h_num%220)/3.5 + last_cote*13.5 + win_rate*15 + mode_val*4)), 1)
     
     features = [prob_x3, conf, moy, maxv-minv, last_cote, win_s, loss_s, volatility, win_rate*100, mode_val]
@@ -233,18 +233,19 @@ with col_input:
     
     if st.session_state.history:
         labeled = [h for h in st.session_state.history if h["real_result"]]
-        w = sum(1 for h in labeled if h["real_result"]=="win")
-        wr = round(w/len(labeled)*100, 1) if labeled else 0
-        st.markdown(f"""
-        <div style='display:flex; gap:10px; margin-top:15px;'>
-            <div style='flex:1; background:rgba(0,255,136,0.1); padding:10px; border-radius:10px; text-align:center;'>
-                <b style='color:#00ff88; font-size:1.2rem;'>{w}</b><br><small>WINS</small>
+        if labeled:
+            w = sum(1 for h in labeled if h["real_result"]=="win")
+            wr = round(w/len(labeled)*100, 1)
+            st.markdown(f"""
+            <div style='display:flex; gap:10px; margin-top:15px;'>
+                <div style='flex:1; background:rgba(0,255,136,0.1); padding:10px; border-radius:10px; text-align:center;'>
+                    <b style='color:#00ff88; font-size:1.2rem;'>{w}</b><br><small>WINS</small>
+                </div>
+                <div style='flex:1; background:rgba(168,85,247,0.1); padding:10px; border-radius:10px; text-align:center;'>
+                    <b style='color:#a855f7; font-size:1.2rem;'>{wr}%</b><br><small>RATE</small>
+                </div>
             </div>
-            <div style='flex:1; background:rgba(168,85,247,0.1); padding:10px; border-radius:10px; text-align:center;'>
-                <b style='color:#a855f7; font-size:1.2rem;'>{wr}%</b><br><small>RATE</small>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
+            """, unsafe_allow_html=True)
     st.markdown("</div>", unsafe_allow_html=True)
 
 with col_result:
@@ -280,4 +281,5 @@ with col_result:
 
 st.markdown("---")
 if st.session_state.history:
+    st.markdown("### 📜 Historique des Signaux")
     st.dataframe(pd.DataFrame(st.session_state.history)[::-1], use_container_width=True)
