@@ -140,8 +140,8 @@ def run_engine_ultra(h_in, t_in, last_cote):
     if last_cote > 4.8:
         last_cote = (last_cote + 3.0) / 2
 
-    base = 1.75 + (h_num % 600) / 75
-    sigma = 0.27 - (last_cote * 0.005)
+    base = 1.78 + (h_num % 580) / 72
+    sigma = 0.268 - (last_cote * 0.0045)
 
     sims = np.random.lognormal(np.log(base), sigma, 35000)
 
@@ -151,7 +151,7 @@ def run_engine_ultra(h_in, t_in, last_cote):
     minv = round(np.percentile(sims, 3.5), 2)
     spread = round(maxv - minv, 2)
 
-    conf = round(max(40, min(98, prob_x3 * 0.73 + moy * 22 + last_cote * 12)), 1)
+    conf = round(max(42, min(98, prob_x3 * 0.74 + moy * 23 + last_cote * 13)), 1)
 
     win_s, loss_s, _ = get_current_streak(st.session_state.history)
     vols = [h.get("moy", 2.5) for h in st.session_state.history[-12:]]
@@ -159,10 +159,10 @@ def run_engine_ultra(h_in, t_in, last_cote):
 
     ai_score = ai_predict_ultra([prob_x3, conf, moy, spread, last_cote, conf, win_s, loss_s, volatility])
 
-    base_strength = prob_x3 * 0.63 + (ai_score or conf) * 0.37
-    streak_adj = win_s * 4.2 - loss_s * 3.5
-    strength = round(base_strength + streak_adj + (volatility * 3.5), 1)
-    strength = max(35, min(98, strength))
+    base_strength = prob_x3 * 0.64 + (ai_score or conf) * 0.36
+    streak_adj = win_s * 4.5 - loss_s * 3.8
+    strength = round(base_strength + streak_adj + (volatility * 3.8), 1)
+    strength = max(38, min(98, strength))
 
     # ENTRY TIME ULTRA PUISSANTE
     now = get_time()
@@ -244,7 +244,7 @@ with col1:
 with col2:
     if "last" in st.session_state:
         r = st.session_state.last
-        # Sécurité pour éviter erreur si clé tsy misy
+        # Sécurité pour éviter erreur
         signal_class = r.get('signal_class', 'signal-strong')
         signal = r.get('signal', 'Signal')
         entry = r.get('entry', '--:--:--')
