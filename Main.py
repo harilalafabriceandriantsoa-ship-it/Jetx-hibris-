@@ -140,10 +140,11 @@ def run_engine_ultra(h_in, t_in, last_cote):
     if last_cote > 4.8:
         last_cote = (last_cote + 3.0) / 2
 
-    base = 1.78 + (h_num % 580) / 72
-    sigma = 0.268 - (last_cote * 0.0045)
+    # ULTRA CIBLÉ X3+ AVANCÉ
+    base = 1.82 + (h_num % 580) / 70
+    sigma = 0.265 - (last_cote * 0.0045)
 
-    sims = np.random.lognormal(np.log(base), sigma, 35000)
+    sims = np.random.lognormal(np.log(base), sigma, 40000)  # 40 000 simulations
 
     prob_x3 = round(np.mean(sims >= 3.0) * 100, 1)
     moy = round(np.mean(sims), 2)
@@ -151,7 +152,7 @@ def run_engine_ultra(h_in, t_in, last_cote):
     minv = round(np.percentile(sims, 3.5), 2)
     spread = round(maxv - minv, 2)
 
-    conf = round(max(42, min(98, prob_x3 * 0.74 + moy * 23 + last_cote * 13)), 1)
+    conf = round(max(45, min(98, prob_x3 * 0.75 + moy * 23 + last_cote * 13)), 1)
 
     win_s, loss_s, _ = get_current_streak(st.session_state.history)
     vols = [h.get("moy", 2.5) for h in st.session_state.history[-12:]]
@@ -159,10 +160,10 @@ def run_engine_ultra(h_in, t_in, last_cote):
 
     ai_score = ai_predict_ultra([prob_x3, conf, moy, spread, last_cote, conf, win_s, loss_s, volatility])
 
-    base_strength = prob_x3 * 0.64 + (ai_score or conf) * 0.36
-    streak_adj = win_s * 4.5 - loss_s * 3.8
-    strength = round(base_strength + streak_adj + (volatility * 3.8), 1)
-    strength = max(38, min(98, strength))
+    base_strength = prob_x3 * 0.65 + (ai_score or conf) * 0.35
+    streak_adj = win_s * 4.8 - loss_s * 4.0
+    strength = round(base_strength + streak_adj + (volatility * 4.0), 1)
+    strength = max(40, min(98, strength))
 
     # ENTRY TIME ULTRA PUISSANTE
     now = get_time()
@@ -173,13 +174,13 @@ def run_engine_ultra(h_in, t_in, last_cote):
         base_time = now
 
     h_int = int(h_hex[:14], 16)
-    hash_shift = (h_int % 37) - 18
-    base_delay = 19 + (h_int % 16)
-    prob_factor = 17 if prob_x3 > 82 else (12 if prob_x3 > 65 else 7)
-    strength_factor = 9 if strength > 85 else (6 if strength > 72 else 3)
+    hash_shift = (h_int % 38) - 19
+    base_delay = 20 + (h_int % 17)
+    prob_factor = 18 if prob_x3 > 82 else (13 if prob_x3 > 65 else 8)
+    strength_factor = 10 if strength > 85 else (6 if strength > 72 else 3)
 
-    final_seconds = int(base_delay + (spread * 0.28) + hash_shift + prob_factor + strength_factor)
-    final_seconds = max(22, min(68, final_seconds))
+    final_seconds = int(base_delay + (spread * 0.25) + hash_shift + prob_factor + strength_factor)
+    final_seconds = max(23, min(70, final_seconds))
 
     base_time = base_time.replace(microsecond=0)
     entry = (base_time + timedelta(seconds=final_seconds)).strftime("%H:%M:%S")
@@ -231,7 +232,7 @@ with col1:
 
     if st.button("🚀 LANCER LE CALCUL ULTRA", use_container_width=True):
         if h_in and len(t_in) >= 8:
-            with st.spinner("Simulation X3+ 35 000x ultra puissante..."):
+            with st.spinner("Simulation X3+ 40 000x ultra puissante..."):
                 st.session_state.last = run_engine_ultra(h_in, t_in, last_cote)
     st.markdown("</div>", unsafe_allow_html=True)
 
@@ -244,7 +245,6 @@ with col1:
 with col2:
     if "last" in st.session_state:
         r = st.session_state.last
-        # Sécurité pour éviter erreur
         signal_class = r.get('signal_class', 'signal-strong')
         signal = r.get('signal', 'Signal')
         entry = r.get('entry', '--:--:--')
@@ -256,11 +256,12 @@ with col2:
         strength = r.get('strength', 0)
         win_s = r.get('win_streak', 0)
         loss_s = r.get('loss_streak', 0)
+        ai_score = r.get('ai_score', 'N/A')
 
         st.markdown(f"""
         <div class="glass-card">
             <h2 class="{signal_class}">{signal}</h2>
-            <h3>X3 PROB : <span style="color:#ff00ff;font-size:2.1rem;">{x3_prob}%</span> | CONF : {conf}</h3>
+            <h3>X3 PROB : <span style="color:#ff00ff;font-size:2.1rem;">{x3_prob}%</span> | CONF : {conf} | AI : {ai_score}</h3>
             <h1 style="font-size:4.6rem;color:#00ffcc;margin:15px 0;">{entry}</h1>
             
             <div style="display:flex; gap:12px; margin:20px 0;">
