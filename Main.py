@@ -6,12 +6,7 @@ from datetime import datetime, timedelta
 import pytz
 import json
 import os
-import pickle
 from pathlib import Path
-
-from sklearn.ensemble import GradientBoostingClassifier, GradientBoostingRegressor
-from sklearn.preprocessing import RobustScaler
-from sklearn.pipeline import Pipeline
 
 # ===================== PERSISTENCE SYSTEM =====================
 BASE_DIR = Path(__file__).parent
@@ -48,7 +43,6 @@ st.markdown("""
         font-family: 'Orbitron'; font-size: 3rem; text-align: center;
         background: linear-gradient(90deg, #ff0066, #00ffcc);
         -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-        text-shadow: 0 0 20px rgba(255, 0, 102, 0.5);
     }
     .glass-card {
         background: rgba(20, 0, 40, 0.8);
@@ -78,38 +72,38 @@ if not st.session_state.authenticated:
                 st.rerun()
     st.stop()
 
-# ===================== RESET & DATA INITIALIZATION =====================
+# ===================== DATA INITIALIZATION =====================
 if "history" not in st.session_state:
     st.session_state.history = load_history()
 
-# Bokotra RESET ao amin'ny Sidebar
+# RESET BUTTON IN SIDEBAR
 with st.sidebar:
     st.header("⚙️ SETTINGS")
-    if st.button("🗑️ RESET ALL DATA"):
+    if st.button("🗑️ RESET ALL DATA (Fix Error)"):
         st.session_state.history = []
         if HISTORY_FILE.exists():
             os.remove(HISTORY_FILE)
         st.session_state.last_res = None
-        st.success("Data cleared!")
+        st.success("Data reset complete!")
         st.rerun()
 
 if "last_res" not in st.session_state:
     st.session_state.last_res = None
 
 # ===================== ENGINE =====================
-def run_x3_engine(h_in, t_in, lc):
+def run_x3_engine(h_in, t_in):
     h_hex = hashlib.sha256(h_in.encode()).hexdigest()
     h_num = int(h_hex[:16], 16)
     np.random.seed(h_num & 0xFFFFFFFF)
     
-    # Simulation logic ho an'ny X3+
+    # Simulation logic
     sims = np.random.lognormal(np.log(2.2), 0.2, 100_000)
     prob_x3 = round(float(np.mean(sims >= 3.0)) * 100, 2)
     
-    # Fikajiana Cote Min, Moyenne, Max
+    # Calculation of Cotes
     c_min = round(float(np.percentile(sims, 40)), 2)
     c_avg = round(float(np.mean(sims)), 2)
-    c_max = round(float(np.max(sims[:1000]) * 0.8), 2) # Limit-na kely ny max ho fiarovana
+    c_max = round(float(np.max(sims[:1000]) * 0.8), 2)
 
     try:
         base_t = datetime.strptime(t_in.strip(), "%H:%M:%S")
@@ -143,11 +137,10 @@ with col_in:
     st.subheader("📥 INPUT")
     h_val = st.text_input("SERVER HASH")
     t_val = st.text_input("ROUND TIME")
-    lc_val = st.number_input("LAST COTE", value=1.50)
     
     if st.button("🚀 ANALYSE", use_container_width=True):
         if h_val and t_val:
-            st.session_state.last_res = run_x3_engine(h_val, t_val, lc_val)
+            st.session_state.last_res = run_x3_engine(h_val, t_val)
             st.rerun()
     st.markdown("</div>", unsafe_allow_html=True)
 
@@ -158,13 +151,13 @@ with col_out:
         st.markdown(f"<h2 style='text-align:center;'>{r['signal']}</h2>", unsafe_allow_html=True)
         st.markdown(f"<div class='entry-time'>{r['entry']}</div>", unsafe_allow_html=True)
         
-        # Metrics ho an'ny Cote
+        # Metrics with Safety Check (.get) to prevent KeyErrors
         m1, m2, m3 = st.columns(3)
-        m1.metric("COTE MIN", f"{r['min']}x")
-        m2.metric("COTE MOYEN", f"{r['moyen']}x")
-        m3.metric("COTE MAX", f"{r['max']}x")
+        m1.metric("COTE MIN", f"{r.get('min', 3.0)}x")
+        m2.metric("COTE MOYEN", f"{r.get('moyen', 3.15)}x")
+        m3.metric("COTE MAX", f"{r.get('max', 5.0)}x")
         
-        st.metric("PROBABILITÉ X3+", f"{r['prob']}%")
+        st.metric("PROBABILITÉ X3+", f"{r.get('prob', 0)}%")
         
         if st.button("🎯 CONFIRM WIN", use_container_width=True):
             for h in st.session_state.history:
@@ -173,8 +166,11 @@ with col_out:
             st.success("Saved!")
         st.markdown("</div>", unsafe_allow_html=True)
 
-# History
+# History table
 st.write("### 🕒 RECENT LOGS")
 if st.session_state.history:
     df = pd.DataFrame(st.session_state.history).iloc[::-1]
-    st.dataframe(df[['entry', 'prob', 'min', 'moyen', 'max', 'status']], use_container_width=True)
+    # Ensure columns exist before displaying
+    display_cols = ['entry', 'prob', 'min', 'moyen', 'max', 'status']
+    available_cols = [c for c in display_cols if c in df.columns]
+    st.dataframe(df[available_cols], use_container_width=True)
