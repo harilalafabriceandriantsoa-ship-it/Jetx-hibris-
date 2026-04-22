@@ -4,14 +4,66 @@ import hashlib
 import pandas as pd
 from datetime import datetime, timedelta
 import pytz
-from collections import deque
+import json
+import os
+from pathlib import Path
 
 from sklearn.ensemble import GradientBoostingClassifier, GradientBoostingRegressor
 from sklearn.preprocessing import RobustScaler
 from sklearn.pipeline import Pipeline
 
+# ===================== PERSISTENCE SYSTEM =====================
+DATA_DIR = Path("/home/claude/jetx_data")
+DATA_DIR.mkdir(exist_ok=True)
+HISTORY_FILE = DATA_DIR / "history.json"
+ML_CLF_FILE = DATA_DIR / "ml_clf.pkl"
+ML_REG_FILE = DATA_DIR / "ml_reg.pkl"
+
+def save_history(history):
+    """Save history to disk"""
+    try:
+        with open(HISTORY_FILE, 'w') as f:
+            json.dump(history, f, indent=2)
+    except Exception as e:
+        st.warning(f"âš ï¸ Erreur sauvegarde: {e}")
+
+def load_history():
+    """Load history from disk"""
+    try:
+        if HISTORY_FILE.exists():
+            with open(HISTORY_FILE, 'r') as f:
+                return json.load(f)
+    except Exception as e:
+        st.warning(f"âš ï¸ Erreur chargement: {e}")
+    return []
+
+def save_models(clf, reg):
+    """Save ML models"""
+    try:
+        import pickle
+        with open(ML_CLF_FILE, 'wb') as f:
+            pickle.dump(clf, f)
+        with open(ML_REG_FILE, 'wb') as f:
+            pickle.dump(reg, f)
+    except Exception:
+        pass
+
+def load_models():
+    """Load ML models"""
+    try:
+        import pickle
+        if ML_CLF_FILE.exists() and ML_REG_FILE.exists():
+            with open(ML_CLF_FILE, 'rb') as f:
+                clf = pickle.load(f)
+            with open(ML_REG_FILE, 'rb') as f:
+                reg = pickle.load(f)
+            return clf, reg
+    except Exception:
+        pass
+    return None, None
+
 # ===================== CONFIG =====================
-st.set_page_config(page_title="JETX COSMOS V16.0", layout="wide", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="JETX X3+ LASER V16.1", layout="wide", initial_sidebar_state="collapsed")
 
 # ===================== PASSWORD =====================
 if "authenticated" not in st.session_state:
@@ -21,107 +73,229 @@ if not st.session_state.authenticated:
     st.markdown("""
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
-        .stApp { background: linear-gradient(135deg, #020210, #0d001a, #00001a); }
+        .stApp { background: radial-gradient(ellipse at 50% 0%, #1a0033 0%, #000011 100%); }
         .login-title {
             font-family: 'Orbitron', sans-serif;
-            font-size: 4rem; font-weight: 900; text-align: center;
-            background: linear-gradient(90deg, #00ffcc, #a855f7, #00ccff);
+            font-size: 4.5rem; font-weight: 900; text-align: center;
+            background: linear-gradient(90deg, #ff0066, #00ffcc, #ff0066);
+            background-size: 200%;
             -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-            animation: pulse-glow 2.5s ease-in-out infinite alternate;
+            animation: laser-glow 3s ease infinite;
             margin-bottom: 0.2rem;
         }
         .login-sub {
-            text-align: center; color: #00ffcc99; font-family: 'Orbitron', sans-serif;
-            font-size: 1rem; letter-spacing: 0.3em; margin-bottom: 2rem;
+            text-align: center; color: #ff0066dd; font-family: 'Orbitron', sans-serif;
+            font-size: 1.1rem; letter-spacing: 0.4em; margin-bottom: 2rem;
+            text-shadow: 0 0 20px #ff006688;
         }
-        @keyframes pulse-glow {
-            from { filter: drop-shadow(0 0 10px #00ffcc88); }
-            to   { filter: drop-shadow(0 0 35px #a855f788); }
+        @keyframes laser-glow {
+            0%, 100% { background-position: 0%; filter: drop-shadow(0 0 15px #ff006688); }
+            50%      { background-position: 100%; filter: drop-shadow(0 0 40px #00ffcc88); }
         }
     </style>
-    <div class='login-title'>JETX COSMOS</div>
-    <div class='login-sub'>V 1 6 . 0 &nbsp;&nbsp; U L T R A</div>
+    <div class='login-title'>X3+ LASER</div>
+    <div class='login-sub'>V 1 6 . 1 &nbsp; F O C U S</div>
     """, unsafe_allow_html=True)
 
     col_a, col_b, col_c = st.columns([1, 1.2, 1])
     with col_b:
-        pw = st.text_input("🔑 Mot de passe", type="password", placeholder="Entrez le code d'accès...")
-        if st.button("✅ ACCÉDER AU COSMOS", use_container_width=True):
+        pw = st.text_input("ðŸ”‘ Mot de passe", type="password", placeholder="Code d'accÃ¨s...")
+        if st.button("âœ… ACCÃˆS X3+ LASER", use_container_width=True):
             if pw == "JET2026":
                 st.session_state.authenticated = True
                 st.rerun()
             else:
-                st.error("❌ Mot de passe incorrect")
+                st.error("âŒ Mot de passe incorrect")
     st.stop()
 
-# ===================== CSS COSMOS =====================
+# ===================== CSS X3+ LASER =====================
 st.markdown("""
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;500;600&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;500;600;700&display=swap');
 
     .stApp {
-        background: radial-gradient(ellipse at 20% 0%, #0d0030 0%, #020210 40%, #00001a 100%);
+        background: radial-gradient(ellipse at 30% 0%, #1a0033 0%, #000011 50%, #001a1a 100%);
         color: #e0fbfc;
         font-family: 'Rajdhani', sans-serif;
     }
 
+    /* Laser grid background */
+    .stApp::before {
+        content: '';
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background-image:
+            repeating-linear-gradient(0deg, transparent, transparent 100px, rgba(255,0,102,0.03) 100px, rgba(255,0,102,0.03) 101px),
+            repeating-linear-gradient(90deg, transparent, transparent 100px, rgba(0,255,204,0.03) 100px, rgba(0,255,204,0.03) 101px);
+        pointer-events: none; z-index: 0;
+    }
+
     .main-title {
         font-family: 'Orbitron', sans-serif;
-        font-size: 3.2rem; font-weight: 900; text-align: center;
-        background: linear-gradient(90deg, #00ffcc, #a855f7, #00ccff, #00ffcc);
-        background-size: 300%;
+        font-size: 3.8rem; font-weight: 900; text-align: center;
+        background: linear-gradient(90deg, #ff0066, #00ffcc, #ff0066);
+        background-size: 200%;
         -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-        animation: gradient-flow 4s ease infinite;
+        animation: laser-pulse 3s ease infinite;
         margin-bottom: 0;
     }
-    @keyframes gradient-flow {
-        0%,100% { background-position: 0%; }
+    @keyframes laser-pulse {
+        0%, 100% { background-position: 0%; }
         50%      { background-position: 100%; }
     }
 
     .subtitle {
-        text-align: center; color: #00ffcc88;
+        text-align: center; color: #ff006699;
         font-family: 'Orbitron', sans-serif;
-        font-size: 0.75rem; letter-spacing: 0.4em; margin-bottom: 1.5rem;
+        font-size: 0.7rem; letter-spacing: 0.5em; margin-bottom: 1.2rem;
+        text-shadow: 0 0 15px #ff006666;
     }
 
     .glass {
-        background: rgba(10, 5, 30, 0.85);
-        border: 1px solid rgba(0,255,204,0.25);
-        border-radius: 20px; padding: 24px;
-        backdrop-filter: blur(12px);
+        background: rgba(10, 0, 20, 0.88);
+        border: 1px solid rgba(255,0,102,0.3);
+        border-radius: 18px; padding: 22px;
+        box-shadow: 0 0 30px rgba(255,0,102,0.08), inset 0 1px 0 rgba(255,255,255,0.03);
+        backdrop-filter: blur(10px);
     }
 
-    .glass-signal {
-        background: rgba(5, 0, 20, 0.92);
-        border: 1px solid rgba(168,85,247,0.4);
-        border-radius: 20px; padding: 24px;
-        box-shadow: 0 0 50px rgba(168,85,247,0.12);
+    .glass-x3 {
+        background: rgba(5, 0, 15, 0.94);
+        border: 2px solid rgba(255,0,102,0.6);
+        border-radius: 18px; padding: 24px;
+        box-shadow: 0 0 60px rgba(255,0,102,0.2), 0 0 100px rgba(0,255,204,0.1);
     }
 
-    .sig-ultra { font-family: 'Orbitron', sans-serif; font-size: 1.3rem; color: #00ffcc; text-shadow: 0 0 20px #00ffcc; }
-    .sig-strong { font-family: 'Orbitron', sans-serif; font-size: 1.2rem; color: #a855f7; text-shadow: 0 0 20px #a855f7; }
-    .sig-good { font-family: 'Orbitron', sans-serif; font-size: 1.1rem; color: #38bdf8; text-shadow: 0 0 15px #38bdf8; }
-
-    .entry-time {
+    /* X3+ FOCUS signals */
+    .sig-ultra-x3 {
         font-family: 'Orbitron', sans-serif;
-        font-size: 3.6rem; font-weight: 900; text-align: center;
-        color: #00ffcc; text-shadow: 0 0 30px #00ffcc;
-        margin: 12px 0;
+        font-size: 1.5rem; font-weight: 900;
+        color: #ff0066;
+        text-shadow: 0 0 25px #ff0066, 0 0 50px #ff0066aa, 0 0 80px #ff006644;
+        letter-spacing: 0.08em;
+    }
+    .sig-strong-x3 {
+        font-family: 'Orbitron', sans-serif;
+        font-size: 1.3rem; font-weight: 700;
+        color: #00ffcc;
+        text-shadow: 0 0 20px #00ffcc, 0 0 40px #00ffcc88;
+    }
+    .sig-moderate-x3 {
+        font-family: 'Orbitron', sans-serif;
+        font-size: 1.1rem; font-weight: 600;
+        color: #fbbf24;
+        text-shadow: 0 0 15px #fbbf24;
     }
 
-    .metric-min { background: rgba(0,255,136,0.1); border: 1px solid rgba(0,255,136,0.4); border-radius: 14px; padding: 16px; text-align: center; }
-    .metric-moy { background: rgba(255,215,0,0.1); border: 1px solid rgba(255,215,0,0.4); border-radius: 14px; padding: 16px; text-align: center; }
-    .metric-max { background: rgba(255,51,102,0.1); border: 1px solid rgba(255,51,102,0.4); border-radius: 14px; padding: 16px; text-align: center; }
-    
-    .metric-val { font-size: 2rem; font-weight: 700; font-family: 'Orbitron', sans-serif; }
-    .metric-lbl { font-size: 0.75rem; color: #ffffff88; }
+    /* Entry time - X3+ focused */
+    .entry-time-x3 {
+        font-family: 'Orbitron', sans-serif;
+        font-size: 4.2rem; font-weight: 900; text-align: center;
+        color: #ff0066;
+        text-shadow: 0 0 40px #ff0066, 0 0 80px #ff0066aa;
+        letter-spacing: 0.1em;
+        margin: 16px 0;
+        animation: time-pulse 2s ease infinite alternate;
+    }
+    @keyframes time-pulse {
+        from { text-shadow: 0 0 40px #ff0066, 0 0 80px #ff0066aa; }
+        to   { text-shadow: 0 0 60px #ff0066, 0 0 120px #ff0066dd; }
+    }
 
-    .strength-track { background: rgba(255,255,255,0.07); border-radius: 99px; height: 10px; overflow: hidden; margin-top: 6px; }
-    .strength-fill { height: 100%; background: linear-gradient(90deg, #a855f7, #00ffcc); transition: width 0.8s ease; }
+    /* X3+ probability display */
+    .x3-prob-mega {
+        font-size: 4.5rem; font-weight: 900;
+        font-family: 'Orbitron', sans-serif;
+        background: linear-gradient(135deg, #ff0066, #ff3399, #ff0066);
+        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        text-align: center;
+        filter: drop-shadow(0 0 30px #ff0066aa);
+        margin: 20px 0;
+    }
 
-    .alert-cosmos { background: rgba(168,85,247,0.12); border: 1px solid rgba(168,85,247,0.35); border-radius: 12px; padding: 12px; font-size: 0.9rem; color: #d4aaff; margin-top: 12px; }
-    .sec-lbl { font-family: 'Orbitron', sans-serif; font-size: 0.65rem; color: #00ffcc66; margin-bottom: 8px; }
+    /* Cashout X3+ boxes */
+    .x3-target {
+        background: linear-gradient(135deg, rgba(255,0,102,0.25), rgba(255,0,102,0.08));
+        border: 2px solid rgba(255,0,102,0.6);
+        border-radius: 16px; padding: 18px; text-align: center;
+        box-shadow: 0 0 25px rgba(255,0,102,0.3), inset 0 0 20px rgba(255,0,102,0.05);
+    }
+    .x3-target-safe {
+        background: linear-gradient(135deg, rgba(0,255,204,0.18), rgba(0,255,204,0.06));
+        border: 1.5px solid rgba(0,255,204,0.4);
+        border-radius: 16px; padding: 18px; text-align: center;
+    }
+    .metric-val-x3 { font-size: 2.4rem; font-weight: 900; font-family: 'Orbitron', sans-serif; }
+    .metric-lbl { font-size: 0.7rem; color: #ffffff88; letter-spacing: 0.2em; margin-top: 4px; }
+
+    /* X3+ confidence bar */
+    .x3-confidence-track {
+        background: rgba(255,255,255,0.05);
+        border-radius: 99px; height: 14px; overflow: hidden; margin-top: 8px;
+        border: 1px solid rgba(255,0,102,0.2);
+    }
+    .x3-confidence-fill {
+        height: 100%; border-radius: 99px;
+        background: linear-gradient(90deg, #ff0066, #ff3399, #00ffcc);
+        box-shadow: 0 0 20px #ff0066dd, inset 0 0 10px rgba(255,255,255,0.2);
+        transition: width 1s cubic-bezier(0.4,0,0.2,1);
+    }
+
+    /* Alert X3+ */
+    .alert-x3 {
+        background: rgba(255,0,102,0.15);
+        border: 1px solid rgba(255,0,102,0.4);
+        border-radius: 12px; padding: 12px 16px;
+        font-size: 0.85rem; color: #ffaac8;
+        margin-top: 12px;
+    }
+
+    /* Section labels */
+    .sec-lbl-x3 {
+        font-family: 'Orbitron', sans-serif;
+        font-size: 0.6rem; letter-spacing: 0.35em;
+        color: #ff006666; text-transform: uppercase;
+        margin-bottom: 8px;
+    }
+
+    /* Buttons */
+    .stButton>button {
+        font-family: 'Rajdhani', sans-serif !important;
+        font-size: 1rem !important; font-weight: 700 !important;
+        letter-spacing: 0.05em !important;
+    }
+
+    /* X3+ histogram */
+    .hist-x3 {
+        display: inline-block; width: 14px; border-radius: 4px 4px 0 0;
+        vertical-align: bottom; margin: 0 1px;
+        transition: all 0.4s ease;
+    }
+    .hist-x3:hover { filter: brightness(1.4); }
+
+    /* Stats boxes */
+    .stat-box-x3 {
+        background: rgba(255,0,102,0.08);
+        border: 1px solid rgba(255,0,102,0.25);
+        border-radius: 12px; padding: 12px 16px; text-align: center;
+    }
+    .stat-val-x3 { font-size: 1.6rem; font-weight: 700; font-family: 'Orbitron', sans-serif; }
+
+    /* Input focus */
+    .stTextInput input, .stNumberInput input {
+        background: rgba(255,0,102,0.05) !important;
+        border: 1px solid rgba(255,0,102,0.25) !important;
+        color: #e0fbfc !important;
+        border-radius: 12px !important;
+    }
+    .stTextInput input:focus, .stNumberInput input:focus {
+        border-color: rgba(255,0,102,0.7) !important;
+        box-shadow: 0 0 0 3px rgba(255,0,102,0.15) !important;
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: #000011; }
+    ::-webkit-scrollbar-thumb { background: #ff006644; border-radius: 3px; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -129,157 +303,255 @@ st.markdown("""
 def get_time():
     return datetime.now(pytz.timezone("Indian/Antananarivo"))
 
-def get_streak_info(history):
-    marked = [h.get("real_result") for h in history if h.get("real_result") in ["win", "loss"]]
-    if not marked: return 0, 0, "neutral", 0.5
-    last_r = marked[-1]
-    streak = 0
-    for r in reversed(marked):
-        if r == last_r: streak += 1
-        else: break
-    recent = marked[-10:]
-    win_rate = sum(1 for r in recent if r == "win") / len(recent) if recent else 0.5
-    mode = "hot" if (last_r == "win" and streak >= 2) else "cold" if (last_r == "loss" and streak >= 2) else "neutral"
-    return (streak if last_r == "win" else 0), (streak if last_r == "loss" else 0), mode, win_rate
+def get_x3_streak_info(history):
+    """Track X3+ specific streaks"""
+    x3_results = [h.get("x3_hit") for h in history if h.get("x3_hit") is not None]
+    if not x3_results:
+        return 0, 0, "neutral", 0.0
 
-def get_adaptive_cashout(history, base_min, base_moy, base_max):
-    real_vals = [h.get("real_cote") for h in history if h.get("real_cote") is not None]
-    if len(real_vals) < 5: return base_min, base_moy, base_max
-    arr = np.array(real_vals)
-    return round(0.6*np.percentile(arr, 10) + 0.4*base_min, 2), round(0.6*np.median(arr) + 0.4*base_moy, 2), round(0.6*np.percentile(arr, 85) + 0.4*base_max, 2)
+    # Current X3+ streak
+    last = x3_results[-1]
+    streak = 0
+    for r in reversed(x3_results):
+        if r == last:
+            streak += 1
+        else:
+            break
+
+    # X3+ hit rate (last 15)
+    recent = x3_results[-15:]
+    x3_rate = sum(recent) / len(recent) if recent else 0.0
+
+    # Mode
+    if last and streak >= 2:
+        mode = "x3_hot"
+    elif not last and streak >= 3:
+        mode = "x3_cold"
+    else:
+        mode = "neutral"
+
+    x3_hits = sum(1 for r in x3_results if r)
+    x3_misses = len(x3_results) - x3_hits
+
+    return x3_hits, x3_misses, mode, x3_rate
+
+def get_adaptive_x3_target(history):
+    """Compute X3+ target from real X3+ hits"""
+    x3_cotes = [h.get("real_cote") for h in history if h.get("x3_hit") and h.get("real_cote")]
+    if len(x3_cotes) < 3:
+        return 3.25  # Default conservative X3+ target
+
+    arr = np.array(x3_cotes)
+    median_x3 = float(np.median(arr))
+    p75_x3 = float(np.percentile(arr, 75))
+    
+    # Blend median + P75 for realistic X3+ cashout
+    target = round(0.6 * median_x3 + 0.4 * p75_x3, 2)
+    return max(3.0, min(6.0, target))
+
+def build_x3_features(prob_x3, conf_x3, moy, spread, last_cote, x3_hits, x3_misses, volatility, x3_rate, mode_val, sim_x3_count):
+    return [prob_x3, conf_x3, moy, spread, last_cote, x3_hits, x3_misses, volatility, x3_rate * 100, mode_val, sim_x3_count]
 
 # ===================== SESSION STATE =====================
-if "history" not in st.session_state: st.session_state.history = []
-if "last" not in st.session_state: st.session_state.last = None
-if "ml_clf" not in st.session_state:
-    st.session_state.ml_clf = Pipeline([("scaler", RobustScaler()), ("clf", GradientBoostingClassifier(n_estimators=200, random_state=42))])
-    st.session_state.ml_reg = Pipeline([("scaler", RobustScaler()), ("reg", GradientBoostingRegressor(n_estimators=150, random_state=42))])
-if "ml_trained_count" not in st.session_state: st.session_state.ml_trained_count = 0
+defaults = {
+    "history": load_history(),
+    "last": None,
+    "ml_clf": None,
+    "ml_reg": None,
+    "ml_trained_count": 0,
+}
+for k, v in defaults.items():
+    if k not in st.session_state:
+        st.session_state[k] = v
 
-def try_train_ml(history):
-    labeled = [h for h in history if h.get("real_result") in ["win", "loss"] and "features" in h]
-    if len(labeled) < 3: return False
+def get_or_build_models():
+    clf, reg = load_models()
+    if clf is None or reg is None:
+        st.session_state.ml_clf = Pipeline([
+            ("scaler", RobustScaler()),
+            ("clf", GradientBoostingClassifier(
+                n_estimators=300, max_depth=6,
+                learning_rate=0.06, subsample=0.9, random_state=42
+            ))
+        ])
+        st.session_state.ml_reg = Pipeline([
+            ("scaler", RobustScaler()),
+            ("reg", GradientBoostingRegressor(
+                n_estimators=250, max_depth=5,
+                learning_rate=0.08, subsample=0.9, random_state=42
+            ))
+        ])
+    else:
+        st.session_state.ml_clf = clf
+        st.session_state.ml_reg = reg
+
+get_or_build_models()
+
+def try_train_x3_ml(history):
+    """Progressive X3+ ML training"""
+    labeled = [h for h in history if h.get("x3_hit") is not None and h.get("features")]
+    if len(labeled) < 3:
+        return False
+
     X = np.array([h["features"] for h in labeled])
-    y_clf = np.array([1 if h["real_result"] == "win" else 0 for h in labeled])
-    y_reg = np.array([h.get("real_cote", h["moy_val"]) for h in labeled])
+    y_clf = np.array([1 if h["x3_hit"] else 0 for h in labeled])
+    y_reg = np.array([h.get("real_cote", 3.0) if h["x3_hit"] else 1.5 for h in labeled])
+
     try:
         st.session_state.ml_clf.fit(X, y_clf)
         st.session_state.ml_reg.fit(X, y_reg)
         st.session_state.ml_trained_count = len(labeled)
+        save_models(st.session_state.ml_clf, st.session_state.ml_reg)
         return True
-    except: return False
+    except Exception:
+        return False
 
-# ===================== ENGINE COSMOS =====================
-def run_engine_cosmos(h_in, t_in, last_cote):
+# ===================== X3+ LASER ENGINE =====================
+def run_x3_laser_engine(h_in, t_in, last_cote):
+    # --- Hash entropy ---
     h_hex = hashlib.sha256(h_in.encode()).hexdigest()
     h_num = int(h_hex[:48], 16)
     np.random.seed(h_num & 0xFFFFFFFF)
 
-    base = 1.97 + (h_num % 1100) / 130
-    sigma = 0.22 - (max(1.1, last_cote) * 0.0025)
-    sims = np.random.lognormal(np.log(base), sigma, 100_000)
+    # --- X3+ FOCUSED SIMULATION 150k ---
+    base = 2.05 + (h_num % 1300) / 140
+    last_cote_adj = max(1.1, last_cote)
+    
+    # Lower sigma = more concentrated around mean (better X3+ prediction)
+    sigma = 0.19 - (last_cote_adj * 0.0022)
+    
+    sims = np.random.lognormal(np.log(base), sigma, 150_000)
 
-    prob_x3 = round(float(np.mean(sims >= 3.0)) * 100, 1)
-    moy, maxv, minv = round(float(np.mean(sims)), 2), round(float(np.percentile(sims, 97.5)), 2), round(float(np.percentile(sims, 2.5)), 2)
-    win_s, loss_s, mode, win_rate = get_streak_info(st.session_state.history)
-    mode_val = {"hot": 1, "cold": -1, "neutral": 0}[mode]
+    # X3+ probability (main metric)
+    prob_x3 = round(float(np.mean(sims >= 3.0)) * 100, 2)
     
-    volatility = round(float(np.std([h.get("moy_val", 2.5) for h in st.session_state.history[-20:]])) if len(st.session_state.history) >= 3 else 1.2, 2)
-    conf = round(max(48, min(99, prob_x3*0.7 + moy*22 + (h_num%220)/3.5 + last_cote*13.5 + win_rate*15 + mode_val*4)), 1)
+    # X3+ sub-categories
+    prob_x3_5 = round(float(np.mean(sims >= 3.5)) * 100, 2)
+    prob_x4   = round(float(np.mean(sims >= 4.0)) * 100, 2)
+    prob_x5   = round(float(np.mean(sims >= 5.0)) * 100, 2)
     
-    features = [prob_x3, conf, moy, maxv-minv, last_cote, win_s, loss_s, volatility, win_rate*100, mode_val]
-    ai_score = round(conf * 0.92, 1)
+    # Count X3+ hits in simulation
+    sim_x3_count = int(np.sum(sims >= 3.0))
+    
+    moy   = round(float(np.mean(sims)), 2)
+    maxv  = round(float(np.percentile(sims, 98.0)), 2)
+    minv  = round(float(np.percentile(sims, 2.0)), 2)
+    spread = round(maxv - minv, 2)
+
+    # --- X3+ streak analysis ---
+    x3_hits, x3_misses, x3_mode, x3_rate = get_x3_streak_info(st.session_state.history)
+    mode_val = {"x3_hot": 2, "neutral": 0, "x3_cold": -2}[x3_mode]
+
+    # --- Volatility (X3+ focused - 25 window) ---
+    recent_x3_probs = [h.get("x3_prob", 30) for h in st.session_state.history[-25:]]
+    volatility = round(float(np.std(recent_x3_probs)) if len(recent_x3_probs) >= 3 else 8.0, 2)
+
+    # --- X3+ CONFIDENCE (heavily weighted toward X3+ prob) ---
+    conf_x3 = round(max(35, min(99,
+        prob_x3 * 1.20 +           # ðŸŽ¯ MAIN: X3+ probability weighted 120%
+        prob_x3_5 * 0.40 +         # Bonus for higher X3+
+        prob_x4 * 0.25 +
+        x3_rate * 35 +             # Historical X3+ rate
+        mode_val * 8 +             # Hot/cold streak
+        (h_num % 180) / 4.5 -
+        volatility * 1.8 +
+        last_cote_adj * 6
+    )), 2)
+
+    # --- Features for X3+ ML ---
+    features = build_x3_features(prob_x3, conf_x3, moy, spread, last_cote_adj, 
+                                  x3_hits, x3_misses, volatility, x3_rate, mode_val, sim_x3_count)
+
+    # --- X3+ AI score (ML trained specifically on X3+ hits) ---
+    ai_x3_score = round(conf_x3 * 0.94, 2)
+    ml_used = False
     if st.session_state.ml_trained_count >= 3:
         try:
-            X_in = np.array(features).reshape(1, -1)
-            ai_score = round(0.65*st.session_state.ml_clf.predict_proba(X_in)[0][1]*100 + 0.35*conf, 1)
-        except: pass
+            X = np.array(features).reshape(1, -1)
+            prob_ml = float(st.session_state.ml_clf.predict_proba(X)[0][1]) * 100
+            reg_ml  = float(st.session_state.ml_reg.predict(X)[0])
+            
+            # Heavily weight ML prediction for X3+
+            ai_x3_score = round(0.70 * prob_ml + 0.20 * (reg_ml * 20) + 0.10 * conf_x3, 2)
+            ml_used = True
+        except Exception:
+            pass
 
-    strength = max(40, min(99, prob_x3*0.3 + ai_score*0.3 + conf*0.2 + win_rate*25 + mode_val*6))
-    a_min, a_moy, a_max = get_adaptive_cashout(st.session_state.history, minv, moy, maxv)
+    # --- X3+ STRENGTH (laser-focused on X3+ probability) ---
+    strength_x3 = round(
+        prob_x3 * 0.50 +           # ðŸŽ¯ 50% weight on X3+ prob
+        ai_x3_score * 0.30 +       # 30% AI
+        conf_x3 * 0.15 +           # 15% confidence
+        x3_rate * 40 +             # X3+ hit rate
+        mode_val * 10 -            # Streak bonus
+        volatility * 2.5 +
+        (sim_x3_count / 1500),     # Normalized sim X3+ count
+    2)
+    strength_x3 = max(30.0, min(99.0, strength_x3))
 
-    try: bt = datetime.combine(get_time().date(), datetime.strptime(t_in.strip(), "%H:%M:%S").time())
-    except: bt = get_time()
-    
-    f_sec = max(18, min(99, 18 + (h_num%55) + (int(h_hex[:20],16)%80-40) + int(volatility*5.5) + (28 if strength>88 else 12)))
+    # --- Adaptive X3+ target ---
+    x3_target = get_adaptive_x3_target(st.session_state.history)
+
+    # --- Safe & Max targets ---
+    safe_target = round(minv * 1.15, 2)  # 15% above min
+    max_target  = round(np.percentile(sims[sims >= 3.0], 70) if np.any(sims >= 3.0) else 4.5, 2)
+
+    # --- Dynamic entry time (X3+ optimized) ---
+    try:
+        bt = datetime.combine(get_time().date(), datetime.strptime(t_in.strip(), "%H:%M:%S").time())
+    except Exception:
+        bt = get_time()
+
+    hash_shift = (int(h_hex[:20], 16) % 90) - 45
+    vol_adj    = int(volatility * 0.8)
+    str_bonus  = 35 if strength_x3 > 90 else 26 if strength_x3 > 78 else 18
+    x3_adj     = 8 if x3_mode == "x3_hot" else -5 if x3_mode == "x3_cold" else 0
+
+    final_sec = max(20, min(110, 22 + (h_num % 60) + hash_shift + vol_adj + str_bonus + x3_adj))
+    entry = (bt + timedelta(seconds=final_sec)).strftime("%H:%M:%S")
+
+    # --- X3+ SIGNAL classification (ultra strict) ---
+    if strength_x3 >= 88 and prob_x3 >= 42:
+        signal     = "ðŸ’ŽðŸ’ŽðŸ’Ž ULTRA X3+ LASER â€” BUY NOW"
+        sig_class  = "sig-ultra-x3"
+        confidence_label = "EXTREME"
+    elif strength_x3 >= 75 and prob_x3 >= 35:
+        signal     = "ðŸ”¥ðŸ”¥ STRONG X3+ TARGET â€” ENGAGE"
+        sig_class  = "sig-strong-x3"
+        confidence_label = "HIGH"
+    elif strength_x3 >= 60 and prob_x3 >= 28:
+        signal     = "ðŸŽ¯ MODERATE X3+ â€” WATCH CLOSE"
+        sig_class  = "sig-moderate-x3"
+        confidence_label = "MODERATE"
+    else:
+        signal     = "âš ï¸ LOW X3+ â€” SKIP OR MICRO BET"
+        sig_class  = "sig-moderate-x3"
+        confidence_label = "LOW"
+
+    # --- X3+ distribution histogram (focused 1Ã— â†’ 6Ã—) ---
+    buckets = np.histogram(sims, bins=25, range=(1.0, 6.0))[0]
+    hist_data = [int(b) for b in buckets]
+
     res = {
-        "entry": (bt + timedelta(seconds=f_sec)).strftime("%H:%M:%S"),
-        "signal": "💎 ULTRA LOCK" if strength > 88 else "🔥 STRONG TARGET" if strength > 76 else "🟢 GOOD WATCH",
-        "sig_class": "sig-ultra" if strength > 88 else "sig-strong" if strength > 76 else "sig-good",
-        "x3_prob": prob_x3, "conf": conf, "ai_score": ai_score, "min": a_min, "moy": a_moy, "max": a_max,
-        "strength": strength, "win_rate": round(win_rate*100, 1), "features": features, "real_result": None, "moy_val": moy
-    }
-    st.session_state.history.append(res)
-    return res
-
-# ===================== INTERFACE =====================
-st.markdown("<div class='main-title'>JETX COSMOS</div>", unsafe_allow_html=True)
-st.markdown("<div class='subtitle'>V 1 6 . 0 • ULTRA COSMOS • ADAPTIVE AI</div>", unsafe_allow_html=True)
-
-col_input, col_result = st.columns([1, 2], gap="large")
-
-with col_input:
-    st.markdown("<div class='glass'>", unsafe_allow_html=True)
-    h_in = st.text_input("HASH", placeholder="Hash complet...")
-    t_in = st.text_input("TIME", placeholder="HH:MM:SS")
-    last_cote = st.number_input("LAST COTE", value=2.50, step=0.1)
-    if st.button("🚀 LANCER COSMOS", use_container_width=True):
-        if h_in and t_in:
-            st.session_state.last = run_engine_cosmos(h_in, t_in, last_cote)
-            st.rerun()
-    
-    n_t = st.session_state.ml_trained_count
-    st.markdown(f"<div class='alert-cosmos'>{'🤖 IA Active: ' + str(n_t) + ' rounds' if n_t >= 3 else '📡 IA: En attente de ' + str(3-n_t) + ' rounds'}</div>", unsafe_allow_html=True)
-    
-    if st.session_state.history:
-        labeled = [h for h in st.session_state.history if h["real_result"]]
-        if labeled:
-            w = sum(1 for h in labeled if h["real_result"]=="win")
-            wr = round(w/len(labeled)*100, 1)
-            st.markdown(f"""
-            <div style='display:flex; gap:10px; margin-top:15px;'>
-                <div style='flex:1; background:rgba(0,255,136,0.1); padding:10px; border-radius:10px; text-align:center;'>
-                    <b style='color:#00ff88; font-size:1.2rem;'>{w}</b><br><small>WINS</small>
-                </div>
-                <div style='flex:1; background:rgba(168,85,247,0.1); padding:10px; border-radius:10px; text-align:center;'>
-                    <b style='color:#a855f7; font-size:1.2rem;'>{wr}%</b><br><small>RATE</small>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-    st.markdown("</div>", unsafe_allow_html=True)
-
-with col_result:
-    if st.session_state.last:
-        r = st.session_state.last
-        st.markdown(f"""
-        <div class="glass-signal">
-            <div class="sec-lbl">▸ Signal Détécté</div>
-            <div class="{r['sig_class']}">{r['signal']}</div>
-            <div class="entry-time">{r['entry']}</div>
-            <div style="display:flex; justify-content:space-between; font-size:0.9rem;">
-                <span>STRENGTH: {r['strength']}%</span>
-                <span>WIN RATE: {r['win_rate']}%</span>
-            </div>
-            <div class="strength-track"><div class="strength-fill" style="width:{r['strength']}%"></div></div>
-        </div>
-        """, unsafe_allow_html=True)
-
-        m1, m2, m3 = st.columns(3)
-        with m1: st.markdown(f'<div class="metric-min"><div class="metric-val" style="color:#00ff88;">{r["min"]}</div><div class="metric-lbl">SAFE</div></div>', unsafe_allow_html=True)
-        with m2: st.markdown(f'<div class="metric-moy"><div class="metric-val" style="color:#ffd700;">{r["moy"]}</div><div class="metric-lbl">MOYEN</div></div>', unsafe_allow_html=True)
-        with m3: st.markdown(f'<div class="metric-max"><div class="metric-val" style="color:#ff3366;">{r["max"]}</div><div class="metric-lbl">ULTRA</div></div>', unsafe_allow_html=True)
-
-        v1, v2 = st.columns(2)
-        if v1.button("✅ WIN", use_container_width=True):
-            st.session_state.history[-1]["real_result"] = "win"
-            try_train_ml(st.session_state.history)
-            st.rerun()
-        if v2.button("❌ LOSS", use_container_width=True):
-            st.session_state.history[-1]["real_result"] = "loss"
-            try_train_ml(st.session_state.history)
-            st.rerun()
-
-st.markdown("---")
-if st.session_state.history:
-    st.markdown("### 📜 Historique des Signaux")
-    st.dataframe(pd.DataFrame(st.session_state.history)[::-1], use_container_width=True)
+        "timestamp": get_time().isoformat(),
+        "entry": entry,
+        "signal": signal,
+        "sig_class": sig_class,
+        "confidence_label": confidence_label,
+        
+        # X3+ core metrics
+        "x3_prob": prob_x3,
+        "x3_5_prob": prob_x3_5,
+        "x4_prob": prob_x4,
+        "x5_prob": prob_x5,
+        
+        "conf_x3": conf_x3,
+        "ai_x3_score": ai_x3_score,
+        "strength_x3": strength_x3,
+        
+        # Targets
+        "safe_target": safe_target,
+        "x3_target": x3_target,
+        "max_target": max_target,
+        
+        # Support
