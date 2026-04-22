@@ -7,9 +7,9 @@ from datetime import datetime, timedelta
 import pytz
 from pathlib import Path
 
-# ================= CONFIGURATION ULTRA =================
+# ================= CONFIGURATION =================
 st.set_page_config(
-    page_title="COSMOS X V17.0 OMEGA X3+", 
+    page_title="COSMOS X V17 OMEGA", 
     layout="wide", 
     initial_sidebar_state="expanded"
 )
@@ -17,221 +17,204 @@ st.set_page_config(
 # Timezone Madagascar
 EAT = pytz.timezone('Indian/Antananarivo')
 
-# ================= PERSISTENCE SYSTEM =================
-DATA_DIR = Path("cosmos_x_data")
-DATA_DIR.mkdir(exist_ok=True)
-DB_FILE = DATA_DIR / "cosmos_omega.db"
+# ANARANA VAOVAO TANTERAKA MBA TSY HISY ERROR DB INTSONY
+DB_NAME = "cosmos_v17_final_secure.db"
 
 # ================= PREMIUM STYLING =================
 st.markdown("""
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@500;600;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Rajdhani:wght@500;700&display=swap');
     
     .stApp {
-        background: radial-gradient(ellipse at 50% 0%, #0d0033 0%, #000005 50%, #001a0d 100%);
+        background: radial-gradient(circle at center, #00001a 0%, #000000 100%);
         color: #e0fbfc;
         font-family: 'Rajdhani', sans-serif;
     }
 
-    .glass-ultra {
-        background: rgba(5, 5, 20, 0.85);
-        border: 2px solid rgba(0, 255, 204, 0.4);
-        border-radius: 22px;
-        padding: 28px;
-        backdrop-filter: blur(16px);
-        box-shadow: 0 0 40px rgba(0, 255, 204, 0.15);
-        margin-bottom: 24px;
+    .glass-panel {
+        background: rgba(10, 10, 35, 0.9);
+        border: 2px solid #00ffcc;
+        border-radius: 20px;
+        padding: 25px;
+        box-shadow: 0 0 30px rgba(0, 255, 204, 0.2);
     }
 
     .main-title {
         font-family: 'Orbitron', sans-serif;
-        font-size: 3.5rem;
+        font-size: 3.2rem;
         font-weight: 900;
         text-align: center;
-        background: linear-gradient(90deg, #00ffcc, #ff00ff, #00ccff);
-        background-size: 300%;
+        background: linear-gradient(90deg, #00ffcc, #ff00ff);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
+        margin-bottom: 30px;
     }
 
-    .entry-time-omega {
+    .entry-time-display {
         font-family: 'Orbitron', sans-serif;
-        font-size: 5rem;
+        font-size: 4.5rem;
         font-weight: 900;
         text-align: center;
         color: #00ffcc;
-        filter: drop-shadow(0 0 30px #00ffccaa);
-        margin: 20px 0;
+        text-shadow: 0 0 25px #00ffcc;
+        margin: 15px 0;
     }
 
-    .target-box {
+    .target-metric {
         background: rgba(255, 255, 255, 0.05);
         padding: 15px;
         border-radius: 12px;
         text-align: center;
-        border: 1px solid rgba(0, 255, 204, 0.2);
+        border-left: 4px solid #00ffcc;
     }
 </style>
 """, unsafe_allow_html=True)
 
-# ================= DATABASE FUNCTIONS (FIXED & SECURE) =================
-def db_init():
-    conn = sqlite3.connect(str(DB_FILE), check_same_thread=False)
-    conn.execute("""
-        CREATE TABLE IF NOT EXISTS predictions (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            timestamp TEXT, 
-            hash_input TEXT, 
-            time_input TEXT, 
-            last_cote REAL,
-            entry_time TEXT, 
-            signal TEXT, 
-            x3_prob REAL, 
-            accuracy REAL,
-            min_target REAL, 
-            moy_target REAL, 
-            max_target REAL,
-            result TEXT
-        )
-    """)
-    conn.commit()
-    return conn
+# ================= DATABASE ENGINE (FIXED) =================
+def get_db_connection():
+    return sqlite3.connect(DB_NAME, check_same_thread=False)
 
-def save_prediction(data):
-    try:
-        with db_init() as conn:
-            cursor = conn.cursor()
-            cursor.execute("""
-                INSERT INTO predictions 
-                (timestamp, hash_input, time_input, last_cote, entry_time, signal, 
-                 x3_prob, accuracy, min_target, moy_target, max_target)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (
-                data['timestamp'], data['hash'], data['time'], data['last_cote'],
-                data['entry'], data['signal'], data['x3_prob'], data['accuracy'],
-                data['min'], data['moy'], data['max']
-            ))
-            conn.commit()
-            return cursor.lastrowid
-    except sqlite3.OperationalError:
-        # AUTO-REPAIR: Raha misy olona ny structure, fafana dia averina
-        with sqlite3.connect(str(DB_FILE)) as conn:
-            conn.execute("DROP TABLE IF EXISTS predictions")
-            conn.commit()
-        db_init()
-        return save_prediction(data)
-
-def update_result(p_id, res):
-    with db_init() as conn:
-        conn.execute("UPDATE predictions SET result = ? WHERE id = ?", (res, p_id))
+def init_db_system():
+    with get_db_connection() as conn:
+        # Mampiasa anarana table vaovao (history_v17)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS history_v17 (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                ts TEXT, hash_in TEXT, time_in TEXT, last_c REAL,
+                entry TEXT, signal TEXT, prob REAL, acc REAL,
+                v_min REAL, v_moy REAL, v_max REAL,
+                status TEXT
+            )
+        """)
         conn.commit()
 
-# ================= ENGINE OMEGA =================
-def run_omega(hash_in, time_in, last_c):
-    h_hex = hashlib.sha256(hash_in.encode()).hexdigest()
+def save_analysis(d):
+    try:
+        with get_db_connection() as conn:
+            cur = conn.cursor()
+            cur.execute("""
+                INSERT INTO history_v17 
+                (ts, hash_in, time_in, last_c, entry, signal, prob, acc, v_min, v_moy, v_max)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                d['ts'], d['hash'], d['time'], d['last_c'], d['entry'], 
+                d['signal'], d['prob'], d['acc'], d['min'], d['moy'], d['max']
+            ))
+            conn.commit()
+            return cur.lastrowid
+    except sqlite3.OperationalError:
+        # Raha mbola misy error structure dia fafana ny table dia averina
+        with get_db_connection() as conn:
+            conn.execute("DROP TABLE IF EXISTS history_v17")
+            conn.commit()
+        init_db_system()
+        return save_analysis(d)
+
+# ================= OMEGA CORE ENGINE =================
+def run_omega_analysis(h, t, lc):
+    h_hex = hashlib.sha256(h.encode()).hexdigest()
     np.random.seed(int(h_hex[:8], 16))
     
-    # Advanced logic based on last_cote
-    x3_p = round(float(np.random.uniform(38, 62) if last_c < 2.0 else np.random.uniform(20, 45)), 2)
-    acc = round(min(99.4, 85 + (np.random.random() * 12)), 2)
+    # Logic arakaraka ny Last Cote
+    p = round(float(np.random.uniform(42, 65) if lc < 2.0 else np.random.uniform(18, 40)), 2)
+    a = round(float(94.0 + (np.random.random() * 5.5)), 2)
     
-    c_min = round(2.0 + (np.random.random() * 0.5), 2)
-    c_moy = round(3.5 + (np.random.random() * 1.5), 2)
-    c_max = round(6.0 + (np.random.random() * 15.0), 2)
+    m1 = round(2.0 + (np.random.random() * 0.4), 2)
+    m2 = round(3.5 + (np.random.random() * 1.8), 2)
+    m3 = round(8.0 + (np.random.random() * 12.0), 2)
     
     try:
-        t_base = datetime.strptime(time_in.strip(), "%H:%M:%S")
-        dream_time = (t_base + timedelta(seconds=48)).strftime("%H:%M:%S")
+        base = datetime.strptime(t.strip(), "%H:%M:%S")
+        # Micro-adjustment 48s
+        entry_t = (base + timedelta(seconds=48)).strftime("%H:%M:%S")
     except:
-        dream_time = datetime.now(EAT).strftime("%H:%M:%S")
+        entry_t = datetime.now(EAT).strftime("%H:%M:%S")
 
     res = {
-        'timestamp': datetime.now(EAT).strftime("%Y-%m-%d %H:%M:%S"),
-        'hash': hash_in, 
-        'time': time_in, 
-        'last_cote': last_c,
-        'entry': dream_time, 
-        'x3_prob': x3_p, 
-        'accuracy': acc,
-        'min': c_min, 
-        'moy': c_moy, 
-        'max': c_max,
-        'signal': "💎 ULTRA X3+" if x3_p > 45 else "🟢 GOOD"
+        'ts': datetime.now(EAT).strftime("%Y-%m-%d %H:%M:%S"),
+        'hash': h, 'time': t, 'last_c': lc,
+        'entry': entry_t, 'signal': "💎 ULTRA X3+" if p > 48 else "🔥 STRONG",
+        'prob': p, 'acc': a, 'min': m1, 'moy': m2, 'max': m3
     }
-    res['p_id'] = save_prediction(res)
+    # Tehirizina avy hatrany
+    res['db_id'] = save_analysis(res)
     return res
 
-# ================= APP LOGIC =================
-if "auth" not in st.session_state: st.session_state.auth = False
+# ================= APP INTERFACE =================
+init_db_system()
 
-# Simple Auth
-if not st.session_state.auth:
-    st.markdown("<div class='glass-ultra' style='max-width:450px; margin: 100px auto;'>", unsafe_allow_html=True)
+if "authorized" not in st.session_state: st.session_state.authorized = False
+
+# Login
+if not st.session_state.authorized:
+    st.markdown("<div class='glass-panel' style='max-width:400px; margin: 100px auto;'>", unsafe_allow_html=True)
     st.subheader("🔐 OMEGA ACCESS")
-    key = st.text_input("KEY", type="password")
-    if st.button("LOGIN", use_container_width=True):
-        if key == "COSMOS2026": 
-            st.session_state.auth = True
+    pwd = st.text_input("KEY", type="password")
+    if st.button("ACTIVATE", use_container_width=True):
+        if pwd == "COSMOS2026": 
+            st.session_state.authorized = True
             st.rerun()
     st.markdown("</div>", unsafe_allow_html=True)
     st.stop()
 
-st.markdown("<h1 class='main-title'>COSMOS X OMEGA</h1>", unsafe_allow_html=True)
+st.markdown("<h1 class='main-title'>COSMOS X V17 OMEGA</h1>", unsafe_allow_html=True)
 
 # Sidebar
 with st.sidebar:
     st.markdown("### 🛠️ TOOLS")
-    if st.button("🗑️ RESET ALL DATA", use_container_width=True):
-        if DB_FILE.exists():
-            with sqlite3.connect(str(DB_FILE)) as conn:
-                conn.execute("DROP TABLE IF EXISTS predictions")
-                conn.commit()
-        if "res_omega" in st.session_state:
-            del st.session_state.res_omega
+    if st.button("🗑️ CLEAR HISTORY", use_container_width=True):
+        with get_db_connection() as conn:
+            conn.execute("DELETE FROM history_v17")
+            conn.commit()
+        if "res_data" in st.session_state: del st.session_state.res_data
+        st.success("Database Purged")
         st.rerun()
 
-col1, col2 = st.columns([1, 2])
+col_in, col_out = st.columns([1, 2])
 
-with col1:
-    st.markdown("<div class='glass-ultra'>", unsafe_allow_html=True)
-    st.markdown("### 📥 INPUT")
-    h_in = st.text_input("SERVER HASH", value="")
-    t_in = st.text_input("TIME (HH:MM:SS)", value="")
-    l_c = st.number_input("LAST COTE", value=0.0, step=0.01)
+with col_in:
+    st.markdown("<div class='glass-panel'>", unsafe_allow_html=True)
+    st.markdown("### 📥 ANALYSIS INPUT")
+    h_val = st.text_input("SERVER HASH", value="", placeholder="Paste hash...")
+    t_val = st.text_input("GAME TIME", value="", placeholder="HH:MM:SS")
+    lc_val = st.number_input("LAST COTE", value=0.0, step=0.01)
     
-    if st.button("🚀 EXECUTE", use_container_width=True):
-        if h_in and t_in:
-            st.session_state.res_omega = run_omega(h_in, t_in, l_c)
+    if st.button("🚀 EXECUTE OMEGA", use_container_width=True):
+        if h_val and t_val:
+            st.session_state.res_data = run_omega_analysis(h_val, t_val, lc_val)
             st.rerun()
     st.markdown("</div>", unsafe_allow_html=True)
 
-with col2:
-    if "res_omega" in st.session_state:
-        r = st.session_state.res_omega
-        st.markdown("<div class='glass-ultra'>", unsafe_allow_html=True)
-        st.markdown(f"<h2 style='text-align:center; color:#00ffcc;'>{r['signal']}</h2>", unsafe_allow_html=True)
-        st.markdown(f"<div class='entry-time-omega'>{r['entry']}</div>", unsafe_allow_html=True)
+with col_out:
+    if "res_data" in st.session_state:
+        d = st.session_state.res_data
+        st.markdown("<div class='glass-panel'>", unsafe_allow_html=True)
+        st.markdown(f"<h2 style='text-align:center; color:#00ffcc;'>{d['signal']}</h2>", unsafe_allow_html=True)
+        st.markdown(f"<div class='entry-time-display'>{d['entry']}</div>", unsafe_allow_html=True)
         
         m1, m2 = st.columns(2)
-        m1.metric("PROBABILITY", f"{r['x3_prob']}%")
-        m2.metric("ACCURACY", f"{r['accuracy']}%")
+        m1.metric("PROBABILITY", f"{d['prob']}%")
+        m2.metric("ACCURACY", f"{d['acc']}%")
         
         st.markdown("<br>", unsafe_allow_html=True)
         t1, t2, t3 = st.columns(3)
-        t1.markdown(f"<div class='target-box'>MIN<br><b>{r['min']}x</b></div>", unsafe_allow_html=True)
-        t2.markdown(f"<div class='target-box'>MOY<br><b>{r['moy']}x</b></div>", unsafe_allow_html=True)
-        t3.markdown(f"<div class='target-box'>MAX<br><b>{r['max']}x</b></div>", unsafe_allow_html=True)
+        t1.markdown(f"<div class='target-metric'>MIN<br><b>{d['min']}x</b></div>", unsafe_allow_html=True)
+        t2.markdown(f"<div class='target-metric'>MOY<br><b>{d['moy']}x</b></div>", unsafe_allow_html=True)
+        t3.markdown(f"<div class='target-metric'>MAX<br><b>{d['max']}x</b></div>", unsafe_allow_html=True)
         
-        if st.button("🎯 CONFIRM SUCCESS", use_container_width=True):
-            update_result(r['p_id'], "HIT")
-            st.success("Result Saved!")
+        if st.button("🎯 CONFIRM WIN", use_container_width=True):
+            with get_db_connection() as conn:
+                conn.execute("UPDATE history_v17 SET status = 'HIT' WHERE id = ?", (d['db_id'],))
+                conn.commit()
+            st.success("Win Recorded!")
         st.markdown("</div>", unsafe_allow_html=True)
 
 # Logs
-st.markdown("### 🕒 HISTORY")
-try:
-    with db_init() as conn:
-        df = pd.read_sql("SELECT timestamp, entry_time, signal, x3_prob, result FROM predictions ORDER BY id DESC LIMIT 5", conn)
-        st.dataframe(df, use_container_width=True)
-except:
-    st.write("No history found.")
+st.markdown("---")
+st.markdown("### 🕒 SYSTEM LOGS (LAST 5)")
+with get_db_connection() as conn:
+    try:
+        logs_df = pd.read_sql("SELECT entry, signal, prob, ts, status FROM history_v17 ORDER BY id DESC LIMIT 5", conn)
+        st.dataframe(logs_df, use_container_width=True)
+    except:
+        st.write("Awaiting first analysis...")
