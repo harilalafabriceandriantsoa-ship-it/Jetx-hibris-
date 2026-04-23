@@ -5,62 +5,304 @@ import pandas as pd
 from datetime import datetime, timedelta
 import pytz
 import json
-import os
 from pathlib import Path
 
 # ===================== PERSISTENCE SYSTEM =====================
-BASE_DIR = Path(__file__).parent
-DATA_DIR = BASE_DIR / "data_storage"
-DATA_DIR.mkdir(exist_ok=True, parents=True)
+try:
+    BASE_DIR = Path(__file__).parent
+except:
+    BASE_DIR = Path.cwd()
 
-HISTORY_FILE = DATA_DIR / "history.json"
+DATA_DIR = BASE_DIR / "jetx_data_v18"
+DATA_DIR.mkdir(exist_ok=True, parents=True)
+HISTORY_FILE = DATA_DIR / "history_v18.json"
 
 def save_history(history):
     try:
-        with open(HISTORY_FILE, 'w') as f:
-            json.dump(history, f, indent=2)
-    except:
-        pass
+        with open(HISTORY_FILE, 'w', encoding='utf-8') as f:
+            json.dump(history, f, indent=2, ensure_ascii=False)
+    except Exception as e:
+        st.warning(f"Sauvegarde: {e}")
 
 def load_history():
     try:
         if HISTORY_FILE.exists():
-            with open(HISTORY_FILE, 'r') as f:
+            with open(HISTORY_FILE, 'r', encoding='utf-8') as f:
                 return json.load(f)
     except:
-        return []
+        pass
     return []
 
-# ===================== CONFIG & STYLE =====================
-st.set_page_config(page_title="JETX X3+ LASER V16.1", layout="wide")
+# ===================== CONFIG =====================
+st.set_page_config(
+    page_title="JETX ULTRA V18.0 X3+", 
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
 EAT = pytz.timezone("Indian/Antananarivo")
 
+# ===================== CSS ULTRA PUISSANT =====================
 st.markdown("""
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@500;700&display=swap');
-    .stApp { background: #000008; color: #e0fbfc; font-family: 'Rajdhani', sans-serif; }
+    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@500;600;700&display=swap');
+    
+    .stApp {
+        background: radial-gradient(ellipse at 50% 0%, #1a0033 0%, #000008 60%, #001a1a 100%);
+        color: #e0fbfc;
+        font-family: 'Rajdhani', sans-serif;
+    }
+    
+    /* Animated background */
+    .stApp::before {
+        content: '';
+        position: fixed;
+        top: 0; left: 0;
+        width: 100%; height: 100%;
+        background-image:
+            radial-gradient(2px 2px at 20% 30%, #ff006688, transparent),
+            radial-gradient(1px 1px at 80% 10%, #00ffcc44, transparent),
+            radial-gradient(1.5px 1.5px at 50% 60%, #ff006633, transparent);
+        background-size: 500px 500px, 400px 400px, 300px 300px;
+        animation: stars-move 60s linear infinite;
+        pointer-events: none;
+        z-index: 0;
+    }
+    
+    @keyframes stars-move {
+        from { background-position: 0 0, 0 0, 0 0; }
+        to { background-position: 500px 500px, -400px 400px, 300px -300px; }
+    }
+    
     .main-title {
-        font-family: 'Orbitron'; font-size: 3rem; text-align: center;
-        background: linear-gradient(90deg, #ff0066, #00ffcc);
-        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-        margin-bottom: 10px;
-    }
-    .glass-card {
-        background: rgba(20, 0, 40, 0.8);
-        border: 1px solid #ff0066;
-        border-radius: 15px; padding: 20px;
-        margin-bottom: 20px;
-        box-shadow: 0 0 15px rgba(255, 0, 102, 0.2);
-    }
-    .entry-time {
-        font-family: 'Orbitron'; font-size: 4rem; color: #ff0066;
-        text-align: center; text-shadow: 0 0 30px #ff0066;
-    }
-    .metric-container {
-        background: rgba(255, 255, 255, 0.05);
-        border-radius: 10px;
-        padding: 10px;
+        font-family: 'Orbitron', sans-serif;
+        font-size: 4rem;
+        font-weight: 900;
         text-align: center;
+        background: linear-gradient(90deg, #ff0066, #ff3399, #00ffcc, #ff0066);
+        background-size: 300%;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        animation: title-glow 4s ease infinite;
+        margin-bottom: 0;
+    }
+    
+    @keyframes title-glow {
+        0%, 100% { background-position: 0%; filter: drop-shadow(0 0 20px #ff006688); }
+        50% { background-position: 100%; filter: drop-shadow(0 0 40px #00ffccaa); }
+    }
+    
+    .subtitle {
+        text-align: center;
+        color: #ff006699;
+        font-family: 'Orbitron', sans-serif;
+        font-size: 0.85rem;
+        letter-spacing: 0.5em;
+        margin-bottom: 2rem;
+        text-shadow: 0 0 15px #ff006666;
+    }
+    
+    .glass-ultra {
+        background: rgba(10, 0, 25, 0.9);
+        border: 2px solid rgba(255, 0, 102, 0.4);
+        border-radius: 20px;
+        padding: 28px;
+        backdrop-filter: blur(12px);
+        box-shadow: 
+            0 0 40px rgba(255, 0, 102, 0.15),
+            inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        margin-bottom: 24px;
+    }
+    
+    .glass-result {
+        background: rgba(5, 0, 15, 0.95);
+        border: 3px solid rgba(255, 0, 102, 0.6);
+        border-radius: 20px;
+        padding: 32px;
+        backdrop-filter: blur(16px);
+        box-shadow: 
+            0 0 60px rgba(255, 0, 102, 0.25),
+            0 0 100px rgba(0, 255, 204, 0.1);
+    }
+    
+    /* Entry Time Display */
+    .entry-time-ultra {
+        font-family: 'Orbitron', sans-serif;
+        font-size: 5rem;
+        font-weight: 900;
+        text-align: center;
+        background: linear-gradient(135deg, #ff0066, #ff3399);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        filter: drop-shadow(0 0 40px #ff0066aa);
+        letter-spacing: 0.15em;
+        margin: 24px 0;
+        animation: entry-pulse 2.5s ease-in-out infinite;
+    }
+    
+    @keyframes entry-pulse {
+        0%, 100% { filter: drop-shadow(0 0 30px #ff006688); transform: scale(1); }
+        50% { filter: drop-shadow(0 0 60px #ff0066dd); transform: scale(1.02); }
+    }
+    
+    /* Signal Badges */
+    .signal-ultra {
+        font-family: 'Orbitron', sans-serif;
+        font-size: 1.8rem;
+        font-weight: 900;
+        text-align: center;
+        color: #ff0066;
+        text-shadow: 0 0 25px #ff0066, 0 0 50px #ff0066aa;
+        letter-spacing: 0.1em;
+        margin: 16px 0;
+    }
+    
+    .signal-strong {
+        font-family: 'Orbitron', sans-serif;
+        font-size: 1.6rem;
+        font-weight: 700;
+        text-align: center;
+        color: #00ffcc;
+        text-shadow: 0 0 20px #00ffcc;
+        letter-spacing: 0.08em;
+    }
+    
+    .signal-good {
+        font-family: 'Orbitron', sans-serif;
+        font-size: 1.4rem;
+        font-weight: 700;
+        text-align: center;
+        color: #fbbf24;
+        text-shadow: 0 0 15px #fbbf24;
+    }
+    
+    /* Probability Display */
+    .x3-prob-mega {
+        font-size: 5.5rem;
+        font-weight: 900;
+        font-family: 'Orbitron', sans-serif;
+        text-align: center;
+        background: linear-gradient(135deg, #ff0066, #ff3399, #ff0066);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        filter: drop-shadow(0 0 35px #ff0066aa);
+        margin: 20px 0;
+    }
+    
+    /* Target Boxes avec Accuracy */
+    .target-box-min {
+        background: linear-gradient(135deg, rgba(0, 255, 204, 0.2), rgba(0, 200, 100, 0.1));
+        border: 2px solid rgba(0, 255, 204, 0.5);
+        border-radius: 16px;
+        padding: 20px;
+        text-align: center;
+        box-shadow: 0 0 25px rgba(0, 255, 204, 0.2);
+    }
+    
+    .target-box-moy {
+        background: linear-gradient(135deg, rgba(255, 215, 0, 0.2), rgba(255, 170, 0, 0.1));
+        border: 2px solid rgba(255, 215, 0, 0.5);
+        border-radius: 16px;
+        padding: 20px;
+        text-align: center;
+        box-shadow: 0 0 25px rgba(255, 215, 0, 0.2);
+    }
+    
+    .target-box-max {
+        background: linear-gradient(135deg, rgba(255, 51, 102, 0.25), rgba(200, 0, 60, 0.1));
+        border: 2px solid rgba(255, 51, 102, 0.6);
+        border-radius: 16px;
+        padding: 20px;
+        text-align: center;
+        box-shadow: 0 0 30px rgba(255, 51, 102, 0.25);
+    }
+    
+    .target-value {
+        font-size: 3rem;
+        font-weight: 900;
+        font-family: 'Orbitron', sans-serif;
+        margin: 8px 0;
+    }
+    
+    .target-label {
+        font-size: 0.75rem;
+        color: #ffffff88;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        margin-bottom: 4px;
+    }
+    
+    .accuracy-badge {
+        font-size: 0.9rem;
+        font-weight: 700;
+        color: #00ff88;
+        margin-top: 8px;
+    }
+    
+    /* Buttons */
+    .stButton>button {
+        background: linear-gradient(135deg, #ff0066 0%, #ff3399 100%) !important;
+        color: white !important;
+        font-weight: 900 !important;
+        font-size: 1.1rem !important;
+        border-radius: 14px !important;
+        height: 60px !important;
+        letter-spacing: 0.08em !important;
+        box-shadow: 0 0 25px rgba(255, 0, 102, 0.4) !important;
+        transition: all 0.3s !important;
+        border: none !important;
+    }
+    
+    .stButton>button:hover {
+        transform: scale(1.03);
+        box-shadow: 0 0 40px rgba(255, 0, 102, 0.6) !important;
+    }
+    
+    /* Inputs */
+    .stTextInput input, .stNumberInput input {
+        background: rgba(255, 0, 102, 0.05) !important;
+        border: 2px solid rgba(255, 0, 102, 0.3) !important;
+        color: #e0fbfc !important;
+        border-radius: 12px !important;
+        font-family: 'Rajdhani', monospace !important;
+    }
+    
+    .stTextInput input:focus, .stNumberInput input:focus {
+        border-color: rgba(255, 0, 102, 0.7) !important;
+        box-shadow: 0 0 20px rgba(255, 0, 102, 0.2) !important;
+    }
+    
+    /* Stats */
+    .stat-ultra {
+        background: rgba(255, 0, 102, 0.08);
+        border: 1px solid rgba(255, 0, 102, 0.3);
+        border-radius: 12px;
+        padding: 16px;
+        text-align: center;
+        margin: 8px 0;
+    }
+    
+    .stat-value {
+        font-size: 2rem;
+        font-weight: 900;
+        font-family: 'Orbitron', sans-serif;
+        color: #ff0066;
+    }
+    
+    .stat-label {
+        font-size: 0.7rem;
+        color: #ffffff66;
+        letter-spacing: 0.15em;
+    }
+    
+    /* Section Label */
+    .sec-label {
+        font-family: 'Orbitron', sans-serif;
+        font-size: 0.65rem;
+        letter-spacing: 0.4em;
+        color: #ff006666;
+        text-transform: uppercase;
+        margin-bottom: 10px;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -71,16 +313,43 @@ if "authenticated" not in st.session_state:
 
 if not st.session_state.authenticated:
     st.markdown("<div style='margin-top:100px;'></div>", unsafe_allow_html=True)
-    st.markdown("<div class='main-title'>X3+ LASER LOGIN</div>", unsafe_allow_html=True)
+    st.markdown("<div class='main-title'>JETX ULTRA</div>", unsafe_allow_html=True)
+    st.markdown("<div class='subtitle'>V 1 8 . 0 &nbsp; X 3 + &nbsp; P R O</div>", unsafe_allow_html=True)
+    
     col_a, col_b, col_c = st.columns([1, 1.2, 1])
     with col_b:
-        pw = st.text_input("PASSWORD", type="password", placeholder="Entrez le code d'accès...")
-        if st.button("ACTIVATE SYSTEM", use_container_width=True):
+        pw = st.text_input("ðŸ”‘ MOT DE PASSE", type="password", placeholder="Code d'accÃ¨s...")
+        if st.button("ðŸš€ ACTIVER LE SYSTÃˆME", use_container_width=True):
             if pw == "JET2026":
                 st.session_state.authenticated = True
+                st.success("âœ… SystÃ¨me activÃ©")
                 st.rerun()
             else:
-                st.error("Mot de passe incorrect")
+                st.error("âŒ Mot de passe incorrect")
+    
+    st.markdown("""
+    <div style='margin-top:40px; padding:24px; background:rgba(255,0,102,0.08); border:1px solid rgba(255,0,102,0.3); border-radius:14px; max-width:700px; margin-left:auto; margin-right:auto;'>
+        <h3 style='color:#ff0066; text-align:center; margin-bottom:20px;'>ðŸ“– FANAZAVANA MALAGASY</h3>
+        <p style='line-height:1.9; font-size:1rem;'>
+        <b>JETX ULTRA V18.0</b> = Algorithm matanjaka indrindra ho an'ny X3+<br><br>
+        
+        <b style='color:#00ffcc;'>INONA NO ILAINA?</b><br>
+        â€¢ <b>Hash:</b> Server seed avy @ casino (Provably Fair section)<br>
+        â€¢ <b>Time:</b> Ora nanombohan'ny round (format HH:MM:SS)<br>
+        â€¢ <b>Last Cote:</b> Cote tamin'ny round TALOHA (ex: 2.34)<br><br>
+        
+        <b style='color:#00ffcc;'>INONA NY RESULT?</b><br>
+        â€¢ <b>Entry Time:</b> Fotoana hidirana (ULTRA PRÃ‰CIS)<br>
+        â€¢ <b>X3+ Prob:</b> ProbabilitÃ© hahazoana 3.00Ã— na mihoatra<br>
+        â€¢ <b>3 Targets:</b> MIN (safe), MOYEN (normal), MAX (x3+)<br>
+        â€¢ <b>Accuracy:</b> Isan-jato marina isaky ny target<br><br>
+        
+        <b style='color:#ff0066;'>TSY MAINTSY TADIDIO:</b><br>
+        Aza adino ampiditra ny <b>Last Cote</b> marina satria io no manampy ny algorithm hanisa tsara!
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+    
     st.stop()
 
 # ===================== DATA INITIALIZATION =====================
@@ -90,125 +359,270 @@ if "history" not in st.session_state:
 if "last_res" not in st.session_state:
     st.session_state.last_res = None
 
-# SIDEBAR SETTINGS
+# ===================== SIDEBAR =====================
 with st.sidebar:
-    st.header("⚙️ SYSTEM TOOLS")
-    if st.button("🗑️ RESET ALL DATA"):
-        st.session_state.history = []
-        if HISTORY_FILE.exists():
-            os.remove(HISTORY_FILE)
-        st.session_state.last_res = None
-        st.success("Toutes les données ont été effacées.")
-        st.rerun()
+    st.markdown("### âš™ï¸ CONTRÃ”LES SYSTÃˆME")
+    
+    # Stats
+    if st.session_state.history:
+        total = len(st.session_state.history)
+        wins = sum(1 for h in st.session_state.history if h.get('status') == 'WIN âœ…')
+        win_rate = round(wins / total * 100, 1) if total > 0 else 0
+        
+        st.markdown(f"""
+        <div class='stat-ultra'>
+            <div class='stat-value'>{total}</div>
+            <div class='stat-label'>TOTAL ROUNDS</div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        st.markdown(f"""
+        <div class='stat-ultra'>
+            <div class='stat-value'>{win_rate}%</div>
+            <div class='stat-label'>WIN RATE</div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        col_w, col_l = st.columns(2)
+        with col_w:
+            st.metric("Wins", wins)
+        with col_l:
+            st.metric("Total", total)
+    
     st.markdown("---")
-    st.caption("JETX LASER V16.1 PRO")
+    
+    # Reset
+    if st.button("ðŸ—‘ï¸ RESET COMPLET", use_container_width=True):
+        st.session_state.history = []
+        st.session_state.last_res = None
+        try:
+            if HISTORY_FILE.exists():
+                HISTORY_FILE.unlink()
+        except:
+            pass
+        st.success("âœ… DonnÃ©es rÃ©initialisÃ©es")
+        st.rerun()
+    
+    st.markdown("---")
+    st.caption("JETX ULTRA V18.0\nX3+ PRECISION ENGINE")
 
-# ===================== ENGINE =====================
-def run_x3_engine(h_in, t_in, l_cote):
-    # Hash to Number
+# ===================== ENGINE ULTRA PUISSANT =====================
+def run_ultra_engine(h_in, t_in, last_cote):
+    """
+    JETX ULTRA V18.0 ENGINE
+    
+    AmÃ©liorations vs V16.1:
+    - 250 000 simulations (vs 100k)
+    - Sigma ultra optimisÃ© selon last_cote
+    - Hash influence + forte sur entry time
+    - Signal classification + stricte
+    - Accuracy calculation pour chaque target
+    """
+    
+    # === HASH PROCESSING ===
     h_hex = hashlib.sha256(h_in.encode()).hexdigest()
     h_num = int(h_hex[:16], 16)
     
-    # Dynamic Seeding using Hash + Last Cote
-    seed_val = int((h_num & 0xFFFFFFFF) * (l_cote * 100))
+    # Dynamic seeding ultra sÃ©curisÃ©
+    seed_val = int((h_num & 0xFFFFFFFF) + (last_cote * 1000))
     np.random.seed(seed_val % (2**32))
     
-    # Simulation Logic (Lognormal Distribution)
-    # Rehefa ambany ny l_cote, dia mampitombo kely ny volatility ny engine
-    volatility = 0.2 + (0.05 if l_cote < 1.5 else 0)
-    sims = np.random.lognormal(np.log(2.2), volatility, 100_000)
+    # === ULTRA X3+ SIMULATION 250k ===
+    # Base ajustÃ© selon last_cote
+    if last_cote < 1.5:
+        base = 2.10  # Plus haut si derniÃ¨re cote basse
+        sigma = 0.24
+    elif last_cote < 2.5:
+        base = 2.05
+        sigma = 0.21
+    elif last_cote < 3.5:
+        base = 2.00
+        sigma = 0.19  # Plus concentrÃ© si cote moyenne
+    else:
+        base = 1.95
+        sigma = 0.18  # TrÃ¨s concentrÃ© si derniÃ¨re cote haute
     
+    # Adjustment final avec hash
+    base += (h_num % 200) / 1000
+    sigma -= (last_cote * 0.002)
+    
+    # 250 000 simulations ULTRA
+    sims = np.random.lognormal(np.log(base), sigma, 250_000)
+    
+    # === X3+ PROBABILITIES ===
     prob_x3 = round(float(np.mean(sims >= 3.0)) * 100, 2)
+    prob_x3_5 = round(float(np.mean(sims >= 3.5)) * 100, 2)
+    prob_x4 = round(float(np.mean(sims >= 4.0)) * 100, 2)
     
-    # Target calculations
-    c_min = round(float(np.percentile(sims, 35)), 2)
-    c_avg = round(float(np.mean(sims)), 2)
-    c_max = round(float(np.percentile(sims, 95)), 2)
-
-    # Entry Time Calculation (Shift strategy)
+    x3_count = int(np.sum(sims >= 3.0))
+    
+    # === TARGETS AVEC ACCURACY ===
+    # MIN: Percentile 30 (70% chance d'atteindre)
+    target_min = round(float(np.percentile(sims, 30)), 2)
+    acc_min = 70.0
+    
+    # MOYEN: Percentile 50 (50% chance = mÃ©diane)
+    target_moy = round(float(np.percentile(sims, 50)), 2)
+    acc_moy = 50.0
+    
+    # MAX: Percentile 85 parmi les X3+ uniquement (rÃ©aliste)
+    sims_x3 = sims[sims >= 3.0]
+    if len(sims_x3) > 0:
+        target_max = round(float(np.percentile(sims_x3, 85)), 2)
+        acc_max = round(prob_x3 * 0.85, 1)  # 85% des X3+
+    else:
+        target_max = 3.50
+        acc_max = 10.0
+    
+    # Assurer minimum cohÃ©rent
+    target_min = max(2.00, target_min)
+    target_moy = max(2.50, target_moy)
+    target_max = max(3.00, target_max)
+    
+    # === CONFIDENCE ULTRA ===
+    conf = round(max(40, min(99,
+        prob_x3 * 1.15 +          # 115% weight sur X3+
+        prob_x3_5 * 0.40 +
+        prob_x4 * 0.25 +
+        (h_num % 200) / 3.0 +
+        last_cote * 12.0 -
+        (100 - prob_x3) * 0.30
+    )), 2)
+    
+    # === STRENGTH ===
+    strength = round(
+        prob_x3 * 0.50 +
+        conf * 0.30 +
+        prob_x3_5 * 0.15 +
+        (x3_count / 2500) +
+        (100 if prob_x3 >= 45 else 80 if prob_x3 >= 38 else 60 if prob_x3 >= 30 else 40) * 0.05
+    , 2)
+    strength = max(30.0, min(99.0, strength))
+    
+    # === ENTRY TIME ULTRA DYNAMIQUE ===
     try:
-        base_t = datetime.strptime(t_in.strip(), "%H:%M:%S")
-        # Shift eo anelanelan'ny 45 hatramin'ny 55 segondra
-        shift = 45 + (h_num % 10)
-        entry_t = (base_t + timedelta(seconds=shift)).strftime("%H:%M:%S")
+        base_t = datetime.combine(
+            datetime.now(EAT).date(),
+            datetime.strptime(t_in.strip(), "%H:%M:%S").time()
+        )
     except:
-        entry_t = datetime.now(EAT).strftime("%H:%M:%S")
-
-    res = {
+        base_t = datetime.now(EAT)
+    
+    # SHIFT ULTRA DYNAMIQUE (Hash + Strength + Last Cote)
+    hash_shift = (h_num % 90) - 45        # -45 Ã  +45
+    strength_bonus = int(strength * 0.4)   # 12 Ã  40
+    cote_factor = int(last_cote * 5)      # Impact + fort
+    prob_penalty = int((50 - prob_x3) * 0.5)  # Si prob faible = attendre
+    
+    total_shift = max(20, min(110,
+        55 + hash_shift + strength_bonus + cote_factor - prob_penalty
+    ))
+    
+    entry_time = (base_t + timedelta(seconds=total_shift)).strftime("%H:%M:%S")
+    
+    # === SIGNAL CLASSIFICATION ULTRA STRICTE ===
+    if strength >= 90 and prob_x3 >= 45:
+        signal = "ðŸ’ŽðŸ’ŽðŸ’Ž ULTRA X3+ â€” BUY MAXIMUM"
+        signal_class = "signal-ultra"
+    elif strength >= 78 and prob_x3 >= 38:
+        signal = "ðŸ”¥ðŸ”¥ STRONG X3+ â€” ENGAGE"
+        signal_class = "signal-strong"
+    elif strength >= 65 and prob_x3 >= 30:
+        signal = "ðŸŸ¢ GOOD X3+ â€” SCALP POSSIBLE"
+        signal_class = "signal-good"
+    else:
+        signal = "âš ï¸ LOW X3+ â€” SKIP OU MICRO"
+        signal_class = "signal-good"
+    
+    # === RESULT PACKAGE ===
+    result = {
         "id": h_hex[:8],
+        "timestamp": datetime.now(EAT).isoformat(),
         "time_ref": t_in,
-        "entry": entry_t,
-        "prob": prob_x3,
-        "min": max(2.5, c_min),
-        "moyen": max(3.0, c_avg),
-        "max": c_max,
-        "signal": "💎 ULTRA X3+" if prob_x3 > 44 else "🔥 STRONG X3+",
+        "last_cote_used": last_cote,
+        
+        "entry": entry_time,
+        "signal": signal,
+        "signal_class": signal_class,
+        
+        "prob_x3": prob_x3,
+        "prob_x3_5": prob_x3_5,
+        "prob_x4": prob_x4,
+        "x3_count": x3_count,
+        
+        "conf": conf,
+        "strength": strength,
+        
+        "target_min": target_min,
+        "target_moy": target_moy,
+        "target_max": target_max,
+        
+        "acc_min": acc_min,
+        "acc_moy": acc_moy,
+        "acc_max": acc_max,
+        
         "status": "PENDING"
     }
     
-    st.session_state.history.append(res)
+    st.session_state.history.append(result)
     save_history(st.session_state.history)
-    return res
+    
+    return result
 
 # ===================== UI MAIN =====================
-st.markdown("<div class='main-title'>JETX X3+ LASER</div>", unsafe_allow_html=True)
-st.markdown("<p style='text-align:center; color:#ff0066;'>V16.1 PRECISION ENGINE</p>", unsafe_allow_html=True)
+st.markdown("<div class='main-title'>JETX ULTRA</div>", unsafe_allow_html=True)
+st.markdown("<div class='subtitle'>V 1 8 . 0 &nbsp; â€¢ &nbsp; X 3 + &nbsp; â€¢ &nbsp; U L T R A &nbsp; P R Ã‰ C I S I O N</div>", unsafe_allow_html=True)
 
-col_in, col_out = st.columns([1, 2], gap="large")
+col_input, col_result = st.columns([1, 2.2], gap="large")
 
-with col_in:
-    st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
-    st.subheader("📥 PARAMÈTRES ROUND")
-    h_val = st.text_input("SERVER HASH", placeholder="Hash du round précédent...")
-    t_val = st.text_input("ROUND TIME", placeholder="HH:MM:SS")
-    l_cote = st.number_input("LAST COTE", value=2.00, step=0.01, min_value=1.00)
+# â”€â”€â”€ INPUT â”€â”€â”€
+with col_input:
+    st.markdown("<div class='glass-ultra'>", unsafe_allow_html=True)
+    st.markdown("<div class='sec-label'>â–¸ PARAMÃˆTRES DU ROUND</div>", unsafe_allow_html=True)
     
-    if st.button("🚀 ANALYSE LASER", use_container_width=True):
-        if h_val and t_val:
-            with st.spinner("Simulation 100K en cours..."):
-                st.session_state.last_res = run_x3_engine(h_val, t_val, l_cote)
-                st.rerun()
-        else:
-            st.error("Veuillez remplir le Hash et le Time.")
+    h_val = st.text_input(
+        "ðŸ” SERVER HASH",
+        placeholder="Hash Provably Fair du casino...",
+        help="TrouvÃ© dans la section 'Provably Fair' du jeu"
+    )
+    
+    t_val = st.text_input(
+        "â° ROUND TIME",
+        placeholder="HH:MM:SS (ex: 14:35:22)",
+        help="Heure de dÃ©but du round"
+    )
+    
+    last_cote = st.number_input(
+        "ðŸ“Š LAST COTE (TALOHA)",
+        value=2.00,
+        step=0.01,
+        min_value=1.00,
+        max_value=20.00,
+        format="%.2f",
+        help="IMPORTANT: Cote du round PRÃ‰CÃ‰DENT (ex: si le dernier round = 2.34, mettez 2.34)"
+    )
+    
     st.markdown("</div>", unsafe_allow_html=True)
-
-with col_out:
-    if st.session_state.last_res:
-        r = st.session_state.last_res
-        st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
-        st.markdown(f"<h2 style='text-align:center; color:#ff0066; font-family:Orbitron;'>{r['signal']}</h2>", unsafe_allow_html=True)
-        st.markdown(f"<div class='entry-time'>{r['entry']}</div>", unsafe_allow_html=True)
-        
-        m1, m2, m3 = st.columns(3)
-        with m1: 
-            st.markdown(f"<div class='metric-container'><small>TARGET MIN</small><br><b style='font-size:1.5rem;'>{r['min']}x</b></div>", unsafe_allow_html=True)
-        with m2:
-            st.markdown(f"<div class='metric-container'><small>MOYEN</small><br><b style='font-size:1.5rem;'>{r['moyen']}x</b></div>", unsafe_allow_html=True)
-        with m3:
-            st.markdown(f"<div class='metric-container'><small>MAX POSS.</small><br><b style='font-size:1.5rem;'>{r['max']}x</b></div>", unsafe_allow_html=True)
-        
-        st.markdown("<br>", unsafe_allow_html=True)
-        st.markdown(f"<h3 style='text-align:center;'>PROBABILITÉ : <span style='color:#00ffcc;'>{r['prob']}%</span></h3>", unsafe_allow_html=True)
-        
-        if st.button("🎯 CONFIRM WIN (HIT)", use_container_width=True):
-            for h in st.session_state.history:
-                if h['id'] == r['id']: h['status'] = 'WIN ✅'
-            save_history(st.session_state.history)
-            st.success("Résultat enregistré !")
-            st.rerun()
-        st.markdown("</div>", unsafe_allow_html=True)
-    else:
+    
+    # Explication Last Cote
+    with st.expander("â“ INONA NY 'LAST COTE' ?"):
         st.markdown("""
-        <div class='glass-card' style='height:350px; display:flex; align-items:center; justify-content:center;'>
-            <h3 style='color:rgba(255,255,255,0.2);'>EN ATTENTE D'ANALYSE...</h3>
-        </div>
-        """, unsafe_allow_html=True)
-
-# History table
-st.write("### 🕒 LOGS RÉCENTS")
-if st.session_state.history:
-    df = pd.DataFrame(st.session_state.history).iloc[::-1]
-    # Re-order columns for clarity
-    cols = ['entry', 'prob', 'min', 'moyen', 'max', 'status']
-    available_cols = [c for c in cols if c in df.columns]
-    st.dataframe(df[available_cols], use_container_width=True, hide_index=True)
+        ### ðŸ“– FANAZAVANA MAZAVA
+        
+        **LAST COTE** = Cote tamin'ny round **TALOHA** (tsy ny round ankehitriny)
+        
+        **OHATRA:**
+        ```
+        Round 1: Nahazo 1.87Ã— 
+        â†’ Last cote = 1.87
+        
+        Round 2: Ampiditra 1.87 @ "Last Cote"
+                 Vao alefa ny algorithm
+                 Nahazo 3.45Ã—
+        â†’ Last cote = 3.45
+        
+        Round 3: Ampiditra 3.45 @ "Last Cote"
+                 Sns...
+        ```
+        
+        **NAHOANA NO ILAINA?**
