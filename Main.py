@@ -606,7 +606,7 @@ with col_input:
     
     # Explication Last Cote
     with st.expander("❓ INONA NY 'LAST COTE' ?"):
-        st.markdown("""
+        st.markdown(""")
         ### 📖 FANAZAVANA MAZAVA
         
         **LAST COTE** = Cote tamin'ny round **TALOHA** (tsy ny round ankehitriny)
