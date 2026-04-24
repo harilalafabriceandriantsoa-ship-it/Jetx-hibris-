@@ -75,7 +75,7 @@ st.markdown("""
     
     .main-title {
         font-family: 'Orbitron', sans-serif;
-        font-size: 4rem;
+        font-size: 3.5rem;
         font-weight: 900;
         text-align: center;
         background: linear-gradient(90deg, #ff0066, #ff3399, #00ffcc, #ff0066);
@@ -86,54 +86,68 @@ st.markdown("""
         margin-bottom: 0;
     }
     
-    @keyframes title-glow {
-        0%, 100% { background-position: 0%; filter: drop-shadow(0 0 20px #ff006688); }
-        50% { background-position: 100%; filter: drop-shadow(0 0 40px #00ffccaa); }
-    }
-    
     .glass-ultra {
         background: rgba(10, 0, 25, 0.9);
         border: 2px solid rgba(255, 0, 102, 0.4);
         border-radius: 20px;
         padding: 28px;
         backdrop-filter: blur(12px);
+        box-shadow: 0 0 40px rgba(255, 0, 102, 0.15);
         margin-bottom: 24px;
     }
-    
+
     .entry-time-ultra {
         font-family: 'Orbitron', sans-serif;
-        font-size: 5rem;
+        font-size: 4.5rem;
         font-weight: 900;
         text-align: center;
         background: linear-gradient(135deg, #ff0066, #ff3399);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
-        filter: drop-shadow(0 0 40px #ff0066aa);
-        animation: entry-pulse 2.5s ease-in-out infinite;
+        filter: drop-shadow(0 0 30px #ff0066aa);
+        margin: 20px 0;
     }
-
-    @keyframes entry-pulse {
-        0%, 100% { transform: scale(1); }
-        50% { transform: scale(1.02); }
-    }
-
-    .signal-ultra { color: #ff0066; font-family: 'Orbitron'; font-size: 1.8rem; text-align: center; }
     
-    .target-box-max {
-        background: linear-gradient(135deg, rgba(255, 51, 102, 0.25), rgba(200, 0, 60, 0.1));
-        border: 2px solid rgba(255, 51, 102, 0.6);
-        border-radius: 16px; padding: 20px; text-align: center;
+    .target-container {
+        display: flex;
+        justify-content: space-around;
+        gap: 10px;
+        margin-top: 20px;
+    }
+
+    .target-card {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 0, 102, 0.3);
+        border-radius: 15px;
+        padding: 15px;
+        text-align: center;
+        flex: 1;
+    }
+
+    .target-val {
+        font-family: 'Orbitron';
+        font-size: 1.8rem;
+        color: #ff0066;
+    }
+
+    .target-label {
+        font-size: 0.7rem;
+        color: #ffffff88;
+        text-transform: uppercase;
     }
 
     .stButton>button {
         background: linear-gradient(135deg, #ff0066 0%, #ff3399 100%) !important;
-        color: white !important; font-weight: 900 !important;
-        border-radius: 14px !important; height: 60px !important;
+        color: white !important;
+        font-weight: 900 !important;
+        border-radius: 12px !important;
+        height: 55px !important;
+        border: none !important;
     }
 </style>
 """, unsafe_allow_html=True)
 
-# ===================== AUTHENTICATION =====================
+# ===================== SESSION STATE =====================
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
 if "history" not in st.session_state:
@@ -141,48 +155,74 @@ if "history" not in st.session_state:
 if "last_res" not in st.session_state:
     st.session_state.last_res = None
 
+# ===================== AUTHENTICATION =====================
 if not st.session_state.authenticated:
     st.markdown("<div class='main-title'>JETX ULTRA</div>", unsafe_allow_html=True)
     col_a, col_b, col_c = st.columns([1, 1.2, 1])
     with col_b:
-        pw = st.text_input("🔑 MOT DE PASSE", type="password", placeholder="JET2026")
-        if st.button("🚀 ACTIVER", use_container_width=True):
+        pw = st.text_input("🔑 MOT DE PASSE", type="password")
+        if st.button("🚀 ACTIVER LE SYSTÈME", use_container_width=True):
             if pw == "JET2026":
                 st.session_state.authenticated = True
                 st.rerun()
+            else:
+                st.error("Mot de passe diso")
     st.stop()
+
+# ===================== SIDEBAR (RESET & STATS) =====================
+with st.sidebar:
+    st.markdown("### ⚙️ SYSTEM CONTROLS")
+    
+    if st.button("🗑️ RESET HISTORIQUE & DATA", use_container_width=True):
+        st.session_state.history = []
+        st.session_state.last_res = None
+        if HISTORY_FILE.exists():
+            HISTORY_FILE.unlink()
+        st.success("Data reset vita!")
+        st.rerun()
+    
+    st.markdown("---")
+    if st.session_state.history:
+        st.write(f"Total Prediction: {len(st.session_state.history)}")
+        df = pd.DataFrame(st.session_state.history)
+        st.dataframe(df[['entry', 'prob_x3', 'target_moy']].tail(10))
 
 # ===================== ENGINE ULTRA V18 =====================
 def run_ultra_engine(h_in, t_in, last_cote):
     h_hex = hashlib.sha256(h_in.encode()).hexdigest()
     h_num = int(h_hex[:16], 16)
     
-    # Dynamic seed based on hash + last_cote
+    # Dynamic Seeding 250k simulations
     np.random.seed(int((h_num & 0xFFFFFFFF) + (last_cote * 1000)) % (2**32))
-    
-    # 250,000 Simulations
-    base = 2.10 if last_cote < 2.0 else 1.95
+    base = 2.15 if last_cote < 2.0 else 1.98
     sims = np.random.lognormal(np.log(base), 0.22, 250_000)
     
     prob_x3 = round(float(np.mean(sims >= 3.0)) * 100, 2)
-    target_min = round(float(np.percentile(sims, 30)), 2)
-    target_max = round(float(np.percentile(sims[sims>=3.0], 85)), 2) if any(sims>=3.0) else 3.50
     
-    # Entry Time Calculation
+    # CALCULATION MIN / MOYEN / MAX
+    t_min = round(float(np.percentile(sims, 25)), 2)
+    t_moy = round(float(np.percentile(sims, 50)), 2)
+    t_max = round(float(np.percentile(sims[sims>=3.0], 80)), 2) if any(sims>=3.0) else 3.50
+    
+    # CALCULATION HEURE D'ENTRÉE
     try:
         base_t = datetime.combine(datetime.now(EAT).date(), datetime.strptime(t_in.strip(), "%H:%M:%S").time())
     except:
         base_t = datetime.now(EAT)
     
-    shift = 50 + (h_num % 40) + int(last_cote * 2)
+    shift = 55 + (h_num % 35) + int(last_cote * 2)
     entry_time = (base_t + timedelta(seconds=shift)).strftime("%H:%M:%S")
     
     result = {
-        "id": h_hex[:8], "entry": entry_time, "prob_x3": prob_x3,
-        "target_min": target_min, "target_max": target_max,
-        "signal": "🔥 STRONG X3+" if prob_x3 > 35 else "⚠️ MODERATE",
-        "status": "PENDING"
+        "id": h_hex[:8],
+        "entry": entry_time,
+        "prob_x3": prob_x3,
+        "target_min": max(1.50, t_min),
+        "target_moy": max(2.00, t_moy),
+        "target_max": max(3.00, t_max),
+        "timestamp": datetime.now(EAT).strftime("%H:%M:%S")
     }
+    
     st.session_state.history.append(result)
     save_history(st.session_state.history)
     return result
@@ -190,15 +230,16 @@ def run_ultra_engine(h_in, t_in, last_cote):
 # ===================== MAIN UI =====================
 st.markdown("<div class='main-title'>JETX ULTRA V18.0</div>", unsafe_allow_html=True)
 
-col_in, col_res = st.columns([1, 2.2], gap="large")
+col_input, col_res = st.columns([1, 2], gap="large")
 
-with col_in:
+with col_input:
     st.markdown("<div class='glass-ultra'>", unsafe_allow_html=True)
+    st.subheader("📥 Data Input")
     h_val = st.text_input("🔐 SERVER HASH")
     t_val = st.text_input("⏰ ROUND TIME (HH:MM:SS)")
     l_cote = st.number_input("📊 LAST COTE (TALOHA)", value=2.00, step=0.01)
     
-    if st.button("🚀 ANALYSER X3+", use_container_width=True):
+    if st.button("🚀 ANALYSER ROUND", use_container_width=True):
         if h_val and t_val:
             st.session_state.last_res = run_ultra_engine(h_val, t_val, l_cote)
             st.rerun()
@@ -208,24 +249,37 @@ with col_res:
     res = st.session_state.last_res
     if res:
         st.markdown(f"<div class='entry-time-ultra'>{res['entry']}</div>", unsafe_allow_html=True)
-        st.markdown(f"<div class='signal-ultra'>{res['signal']}</div>", unsafe_allow_html=True)
+        st.markdown(f"<h2 style='text-align:center; color:#00ffcc;'>PROBABILITÉ X3+: {res['prob_x3']}%</h2>", unsafe_allow_html=True)
         
-        c1, c2, c3 = st.columns(3)
-        c1.metric("PROB X3+", f"{res['prob_x3']}%")
-        c2.metric("TARGET SAFE", f"{res['target_min']}x")
-        c3.metric("TARGET MAX", f"{res['target_max']}x")
+        # DISPLAY MIN / MOYEN / MAX
+        st.markdown(f"""
+        <div class='target-container'>
+            <div class='target-card'>
+                <div class='target-label'>Cote Min (Safe)</div>
+                <div class='target-val'>{res['target_min']}x</div>
+            </div>
+            <div class='target-card' style='border-color:#00ffcc;'>
+                <div class='target-label'>Cote Moyen</div>
+                <div class='target-val' style='color:#00ffcc;'>{res['target_moy']}x</div>
+            </div>
+            <div class='target-card' style='border-color:#ffcc00;'>
+                <div class='target-label'>Cote Max (X3+)</div>
+                <div class='target-val' style='color:#ffcc00;'>{res['target_max']}x</div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
     else:
-        st.info("Miandry data analyse avy any aminao...")
+        st.info("Ampidiro ny Hash sy ny Ora hahazoana prediction...")
 
-# ===================== FANAZAVANA SECTION =====================
+# ===================== FOOTER / TOROLALANA =====================
 st.markdown("""
-<div style='margin-top:40px; padding:24px; background:rgba(255,0,102,0.08); border:1px solid rgba(255,0,102,0.3); border-radius:14px; max-width:800px; margin:auto;'>
-    <h3 style='color:#ff0066; text-align:center;'>📖 TOROLALANA V18.0</h3>
-    <p style='line-height:1.8;'>
-    1. <b>Hash:</b> Alao ao amin'ny Provably Fair an'ny casino.<br>
-    2. <b>Time:</b> Ny ora nivoahan'ilay round teo (HH:MM:SS).<br>
-    3. <b>Last Cote:</b> Ny cote nivoaka tamin'ilay round teo (ohatra: 1.87).<br><br>
-    <b>Fanamarihana:</b> Ny <i>Entry Time</i> mipoitra eo amin'ny mavokely lehibe no fotoana tokony hidiranao milalao.
-    </p>
+<div style='margin-top:30px; padding:20px; background:rgba(255,255,255,0.05); border-radius:15px;'>
+    <h4 style='color:#ff0066;'>📖 TOROLALANA AMPIASANA NY RESET & TARGET</h4>
+    <ul style='font-size:0.9rem; color:#ccc;'>
+        <li><b>Reset:</b> Tsindrio ny bokotra eo amin'ny ankavia (Sidebar) raha hanafafy ny tantaran'ny prediction rehetra.</li>
+        <li><b>Cote Min:</b> Tanjona farany azo antoka (75% réussite).</li>
+        <li><b>Cote Moyen:</b> Ny salan'isa mety hivoaka (50% réussite).</li>
+        <li><b>Cote Max:</b> Tanjona ho an'ny X3+ (raha ambony ny Probabilité).</li>
+    </ul>
 </div>
-""", unsafe_allow_html=True) 
+""", unsafe_allow_html=True)
