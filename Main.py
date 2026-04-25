@@ -9,6 +9,7 @@ from pathlib import Path
 from sklearn.ensemble import GradientBoostingRegressor
 from sklearn.preprocessing import StandardScaler
 import pickle
+import base64
 
 # ===================== CONFIG =====================
 st.set_page_config(
@@ -167,13 +168,14 @@ if not st.session_state.auth:
     col_a, col_b, col_c = st.columns([1, 1.2, 1])
     with col_b:
         st.markdown("<div class='glass'>", unsafe_allow_html=True)
-        pw = st.text_input("🔑 PASSWORD", type="password", placeholder="JET2026")
+        pw = st.text_input("🔑 PASSWORD", type="password", placeholder="Ampidiro ny tenimiafina...")
         if st.button("ACTIVATE", use_container_width=True):
-            if pw == "JET2026":
+            # Caching the password JET2026 using base64
+            if base64.b64encode(pw.encode()).decode() == "SkVUMjAyNg==":
                 st.session_state.auth = True
                 st.rerun()
             else:
-                st.error("❌ Incorrect")
+                st.error("❌ Diso ny tenimiafina")
         st.markdown("</div>", unsafe_allow_html=True)
     
     # FANAZAVANA MALAGASY
@@ -407,7 +409,7 @@ def run_ultra_v19(hash_in, time_in, last_cote):
     
     result = {
         "id": hash_hex[:8],
-        "timestamp": datetime.now(TZ_MG).isoformat(),
+        "timestamp": datetime.now(TZ_MG).strftime("%Y-%m-%d %H:%M:%S"),
         "hash": hash_in[:16],
         "time": time_in,
         "last_cote": last_cote,
@@ -495,36 +497,36 @@ col_in, col_out = st.columns([1, 2], gap="medium")
 
 with col_in:
     st.markdown("<div class='glass'>", unsafe_allow_html=True)
-    st.markdown("### 📥 INPUT")
+    st.markdown("### 📥 FAMENOANA")
     
     hash_in = st.text_input(
-        "🔐 HASH (Server)",
-        placeholder="Ex: 7db8e01413d6d",
-        help="Server hash @ Provably Fair"
+        "🔐 HASH (Server Seed)",
+        placeholder="Adikao eto ilay hash lava...",
+        help="Alaivo avy any amin'ny Provably Fair an'ilay lalao (ex: 7db8e0...)"
     )
     
     time_in = st.text_input(
-        "⏰ TIME (HH:MM:SS)",
-        placeholder="Ex: 20:22:24",
-        help="Time round TALOHA (reference)"
+        "⏰ ORA TALOHA (HH:MM:SS)",
+        placeholder="Ohatra: 20:22:24",
+        help="Ilazana ny ora nivoahan'ilay cote farany hitanao teo"
     )
     
     cote_in = st.number_input(
-        "📊 LAST COTE",
+        "📊 COTE FARANY TEO",
         value=1.88,
         step=0.01,
         format="%.2f",
-        help="Cote round TALOHA"
+        help="Ilay multiplier na cote nivoaka farany (ohatra: 1.88)"
     )
     
     if st.button("🚀 ANALYSER", use_container_width=True):
         if hash_in and time_in:
-            with st.spinner("⚡ 350k sims..."):
+            with st.spinner("⚡ Mijery configuration 350k..."):
                 result = run_ultra_v19(hash_in, time_in, cote_in)
                 st.session_state.last_res = result
             st.rerun()
         else:
-            st.error("HASH et TIME obligatoires")
+            st.error("❌ Fenoy tsara azafady ny HASH sy ny ORA")
     
     st.markdown("</div>", unsafe_allow_html=True)
 
@@ -536,11 +538,11 @@ with col_out:
         
         st.markdown(f"<h2 style='text-align:center; color:#ff0066;'>{r['signal']}</h2>", unsafe_allow_html=True)
         
-        st.markdown("<p style='text-align:center; color:#ffffff66; margin-top:20px;'>▸ ENTRY TIME</p>", unsafe_allow_html=True)
+        st.markdown("<p style='text-align:center; color:#ffffff66; margin-top:20px;'>▸ ORA HILALAOVANA (Entry Time)</p>", unsafe_allow_html=True)
         st.markdown(f"<div class='entry-mega'>{r['entry']}</div>", unsafe_allow_html=True)
         
         st.markdown(f"<div class='prob-mega'>{r['prob']}%</div>", unsafe_allow_html=True)
-        st.markdown("<p style='text-align:center; color:#ffffff66;'>X3+ PROB</p>", unsafe_allow_html=True)
+        st.markdown("<p style='text-align:center; color:#ffffff66;'>Chance ho X3+</p>", unsafe_allow_html=True)
         
         st.markdown(f"""
         <div style='display:flex; gap:16px; justify-content:center; margin:16px 0;'>
@@ -557,20 +559,20 @@ with col_out:
         
         col_a, col_b = st.columns(2)
         with col_a:
-            st.metric("CONF", f"{r['conf']}%")
+            st.metric("CONFIDENCE", f"{r['conf']}%")
         with col_b:
-            st.metric("STRENGTH", f"{r['strength']}")
+            st.metric("Hery (STRENGTH)", f"{r['strength']}")
         
         if r.get('ml_boost', 0) > 0:
             st.info(f"🧠 ML Boost: +{r['ml_boost']}")
         
-        st.markdown("<p style='text-align:center; color:#ffffff66; margin-top:20px;'>▸ TARGETS</p>", unsafe_allow_html=True)
+        st.markdown("<p style='text-align:center; color:#ffffff66; margin-top:20px;'>▸ TARGETS (Tanjona)</p>", unsafe_allow_html=True)
         
         c1, c2, c3 = st.columns(3)
         with c1:
             st.markdown(f"""
             <div class='target-box'>
-                <div style='font-size:0.75rem; color:#ffffff88;'>MIN</div>
+                <div style='font-size:0.75rem; color:#ffffff88;'>KELY INDRINDRA</div>
                 <div class='target-val' style='color:#00ffcc;'>{r['min']}×</div>
             </div>
             """, unsafe_allow_html=True)
@@ -578,7 +580,7 @@ with col_out:
         with c2:
             st.markdown(f"""
             <div class='target-box'>
-                <div style='font-size:0.75rem; color:#ffffff88;'>MOYEN</div>
+                <div style='font-size:0.75rem; color:#ffffff88;'>ANTONONY</div>
                 <div class='target-val' style='color:#ffd700;'>{r['moy']}×</div>
             </div>
             """, unsafe_allow_html=True)
@@ -586,7 +588,7 @@ with col_out:
         with c3:
             st.markdown(f"""
             <div class='target-box'>
-                <div style='font-size:0.75rem; color:#ffffff88;'>MAX</div>
+                <div style='font-size:0.75rem; color:#ffffff88;'>BE INDRINDRA</div>
                 <div class='target-val' style='color:#ff3366;'>{r['max']}×</div>
             </div>
             """, unsafe_allow_html=True)
@@ -594,20 +596,8 @@ with col_out:
         st.markdown("<br>", unsafe_allow_html=True)
         cw, cl = st.columns(2)
         with cw:
-            if st.button("✅ WIN", use_container_width=True):
+            if st.button("✅ WIN (Nety)", use_container_width=True):
                 for h in st.session_state.history:
                     if h['id'] == r['id']:
                         h['result'] = 'WIN'
-                save_data(st.session_state.history)
-                st.success("Win!")
-                st.rerun()
-        
-        with cl:
-            if st.button("❌ LOSS", use_container_width=True):
-                for h in st.session_state.history:
-                    if h['id'] == r['id']:
-                        h['result'] = 'LOSS'
-                save_data(st.session_state.history)
-                st.rerun()
-        
- 
+                save_data(st.ses
