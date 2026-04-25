@@ -1,4 +1,4 @@
-import streamlit as st
+iiimport streamlit as st
 import numpy as np
 import hashlib
 import pandas as pd
@@ -600,4 +600,32 @@ with col_out:
                 for h in st.session_state.history:
                     if h['id'] == r['id']:
                         h['result'] = 'WIN'
-                save_data(st.ses
+                save_data(st.session_state.history)
+                st.success("Fandresena voatahiry!")
+                st.rerun()
+        
+        with cl:
+            if st.button("❌ LOSS (Tsy Nety)", use_container_width=True):
+                for h in st.session_state.history:
+                    if h['id'] == r['id']:
+                        h['result'] = 'LOSS'
+                save_data(st.session_state.history)
+                st.rerun()
+
+# ===================== HISTORIQUE UI =====================
+st.markdown("<br><hr style='border-color: rgba(255,0,102,0.3);'>", unsafe_allow_html=True)
+st.markdown("<h3 style='text-align:center; color:#00ffcc; margin-top: 20px; font-family: Orbitron;'>📜 HISTORIQUE DE PRÉDICTION</h3>", unsafe_allow_html=True)
+
+if st.session_state.history:
+    df_history = pd.DataFrame(st.session_state.history)
+    if not df_history.empty:
+        cols_to_show = ['timestamp', 'hash', 'time', 'last_cote', 'entry', 'signal', 'result']
+        df_show = df_history[cols_to_show].copy()
+        
+        # Mpandika ny lohatenin'ny tabilao mba ho mazava kokoa
+        df_show.columns = ['Daty / Ora', 'Hash (ID)', 'Ora Taloha', 'Cote Taloha', 'Ora Hilalaovana', 'Signal', 'Vokatra']
+        
+        # Aseho tsara ilay tabilao
+        st.dataframe(df_show, use_container_width=True)
+else:
+    st.info("Tsisy historique aloha eto. Manaova prédiction voalohany hamenoana azy!")
