@@ -1,4 +1,4 @@
-import streamlit as st 
+import streamlit as st
 import numpy as np
 import hashlib
 import pandas as pd
@@ -57,7 +57,7 @@ def load_ml():
     except: pass
     return None, None
 
-# ===================== CSS STYLING =====================
+# ===================== CSS STYLING (MAINTY NY SORATRA) =====================
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Rajdhani:wght@600;700&display=swap');
@@ -68,7 +68,6 @@ st.markdown("""
         font-family: 'Rajdhani', sans-serif;
     }
     
-    /* Title Style */
     .main-title {
         font-family: 'Orbitron', sans-serif;
         font-size: clamp(2rem, 8vw, 3.5rem);
@@ -89,30 +88,30 @@ st.markdown("""
         margin-bottom: 20px;
     }
 
-    /* INPUT STYLING - Eto ilay fanovana soratra ho mainty */
+    /* INPUT STYLING - MAINTY NY SORATRA REHEFA MANORATRA */
     .stTextInput input, .stNumberInput input {
-        background-color: #ffffff !important; /* Fotsy ny ao anatiny */
-        color: #000000 !important; /* MAINTY ny soratra ampidirinao */
+        background-color: #ffffff !important; 
+        color: #000000 !important; 
         font-weight: 900 !important;
         border: 3px solid #ff0066 !important;
         border-radius: 12px !important;
         font-size: 1.1rem !important;
     }
 
-    /* Placeholder (Soratra kely mampianatra) */
+    /* Placeholder Style */
     ::placeholder {
-        color: #666666 !important;
-        opacity: 1;
+        color: #555555 !important;
+        opacity: 0.8;
     }
 
     .entry-mega {
         font-family: 'Orbitron', sans-serif;
-        font-size: clamp(3rem, 12vw, 5rem);
+        font-size: clamp(3.5rem, 15vw, 5.5rem);
         font-weight: 900;
         text-align: center;
         color: #ff0066;
-        text-shadow: 0 0 30px #ff0066;
-        margin: 20px 0;
+        text-shadow: 0 0 35px #ff0066;
+        margin: 25px 0;
     }
     
     .prob-mega {
@@ -132,6 +131,13 @@ st.markdown("""
         height: 55px !important;
         border: none !important;
         width: 100%;
+    }
+    
+    .target-box {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 15px;
+        padding: 15px;
+        text-align: center;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -154,37 +160,26 @@ if not st.session_state.auth:
     col_a, col_b, col_c = st.columns([1, 1.2, 1])
     with col_b:
         st.markdown("<div class='glass'>", unsafe_allow_html=True)
-        pw = st.text_input("🔑 PASSWORD", type="password")
+        pw = st.text_input("🔑 PASSWORD", type="password", placeholder="Ampidiro ny password...")
         if st.button("ACTIVATE"):
-            if base64.b64encode(pw.encode()).decode() == "SkVUMjAyNg==":
+            if pw == "JET2026":
                 st.session_state.auth = True
                 st.rerun()
             else: st.error("❌ Password diso")
         st.markdown("</div>", unsafe_allow_html=True)
-    
-    st.markdown("""
-    <div class='glass' style='max-width:850px; margin:20px auto;'>
-        <h2 style='color:#ff0066; text-align:center;'>📖 FANAZAVANA MALAGASY</h2>
-        <p>1. <b>HASH:</b> Ilay code lava avy @ casino (Provably Fair).<br>
-        2. <b>TIME:</b> Ora nivoahan'ilay round teo aloha (HH:MM:SS).<br>
-        3. <b>LAST COTE:</b> Multiplier nivoaka teo.</p>
-    </div>
-    """, unsafe_allow_html=True)
     st.stop()
 
-# ===================== ML TRAINING ENGINE =====================
+# ===================== ML ENGINE =====================
 def train_ml():
     labeled = [h for h in st.session_state.history if h.get('result') in ['WIN', 'LOSS']]
     if len(labeled) < 10: 
-        st.warning("⚠️ Mila data farafahakeliny 10 vao afaka manao Train.")
+        st.warning(f"⚠️ Mila valiny 10 farafahakeliny (Hita izao: {len(labeled)})")
         return None, None
-    
     X, y = [], []
     for h in labeled:
         hash_val = int(h['hash'][:12], 16) if len(h['hash']) >= 12 else 0
         X.append([hash_val % 1000, (hash_val >> 10) % 1000, h['last_cote'], h['prob'], h['conf'], h['strength']])
         y.append(1 if h['result'] == 'WIN' else 0)
-    
     try:
         scaler = StandardScaler()
         X_scaled = scaler.fit_transform(np.array(X))
@@ -195,25 +190,24 @@ def train_ml():
         return model, scaler
     except: return None, None
 
-# ===================== SIDEBAR (RESET & ML) =====================
+# ===================== SIDEBAR =====================
 with st.sidebar:
     st.markdown("### ⚙️ SETTINGS")
-    if st.button("🧠 TRAIN ML (Intelligence)", use_container_width=True):
+    if st.button("🧠 TRAIN ML", use_container_width=True):
         m, s = train_ml()
         if m: st.session_state.ml_model, st.session_state.ml_scaler = m, s
 
     if st.button("🗑️ RESET DATA", use_container_width=True):
         st.session_state.history = []
         save_data([])
-        st.success("Data voafafa!")
+        st.success("Data voadio!")
         st.rerun()
 
     st.markdown("---")
     if st.session_state.history:
         wins = sum(1 for h in st.session_state.history if h.get('result') == 'WIN')
         losses = sum(1 for h in st.session_state.history if h.get('result') == 'LOSS')
-        total = wins + losses
-        wr = round((wins/total)*100, 1) if total > 0 else 0
+        wr = round(wins/(wins+losses)*100, 1) if (wins+losses) > 0 else 0
         st.metric("WIN RATE", f"{wr}%")
 
 # ===================== ULTRA ENGINE V19 =====================
@@ -223,16 +217,14 @@ def run_ultra_v19(hash_in, time_in, last_cote):
     seed_val = int((hash_num & 0xFFFFFFFFFFFFFFFF) + int(last_cote * 10000))
     np.random.seed(seed_val % (2**32))
     
+    # Intervals last cote
     if last_cote < 1.5: base, sigma = 2.12, 0.24
     elif last_cote < 2.5: base, sigma = 2.06, 0.21
     elif last_cote < 3.5: base, sigma = 2.00, 0.19
     else: base, sigma = 1.96, 0.18
     
-    base += (hash_num % 180) / 1200
     sims = np.random.lognormal(np.log(base), max(0.14, sigma), 350_000)
-    
     prob_x3 = round(float(np.mean(sims >= 3.0)) * 100, 2)
-    target_moy = max(2.60, round(float(np.percentile(sims, 50)), 2))
     conf = round(max(40, min(99, prob_x3 * 1.18 + last_cote * 13.0)), 2)
     strength = max(30.0, min(99.0, prob_x3 * 0.50 + conf * 0.30))
     
@@ -240,17 +232,19 @@ def run_ultra_v19(hash_in, time_in, last_cote):
     total_shift = max(20, min(110, 48 + (hash_num % 90) - 45 + int(strength * 0.35)))
     entry_time = (now_mg + timedelta(seconds=total_shift)).strftime("%H:%M:%S")
     
-    signal = "💎💎💎 ULTRA X3+" if strength >= 88 else "🔥🔥 STRONG X3+" if strength >= 76 else "🟢 GOOD X3+" if strength >= 62 else "⚠️ SKIP"
+    signal = "💎 ULTRA X3+" if strength >= 88 else "🔥 STRONG X3+" if strength >= 76 else "🟢 GOOD" if strength >= 60 else "⚠️ SKIP"
     
-    result = {
-        "id": hash_hex[:8], "timestamp": now_mg.strftime("%Y-%m-%d %H:%M:%S"),
-        "hash": hash_in[:16], "time": time_in, "last_cote": last_cote,
-        "entry": entry_time, "signal": signal, "prob": prob_x3, "conf": conf, "strength": strength,
-        "moy": target_moy, "result": "PENDING"
+    res = {
+        "id": hash_hex[:8], "hash": hash_in[:16], "entry": entry_time,
+        "signal": signal, "prob": prob_x3, "conf": conf, "strength": strength,
+        "min": round(float(np.percentile(sims, 30)), 2),
+        "moy": round(float(np.percentile(sims, 50)), 2),
+        "max": round(float(np.percentile(sims, 85)), 2),
+        "result": "PENDING"
     }
-    st.session_state.history.append(result)
+    st.session_state.history.append(res)
     save_data(st.session_state.history)
-    return result
+    return res
 
 # ===================== MAIN UI =====================
 st.markdown("<div class='main-title'>JETX ULTRA V19</div>", unsafe_allow_html=True)
@@ -258,10 +252,10 @@ col_in, col_out = st.columns([1, 2], gap="medium")
 
 with col_in:
     st.markdown("<div class='glass'>", unsafe_allow_html=True)
-    st.markdown("### 📥 FAMENOANA DATA")
+    st.markdown("### 📥 DATA ENTRY")
     h_in = st.text_input("🔐 HASH", placeholder="Adikao eto ny Hash...")
-    t_in = st.text_input("⏰ ORA TALOHA", placeholder="HH:MM:SS")
-    c_in = st.number_input("📊 COTE FARANY", value=1.88, step=0.01)
+    t_in = st.text_input("⏰ TIME (HH:MM:SS)", placeholder="Ohatra: 14:20:05")
+    c_in = st.number_input("📊 LAST COTE", value=1.88, step=0.01)
     
     if st.button("🚀 ANALYSER", use_container_width=True):
         if h_in and t_in:
@@ -275,24 +269,30 @@ with col_out:
         st.markdown("<div class='glass'>", unsafe_allow_html=True)
         st.markdown(f"<h2 style='text-align:center; color:#ff0066;'>{r['signal']}</h2>", unsafe_allow_html=True)
         st.markdown(f"<div class='entry-mega'>{r['entry']}</div>", unsafe_allow_html=True)
-        st.columns(3)[1].metric("PROBABILITÉ", f"{r['prob']}%")
+        st.markdown(f"<div class='prob-mega'>{r['prob']}%</div>", unsafe_allow_html=True)
+        
+        c1, c2, c3 = st.columns(3)
+        with c1: st.markdown(f"<div class='target-box'>MIN<br><b style='color:#00ffcc;'>{r['min']}×</b></div>", unsafe_allow_html=True)
+        with c2: st.markdown(f"<div class='target-box'>MOY<br><b style='color:#ffd700;'>{r['moy']}×</b></div>", unsafe_allow_html=True)
+        with c3: st.markdown(f"<div class='target-box'>MAX<br><b style='color:#ff3366;'>{r['max']}×</b></div>", unsafe_allow_html=True)
         
         st.markdown("<br>", unsafe_allow_html=True)
         cw, cl = st.columns(2)
         with cw:
-            if st.button("✅ WIN", use_container_width=True):
+            if st.button("✅ WIN"):
                 for h in st.session_state.history:
                     if h['id'] == r['id']: h['result'] = 'WIN'
                 save_data(st.session_state.history); st.rerun()
         with cl:
-            if st.button("❌ LOSS", use_container_width=True):
+            if st.button("❌ LOSS"):
                 for h in st.session_state.history:
                     if h['id'] == r['id']: h['result'] = 'LOSS'
                 save_data(st.session_state.history); st.rerun()
         st.markdown("</div>", unsafe_allow_html=True)
 
-# ===================== HISTORIQUE =====================
-st.markdown("<h3 style='text-align:center; color:#00ffcc;'>📜 HISTORIQUE</h3>", unsafe_allow_html=True)
+# ===================== LOGS =====================
 if st.session_state.history:
+    st.markdown("---")
+    st.markdown("### 📜 HISTORIQUE")
     df = pd.DataFrame(st.session_state.history[::-1])
-    st.dataframe(df[['timestamp', 'entry', 'signal', 'result']], use_container_width=True)
+    st.dataframe(df[['entry', 'prob', 'signal', 'result']], use_container_width=True)
