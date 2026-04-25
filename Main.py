@@ -107,20 +107,6 @@ st.markdown("""
         margin: 15px 0;
     }
     
-    .target-box {
-        background: rgba(255, 255, 255, 0.05);
-        border-radius: 15px;
-        padding: 15px;
-        text-align: center;
-        margin: 5px;
-    }
-    
-    .target-val {
-        font-size: clamp(1.5rem, 6vw, 2.5rem);
-        font-weight: 900;
-        font-family: 'Orbitron';
-    }
-    
     .stButton>button {
         background: linear-gradient(135deg, #ff0066, #ff3399) !important;
         color: white !important;
@@ -131,14 +117,19 @@ st.markdown("""
         border: none !important;
         width: 100%;
     }
-    
+
+    /* Manatsara ny fahitana ny soratra ao anaty vata */
     .stTextInput input, .stNumberInput input {
-        background: rgba(255, 0, 102, 0.05) !important;
-        border: 2px solid rgba(255, 0, 102, 0.3) !important;
-        color: #e0fbfc !important;
+        background: rgba(255, 255, 255, 0.1) !important;
+        border: 2px solid rgba(255, 0, 102, 0.4) !important;
+        color: #ffffff !important;
+        font-weight: bold !important;
         border-radius: 12px !important;
-        font-size: 1rem !important;
-        padding: 12px !important;
+    }
+    
+    ::placeholder {
+        color: rgba(255, 255, 255, 0.7) !important;
+        opacity: 1;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -155,15 +146,14 @@ if "ml_model" not in st.session_state:
 
 TZ_MG = pytz.timezone("Indian/Antananarivo")
 
-# ===================== LOGIN =====================
+# ===================== LOGIN & FANAZAVANA =====================
 if not st.session_state.auth:
     st.markdown("<div class='main-title'>JETX V19.0</div>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align:center; color:#ff006699; letter-spacing:0.3em;'>ULTRA X3+ ENGINE</p>", unsafe_allow_html=True)
     
     col_a, col_b, col_c = st.columns([1, 1.2, 1])
     with col_b:
         st.markdown("<div class='glass'>", unsafe_allow_html=True)
-        pw = st.text_input("🔑 PASSWORD", type="password", placeholder="Ampidiro ny tenimiafina...")
+        pw = st.text_input("🔑 PASSWORD", type="password", placeholder="Ampidiro ny Password...")
         if st.button("ACTIVATE", use_container_width=True):
             if base64.b64encode(pw.encode()).decode() == "SkVUMjAyNg==":
                 st.session_state.auth = True
@@ -173,9 +163,14 @@ if not st.session_state.auth:
         st.markdown("</div>", unsafe_allow_html=True)
     
     st.markdown("""
-    <div class='glass' style='max-width:800px; margin:40px auto;'>
-        <h2 style='color:#ff0066; text-align:center;'>📖 FANAZAVANA MALAGASY</h2>
-        <p style='text-align:center;'>Ampidiro ny <b>Hash</b>, ny <b>Ora round taloha</b>, ary ny <b>Cote farany</b> mba hahazoana prediction.</p>
+    <div class='glass' style='max-width:850px; margin:20px auto;'>
+        <h2 style='color:#ff0066; text-align:center;'>📖 FANAZAVANA TEKNIKA</h2>
+        <h3 style='color:#00ffcc;'>1. HASH (Server Seed)</h3>
+        <p>Ity no <b>fanalahidy</b> mibaiko ny algorithm. Alaina ao amin'ny <i>Provably Fair</i> ny hash feno (64 characters) na ny kely indrindra 8-16 characters voalohany.</p>
+        <h3 style='color:#00ffcc;'>2. TIME (Ora taloha)</h3>
+        <p>Ampidiro ny <b>ora marina (HH:MM:SS)</b> nivoahan'ilay round teo aloha. Reference fotsiny io hanakalculena ny <i>Entry Time</i> manaraka.</p>
+        <h3 style='color:#00ffcc;'>3. LAST COTE (Multiplier)</h3>
+        <p>Ny vokatra farany nivoaka no mamaritra ny hery (Strength) sy ny simulation ho avy (COLD/HOT).</p>
     </div>
     """, unsafe_allow_html=True)
     st.stop()
@@ -184,13 +179,11 @@ if not st.session_state.auth:
 def train_ml():
     labeled = [h for h in st.session_state.history if h.get('result') in ['WIN', 'LOSS']]
     if len(labeled) < 10: return None, None
-    
     X, y = [], []
     for h in labeled:
         hash_val = int(h['hash'][:12], 16) if len(h['hash']) >= 12 else 0
         X.append([hash_val % 1000, (hash_val >> 10) % 1000, h['last_cote'], h['prob'], h['conf'], h['strength']])
         y.append(1 if h['result'] == 'WIN' else 0)
-    
     try:
         scaler = StandardScaler()
         X_scaled = scaler.fit_transform(np.array(X))
@@ -244,34 +237,37 @@ def run_ultra_v19(hash_in, time_in, last_cote):
     save_data(st.session_state.history)
     return result
 
-# ===================== SIDEBAR =====================
-with st.sidebar:
-    st.markdown("### 📊 STATS V19")
-    if st.session_state.history:
-        wins = sum(1 for h in st.session_state.history if h.get('result') == 'WIN')
-        losses = sum(1 for h in st.session_state.history if h.get('result') == 'LOSS')
-        wr = round(wins / (wins + losses) * 100, 1) if (wins + losses) > 0 else 0
-        st.metric("WIN RATE", f"{wr}%")
-    if st.button("🧠 TRAIN ML", use_container_width=True):
-        model, scaler = train_ml()
-        if model: st.session_state.ml_model, st.session_state.ml_scaler = model, scaler
-        st.rerun()
-    if st.button("🗑️ RESET DATA", use_container_width=True):
-        st.session_state.history = []; save_data([]); st.rerun()
-
 # ===================== MAIN UI =====================
 st.markdown("<div class='main-title'>JETX ULTRA V19</div>", unsafe_allow_html=True)
 col_in, col_out = st.columns([1, 2], gap="medium")
 
 with col_in:
     st.markdown("<div class='glass'>", unsafe_allow_html=True)
-    h_in = st.text_input("🔐 HASH (Server Seed)")
-    t_in = st.text_input("⏰ ORA TALOHA (HH:MM:SS)")
-    c_in = st.number_input("📊 COTE FARANY TEO", value=1.88, step=0.01)
+    st.markdown("### 📥 FAMENOANA DATA")
+    
+    h_in = st.text_input(
+        "🔐 HASH (Server Seed)", 
+        placeholder="Adikao eto ny Hash lava (ex: 7db8e0...)",
+        help="Server seed avy @ Provably Fair"
+    )
+    t_in = st.text_input(
+        "⏰ ORA TALOHA (HH:MM:SS)", 
+        placeholder="Format: 14:18:30",
+        help="Ny ora nivoahan'ilay round teo aloha"
+    )
+    c_in = st.number_input(
+        "📊 COTE FARANY TEO", 
+        value=1.88, 
+        step=0.01, 
+        format="%.2f",
+        help="Ilay multiplier farany nivoaka (ex: 2.01)"
+    )
+    
     if st.button("🚀 ANALYSER", use_container_width=True):
         if h_in and t_in:
             st.session_state.last_res = run_ultra_v19(h_in, t_in, c_in)
             st.rerun()
+        else: st.error("❌ Fenoy ny Hash sy ny Ora!")
     st.markdown("</div>", unsafe_allow_html=True)
 
 with col_out:
@@ -290,12 +286,12 @@ with col_out:
         st.markdown("<br>", unsafe_allow_html=True)
         cw, cl = st.columns(2)
         with cw:
-            if st.button("✅ WIN (Nety)", use_container_width=True):
+            if st.button("✅ WIN", use_container_width=True):
                 for h in st.session_state.history:
                     if h['id'] == r['id']: h['result'] = 'WIN'
                 save_data(st.session_state.history); st.rerun()
         with cl:
-            if st.button("❌ LOSS (Tsy Nety)", use_container_width=True):
+            if st.button("❌ LOSS", use_container_width=True):
                 for h in st.session_state.history:
                     if h['id'] == r['id']: h['result'] = 'LOSS'
                 save_data(st.session_state.history); st.rerun()
