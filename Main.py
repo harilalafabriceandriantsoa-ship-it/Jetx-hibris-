@@ -1,298 +1,251 @@
 import streamlit as st
-import numpy as np
 import hashlib
+import numpy as np
 import pandas as pd
 from datetime import datetime, timedelta
 import pytz
 import json
 from pathlib import Path
-from sklearn.ensemble import GradientBoostingRegressor
-from sklearn.preprocessing import StandardScaler
-import pickle
-import base64
 
-# ===================== CONFIG =====================
-st.set_page_config(
-    page_title="JETX ULTRA V19.0 X3+", 
-    layout="wide",
-    initial_sidebar_state="collapsed"
-)
+st.set_page_config(page_title="JETX V20 BAYES", layout="wide", initial_sidebar_state="collapsed")
 
-# ===================== PERSISTENCE =====================
 try:
-    DATA_DIR = Path(__file__).parent / "jetx_v19_data"
+    DATA_DIR = Path(__file__).parent / "jetx_v20_data"
 except:
-    DATA_DIR = Path.cwd() / "jetx_v19_data"
-
+    DATA_DIR = Path.cwd() / "jetx_v20_data"
 DATA_DIR.mkdir(exist_ok=True, parents=True)
 HISTORY_FILE = DATA_DIR / "history.json"
-ML_FILE = DATA_DIR / "ml_model.pkl"
+STATS_FILE   = DATA_DIR / "stats.json"
 
-def save_data(data):
+def save_json(p,d):
     try:
-        with open(HISTORY_FILE, 'w', encoding='utf-8') as f:
-            json.dump(data, f, indent=2, ensure_ascii=False)
+        with open(p,"w",encoding="utf-8") as f: json.dump(d,f,indent=2)
     except: pass
 
-def load_data():
+def load_json(p,d):
     try:
-        if HISTORY_FILE.exists():
-            with open(HISTORY_FILE, 'r', encoding='utf-8') as f:
-                return json.load(f)
+        if p.exists():
+            with open(p,"r",encoding="utf-8") as f: return json.load(f)
     except: pass
-    return []
+    return d
 
-def save_ml(model, scaler):
-    try:
-        with open(ML_FILE, 'wb') as f:
-            pickle.dump({'model': model, 'scaler': scaler}, f)
-    except: pass
+TZ = pytz.timezone("Indian/Antananarivo")
 
-def load_ml():
-    try:
-        if ML_FILE.exists():
-            with open(ML_FILE, 'rb') as f:
-                data = pickle.load(f)
-                return data['model'], data['scaler']
-    except: pass
-    return None, None
-
-# ===================== CSS STYLING (MAINTY NY SORATRA) =====================
 st.markdown("""
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Rajdhani:wght@600;700&display=swap');
-    
-    .stApp {
-        background: radial-gradient(ellipse at 50% 0%, #1a0033 0%, #000008 60%, #001a1a 100%);
-        color: #e0fbfc;
-        font-family: 'Rajdhani', sans-serif;
-    }
-    
-    .main-title {
-        font-family: 'Orbitron', sans-serif;
-        font-size: clamp(2rem, 8vw, 3.5rem);
-        font-weight: 900;
-        text-align: center;
-        background: linear-gradient(90deg, #ff0066, #ff3399, #00ffcc);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        margin-bottom: 0.5rem;
-    }
-    
-    .glass {
-        background: rgba(10, 0, 25, 0.9);
-        border: 2px solid rgba(255, 0, 102, 0.4);
-        border-radius: 20px;
-        padding: clamp(15px, 5vw, 25px);
-        backdrop-filter: blur(12px);
-        margin-bottom: 20px;
-    }
-
-    /* INPUT STYLING - MAINTY NY SORATRA REHEFA MANORATRA */
-    .stTextInput input, .stNumberInput input {
-        background-color: #ffffff !important; 
-        color: #000000 !important; 
-        font-weight: 900 !important;
-        border: 3px solid #ff0066 !important;
-        border-radius: 12px !important;
-        font-size: 1.1rem !important;
-    }
-
-    /* Placeholder Style */
-    ::placeholder {
-        color: #555555 !important;
-        opacity: 0.8;
-    }
-
-    .entry-mega {
-        font-family: 'Orbitron', sans-serif;
-        font-size: clamp(3.5rem, 15vw, 5.5rem);
-        font-weight: 900;
-        text-align: center;
-        color: #ff0066;
-        text-shadow: 0 0 35px #ff0066;
-        margin: 25px 0;
-    }
-    
-    .prob-mega {
-        font-size: clamp(3rem, 10vw, 4.5rem);
-        font-weight: 900;
-        font-family: 'Orbitron';
-        text-align: center;
-        color: #00ffcc;
-        margin: 15px 0;
-    }
-    
-    .stButton>button {
-        background: linear-gradient(135deg, #ff0066, #ff3399) !important;
-        color: white !important;
-        font-weight: 900 !important;
-        border-radius: 12px !important;
-        height: 55px !important;
-        border: none !important;
-        width: 100%;
-    }
-    
-    .target-box {
-        background: rgba(255, 255, 255, 0.05);
-        border-radius: 15px;
-        padding: 15px;
-        text-align: center;
-    }
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Rajdhani:wght@600;700&display=swap');
+.stApp{background:radial-gradient(ellipse at 50% 0%,#1a0033 0%,#000008 60%,#001a1a 100%);color:#e0fbfc;font-family:'Rajdhani',sans-serif}
+.ttl{font-family:'Orbitron';font-size:clamp(1.8rem,7vw,3rem);font-weight:900;text-align:center;background:linear-gradient(90deg,#ff0066,#00ffcc,#ff0066);background-size:200%;-webkit-background-clip:text;-webkit-text-fill-color:transparent;animation:sh 3s ease infinite;margin-bottom:2px}
+@keyframes sh{0%,100%{background-position:0%}50%{background-position:100%}}
+.glass{background:rgba(10,0,25,.9);border:2px solid rgba(255,0,102,.4);border-radius:18px;padding:clamp(12px,4vw,22px);backdrop-filter:blur(12px);margin-bottom:16px}
+.entry{font-family:'Orbitron';font-size:clamp(3rem,12vw,5rem);font-weight:900;text-align:center;color:#ff0066;text-shadow:0 0 30px #ff0066;margin:16px 0}
+.prob{font-size:clamp(2.5rem,10vw,4rem);font-weight:900;font-family:'Orbitron';text-align:center;color:#00ffcc;margin:10px 0}
+.sig-u{text-align:center;font-family:'Orbitron';font-size:clamp(1rem,3.5vw,1.6rem);font-weight:900;color:#ff0066;text-shadow:0 0 20px #ff0066;padding:10px}
+.sig-s{text-align:center;font-family:'Orbitron';font-size:clamp(.9rem,3vw,1.4rem);font-weight:700;color:#00ffcc;padding:10px}
+.sig-w{text-align:center;font-family:'Orbitron';font-size:clamp(.9rem,3vw,1.3rem);color:#ff6600;padding:10px}
+.tbox{background:rgba(255,255,255,.05);border-radius:14px;padding:14px;text-align:center;margin:4px}
+.tv{font-size:clamp(1.4rem,5vw,2.2rem);font-weight:900;font-family:'Orbitron'}
+.mbox{background:rgba(255,0,102,.06);border:1px solid rgba(255,0,102,.2);border-radius:10px;padding:10px;text-align:center;margin:4px 0}
+.mv{font-size:1.4rem;font-weight:900;font-family:'Orbitron';color:#ff0066}
+.stButton>button{background:linear-gradient(135deg,#ff0066,#ff3399)!important;color:#fff!important;font-weight:900!important;border-radius:11px!important;height:52px!important;border:none!important;width:100%!important;transition:all .2s!important}
+.stButton>button:hover{transform:scale(1.02);box-shadow:0 0 22px rgba(255,0,102,.5)!important}
+.stTextInput input,.stNumberInput input{background:rgba(255,0,102,.04)!important;border:2px solid rgba(255,0,102,.22)!important;color:#e0fbfc!important;border-radius:11px!important;font-size:.9rem!important;padding:10px 13px!important}
+.stTextInput input:focus,.stNumberInput input:focus{border-color:rgba(255,0,102,.65)!important}
+.stSelectbox>div>div{background:rgba(255,0,102,.04)!important;border:2px solid rgba(255,0,102,.22)!important;border-radius:11px!important;color:#e0fbfc!important}
+@media(max-width:768px){.glass{padding:11px!important}}
 </style>
 """, unsafe_allow_html=True)
 
-# ===================== SESSION STATE =====================
-if "auth" not in st.session_state:
-    st.session_state.auth = False
-if "history" not in st.session_state:
-    st.session_state.history = load_data()
-if "last_res" not in st.session_state:
-    st.session_state.last_res = None
-if "ml_model" not in st.session_state:
-    st.session_state.ml_model, st.session_state.ml_scaler = load_ml()
+for k,v in [("auth",False),("history",load_json(HISTORY_FILE,[])),
+            ("stats",load_json(STATS_FILE,{"total":0,"wins":0,"losses":0})),
+            ("result",None),("ck",0)]:
+    if k not in st.session_state: st.session_state[k]=v
 
-TZ_MG = pytz.timezone("Indian/Antananarivo")
+# ============================================================
+# MARKOV CHAIN
+# ============================================================
+STATES=["COLD","NORMAL","WARM","HOT"]
 
-# ===================== LOGIN =====================
+def cote_to_state(c):
+    if c<1.5: return "COLD"
+    if c<2.5: return "NORMAL"
+    if c<3.5: return "WARM"
+    return "HOT"
+
+def build_markov(history):
+    trans={s:{s2:1 for s2 in STATES} for s in STATES}
+    cotes=[h.get("last_cote",2.0) for h in history if h.get("last_cote")]
+    for i in range(len(cotes)-1):
+        s1=cote_to_state(cotes[i]); s2=cote_to_state(cotes[i+1])
+        trans[s1][s2]+=1
+    return {s:{s2:trans[s][s2]/sum(trans[s].values()) for s2 in STATES} for s in STATES}
+
+def markov_predict(history, last_cote):
+    matrix=build_markov(history)
+    cur=cote_to_state(last_cote)
+    p=matrix[cur]
+    hot_p=p.get("HOT",0)+p.get("WARM",0)
+    return hot_p, cur
+
+# ============================================================
+# BAYESIAN
+# ============================================================
+def bayesian_update(history, base_prob):
+    labeled=[h for h in history if h.get("res") in ["WIN","LOSS"]]
+    if len(labeled)<3: return base_prob
+    recent=labeled[-20:]
+    hits=sum(1 for h in recent if h.get("res")=="WIN")
+    total=len(recent)
+    likelihood=(hits+1)/(total+2)
+    prior=base_prob/100
+    posterior=(likelihood*prior)/((likelihood*prior)+((1-likelihood)*(1-prior))+1e-9)
+    return round(min(95,max(30,posterior*100)),1)
+
+# ============================================================
+# ENGINE
+# ============================================================
+def run_engine(hash_in, time_in, last_cote):
+    h_hex=hashlib.sha512(hash_in.encode()).hexdigest()
+    h_num=int(h_hex[:16],16)
+    seed_val=int((h_num&0xFFFFFFFFFFFFFFFF)+int(last_cote*10000))
+    np.random.seed(seed_val%(2**32))
+
+    if last_cote<1.5:   base,sigma=2.12,0.24
+    elif last_cote<2.5: base,sigma=2.06,0.21
+    elif last_cote<3.5: base,sigma=2.00,0.19
+    else:               base,sigma=1.96,0.18
+    base+=(h_num%180)/1200; sigma-=last_cote*0.0022
+
+    sims=np.random.lognormal(np.log(base),max(0.14,sigma),350_000)
+    p3=round(float(np.mean(sims>=3.0))*100,2)
+    p3_5=round(float(np.mean(sims>=3.5))*100,2)
+    p4=round(float(np.mean(sims>=4.0))*100,2)
+    tmin=max(2.00,round(float(np.percentile(sims,30)),2))
+    tmoy=max(2.60,round(float(np.percentile(sims,50)),2))
+    sx3=sims[sims>=3.0]
+    tmax=max(3.00,round(float(np.percentile(sx3,85)),2)) if len(sx3)>0 else 3.80
+
+    hot_p,cur=markov_predict(st.session_state.history,last_cote)
+    markov_boost=(hot_p-0.5)*20
+    bayes_p=bayesian_update(st.session_state.history,p3+markov_boost)
+
+    strength=round(bayes_p*0.50+p3_5*0.20+p4*0.10+(h_num%200)/12+hot_p*15,1)
+    strength=max(30.0,min(99.0,strength))
+
+    now_mg=datetime.now(TZ)
+    shift=max(20,min(110,48+(h_num%90)-45+int(strength*0.35)+int(last_cote*4)-int((48-bayes_p)*0.45)))
+    entry=(now_mg+timedelta(seconds=shift)).strftime("%H:%M:%S")
+
+    if strength>=88 and bayes_p>=44:   sig,sc="💎💎💎 ULTRA X3+","sig-u"
+    elif strength>=76 and bayes_p>=36: sig,sc="🔥🔥 STRONG X3+","sig-s"
+    elif strength>=62 and bayes_p>=28: sig,sc="🟢 GOOD X3+","sig-s"
+    else:                              sig,sc="⚠️ SKIP","sig-w"
+
+    return {"hash":hash_in[:14]+"...","time":time_in,"last_cote":last_cote,
+            "entry":entry,"signal":sig,"sig_class":sc,
+            "p3":bayes_p,"p3_5":p3_5,"p4":p4,"strength":strength,
+            "cur_state":cur,"hot_p":round(hot_p*100,1),
+            "tmin":tmin,"tmoy":tmoy,"tmax":tmax,
+            "hist_idx":len(st.session_state.history),"res":"PENDING"}
+
+# ============================================================
+# LOGIN
+# ============================================================
 if not st.session_state.auth:
-    st.markdown("<div class='main-title'>JETX V19.0</div>", unsafe_allow_html=True)
-    col_a, col_b, col_c = st.columns([1, 1.2, 1])
-    with col_b:
+    st.markdown("<div class='ttl'>🚀 JETX V20 BAYES</div>", unsafe_allow_html=True)
+    _,cb,_=st.columns([1,1.2,1])
+    with cb:
         st.markdown("<div class='glass'>", unsafe_allow_html=True)
-        pw = st.text_input("🔑 PASSWORD", type="password", placeholder="Ampidiro ny password...")
-        if st.button("ACTIVATE"):
-            if pw == "JET2026":
-                st.session_state.auth = True
-                st.rerun()
-            else: st.error("❌ Password diso")
+        pw=st.text_input("🔑 PASSWORD",type="password",placeholder="JET2026")
+        if st.button("ACTIVER",use_container_width=True):
+            if pw=="JET2026": st.session_state.auth=True; st.rerun()
+            else: st.error("❌ Diso")
         st.markdown("</div>", unsafe_allow_html=True)
     st.stop()
 
-# ===================== ML ENGINE =====================
-def train_ml():
-    labeled = [h for h in st.session_state.history if h.get('result') in ['WIN', 'LOSS']]
-    if len(labeled) < 10: 
-        st.warning(f"⚠️ Mila valiny 10 farafahakeliny (Hita izao: {len(labeled)})")
-        return None, None
-    X, y = [], []
-    for h in labeled:
-        hash_val = int(h['hash'][:12], 16) if len(h['hash']) >= 12 else 0
-        X.append([hash_val % 1000, (hash_val >> 10) % 1000, h['last_cote'], h['prob'], h['conf'], h['strength']])
-        y.append(1 if h['result'] == 'WIN' else 0)
-    try:
-        scaler = StandardScaler()
-        X_scaled = scaler.fit_transform(np.array(X))
-        model = GradientBoostingRegressor(n_estimators=250, max_depth=6, learning_rate=0.05, random_state=42)
-        model.fit(X_scaled, np.array(y))
-        save_ml(model, scaler)
-        st.success("✅ ML Model nohavaozina!")
-        return model, scaler
-    except: return None, None
-
-# ===================== SIDEBAR =====================
+# SIDEBAR
 with st.sidebar:
-    st.markdown("### ⚙️ SETTINGS")
-    if st.button("🧠 TRAIN ML", use_container_width=True):
-        m, s = train_ml()
-        if m: st.session_state.ml_model, st.session_state.ml_scaler = m, s
-
-    if st.button("🗑️ RESET DATA", use_container_width=True):
-        st.session_state.history = []
-        save_data([])
-        st.success("Data voadio!")
-        st.rerun()
-
+    st.markdown("### 📊 STATS")
+    s=st.session_state.stats
+    tot,w,l=s.get("total",0),s.get("wins",0),s.get("losses",0)
+    wr=round(w/tot*100,1) if tot>0 else 0
+    st.markdown(f"<div class='mbox'><div class='mv'>{wr}%</div><div style='font-size:.6rem;color:#fff4'>WIN RATE</div></div>",unsafe_allow_html=True)
+    c1,c2=st.columns(2)
+    with c1: st.markdown(f"<div class='mbox'><div class='mv'>{w}</div><div style='font-size:.58rem;color:#fff3'>WINS</div></div>",unsafe_allow_html=True)
+    with c2: st.markdown(f"<div class='mbox'><div class='mv'>{l}</div><div style='font-size:.58rem;color:#fff3'>LOSS</div></div>",unsafe_allow_html=True)
     st.markdown("---")
-    if st.session_state.history:
-        wins = sum(1 for h in st.session_state.history if h.get('result') == 'WIN')
-        losses = sum(1 for h in st.session_state.history if h.get('result') == 'LOSS')
-        wr = round(wins/(wins+losses)*100, 1) if (wins+losses) > 0 else 0
-        st.metric("WIN RATE", f"{wr}%")
+    if st.button("🗑️ RESET",use_container_width=True):
+        st.session_state.history=[]; st.session_state.stats={"total":0,"wins":0,"losses":0}
+        st.session_state.result=None
+        for f in [HISTORY_FILE,STATS_FILE]:
+            try:
+                if f.exists(): f.unlink()
+            except: pass
+        st.success("✅ Reset!"); st.rerun()
 
-# ===================== ULTRA ENGINE V19 =====================
-def run_ultra_v19(hash_in, time_in, last_cote):
-    hash_hex = hashlib.sha512(hash_in.encode()).hexdigest()
-    hash_num = int(hash_hex[:16], 16)
-    seed_val = int((hash_num & 0xFFFFFFFFFFFFFFFF) + int(last_cote * 10000))
-    np.random.seed(seed_val % (2**32))
-    
-    # Intervals last cote
-    if last_cote < 1.5: base, sigma = 2.12, 0.24
-    elif last_cote < 2.5: base, sigma = 2.06, 0.21
-    elif last_cote < 3.5: base, sigma = 2.00, 0.19
-    else: base, sigma = 1.96, 0.18
-    
-    sims = np.random.lognormal(np.log(base), max(0.14, sigma), 350_000)
-    prob_x3 = round(float(np.mean(sims >= 3.0)) * 100, 2)
-    conf = round(max(40, min(99, prob_x3 * 1.18 + last_cote * 13.0)), 2)
-    strength = max(30.0, min(99.0, prob_x3 * 0.50 + conf * 0.30))
-    
-    now_mg = datetime.now(TZ_MG)
-    total_shift = max(20, min(110, 48 + (hash_num % 90) - 45 + int(strength * 0.35)))
-    entry_time = (now_mg + timedelta(seconds=total_shift)).strftime("%H:%M:%S")
-    
-    signal = "💎 ULTRA X3+" if strength >= 88 else "🔥 STRONG X3+" if strength >= 76 else "🟢 GOOD" if strength >= 60 else "⚠️ SKIP"
-    
-    res = {
-        "id": hash_hex[:8], "hash": hash_in[:16], "entry": entry_time,
-        "signal": signal, "prob": prob_x3, "conf": conf, "strength": strength,
-        "min": round(float(np.percentile(sims, 30)), 2),
-        "moy": round(float(np.percentile(sims, 50)), 2),
-        "max": round(float(np.percentile(sims, 85)), 2),
-        "result": "PENDING"
-    }
-    st.session_state.history.append(res)
-    save_data(st.session_state.history)
-    return res
+# MAIN
+st.markdown("<div class='ttl'>🚀 JETX V20 BAYES</div>", unsafe_allow_html=True)
+st.markdown("<p style='text-align:center;color:#ff006699;letter-spacing:.2em;margin-bottom:1rem;'>MARKOV + BAYESIAN • 350K SIMS</p>", unsafe_allow_html=True)
 
-# ===================== MAIN UI =====================
-st.markdown("<div class='main-title'>JETX ULTRA V19</div>", unsafe_allow_html=True)
-col_in, col_out = st.columns([1, 2], gap="medium")
+ci,co=st.columns([1,2],gap="medium")
 
-with col_in:
+with ci:
     st.markdown("<div class='glass'>", unsafe_allow_html=True)
-    st.markdown("### 📥 DATA ENTRY")
-    h_in = st.text_input("🔐 HASH", placeholder="Adikao eto ny Hash...")
-    t_in = st.text_input("⏰ TIME (HH:MM:SS)", placeholder="Ohatra: 14:20:05")
-    c_in = st.number_input("📊 LAST COTE", value=1.88, step=0.01)
-    
-    if st.button("🚀 ANALYSER", use_container_width=True):
-        if h_in and t_in:
-            st.session_state.last_res = run_ultra_v19(h_in, t_in, c_in)
-            st.rerun()
+    st.markdown("### 📥 INPUT")
+    h_in=st.text_input("🔐 HASH (Server)",placeholder="7db8e01413d6d...")
+    t_in=st.text_input("⏰ TIME (HH:MM:SS)",placeholder="20:22:24")
+    lc=st.number_input("📊 LAST COTE",value=1.88,step=0.01,format="%.2f")
     st.markdown("</div>", unsafe_allow_html=True)
+    if st.button("🚀 ANALYSER",use_container_width=True):
+        if h_in and t_in:
+            r=run_engine(h_in.strip(),t_in.strip(),lc)
+            st.session_state.result=r
+            st.session_state.history.append(dict(r))
+            if len(st.session_state.history)>200: st.session_state.history.pop(0)
+            save_json(HISTORY_FILE,st.session_state.history)
+            st.session_state.ck+=1; st.rerun()
+        else: st.error("HASH et TIME obligatoires")
 
-with col_out:
-    r = st.session_state.last_res
+with co:
+    r=st.session_state.result
     if r:
         st.markdown("<div class='glass'>", unsafe_allow_html=True)
-        st.markdown(f"<h2 style='text-align:center; color:#ff0066;'>{r['signal']}</h2>", unsafe_allow_html=True)
-        st.markdown(f"<div class='entry-mega'>{r['entry']}</div>", unsafe_allow_html=True)
-        st.markdown(f"<div class='prob-mega'>{r['prob']}%</div>", unsafe_allow_html=True)
-        
-        c1, c2, c3 = st.columns(3)
-        with c1: st.markdown(f"<div class='target-box'>MIN<br><b style='color:#00ffcc;'>{r['min']}×</b></div>", unsafe_allow_html=True)
-        with c2: st.markdown(f"<div class='target-box'>MOY<br><b style='color:#ffd700;'>{r['moy']}×</b></div>", unsafe_allow_html=True)
-        with c3: st.markdown(f"<div class='target-box'>MAX<br><b style='color:#ff3366;'>{r['max']}×</b></div>", unsafe_allow_html=True)
-        
-        st.markdown("<br>", unsafe_allow_html=True)
-        cw, cl = st.columns(2)
+        st.markdown(f"<div class='{r['sig_class']}'>{r['signal']}</div>",unsafe_allow_html=True)
+        st.markdown("<p style='text-align:center;color:#ffffff55;margin-top:16px;font-size:.75rem;'>▸ ENTRY TIME</p>",unsafe_allow_html=True)
+        st.markdown(f"<div class='entry'>{r['entry']}</div>",unsafe_allow_html=True)
+        st.markdown(f"<div class='prob'>{r['p3']}%</div>",unsafe_allow_html=True)
+        st.markdown("<p style='text-align:center;color:#ffffff55;font-size:.72rem;'>X3+ BAYESIAN PROB</p>",unsafe_allow_html=True)
+        st.markdown(f"""
+        <div style='display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin:10px 0;'>
+        <span style='background:rgba(255,0,102,.1);border:1px solid rgba(255,0,102,.3);border-radius:8px;padding:4px 12px;font-size:.82rem;'>🔄 {r['cur_state']}</span>
+        <span style='background:rgba(0,255,204,.1);border:1px solid rgba(0,255,204,.3);border-radius:8px;padding:4px 12px;font-size:.82rem;'>🔥 {r['hot_p']}%</span>
+        <span style='background:rgba(255,0,102,.1);border:1px solid rgba(255,0,102,.3);border-radius:8px;padding:4px 12px;font-size:.82rem;'>💪 {r['strength']}</span>
+        </div>""",unsafe_allow_html=True)
+        c1,c2,c3=st.columns(3)
+        with c1: st.markdown(f"<div class='tbox'><div style='font-size:.65rem;color:#ffffff55;'>MIN</div><div class='tv' style='color:#00ffcc;'>{r['tmin']}×</div></div>",unsafe_allow_html=True)
+        with c2: st.markdown(f"<div class='tbox'><div style='font-size:.65rem;color:#ffffff55;'>MOYEN</div><div class='tv' style='color:#ffd700;'>{r['tmoy']}×</div></div>",unsafe_allow_html=True)
+        with c3: st.markdown(f"<div class='tbox'><div style='font-size:.65rem;color:#ffffff55;'>MAX</div><div class='tv' style='color:#ff3366;'>{r['tmax']}×</div></div>",unsafe_allow_html=True)
+        st.markdown("<br>",unsafe_allow_html=True)
+        cw,cl2=st.columns(2)
         with cw:
-            if st.button("✅ WIN"):
-                for h in st.session_state.history:
-                    if h['id'] == r['id']: h['result'] = 'WIN'
-                save_data(st.session_state.history); st.rerun()
-        with cl:
-            if st.button("❌ LOSS"):
-                for h in st.session_state.history:
-                    if h['id'] == r['id']: h['result'] = 'LOSS'
-                save_data(st.session_state.history); st.rerun()
-        st.markdown("</div>", unsafe_allow_html=True)
+            if st.button("✅ WIN",use_container_width=True,key="bw"):
+                idx=r.get("hist_idx",-1)
+                if 0<=idx<len(st.session_state.history): st.session_state.history[idx]["res"]="WIN"; save_json(HISTORY_FILE,st.session_state.history)
+                st.session_state.stats["total"]+=1; st.session_state.stats["wins"]+=1; save_json(STATS_FILE,st.session_state.stats); st.success("🎯 Win!"); st.rerun()
+        with cl2:
+            if st.button("❌ LOSS",use_container_width=True,key="bl"):
+                idx=r.get("hist_idx",-1)
+                if 0<=idx<len(st.session_state.history): st.session_state.history[idx]["res"]="LOSS"; save_json(HISTORY_FILE,st.session_state.history)
+                st.session_state.stats["total"]+=1; st.session_state.stats["losses"]+=1; save_json(STATS_FILE,st.session_state.stats); st.rerun()
+        st.markdown("</div>",unsafe_allow_html=True)
+    else:
+        st.markdown("""<div class='glass' style='min-height:380px;display:flex;align-items:center;justify-content:center;'>
+        <div style='text-align:center;'><div style='font-size:3rem;'>🚀</div>
+        <div style='color:#ffffff22;font-family:Orbitron;margin-top:12px;'>EN ATTENTE...</div></div></div>""",unsafe_allow_html=True)
 
-# ===================== LOGS =====================
 if st.session_state.history:
-    st.markdown("---")
-    st.markdown("### 📜 HISTORIQUE")
-    df = pd.DataFrame(st.session_state.history[::-1])
-    st.dataframe(df[['entry', 'prob', 'signal', 'result']], use_container_width=True)
+    st.markdown("---"); st.markdown("### 📜 LOGS")
+    df=pd.DataFrame([{"Entry":h.get("entry",""),"X3%":h.get("p3",""),"State":h.get("cur_state",""),"Hot%":h.get("hot_p",""),"Res":h.get("res","PENDING")} for h in reversed(st.session_state.history[-10:])])
+    st.dataframe(df,use_container_width=True,hide_index=True)
+
+st.markdown("<div style='text-align:center;margin-top:30px;color:#fff1;font-size:.58rem;'>JETX V20 • MARKOV + BAYESIAN • 350K SIMS</div>",unsafe_allow_html=True)
