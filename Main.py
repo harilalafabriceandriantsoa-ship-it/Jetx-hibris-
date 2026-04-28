@@ -34,25 +34,82 @@ TZ = pytz.timezone("Indian/Antananarivo")
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Rajdhani:wght@600;700&display=swap');
-.stApp{background:radial-gradient(ellipse at 50% 0%,#1a0033 0%,#000008 60%,#001a1a 100%);color:#e0fbfc;font-family:'Rajdhani',sans-serif}
-.ttl{font-family:'Orbitron';font-size:clamp(1.8rem,7vw,3rem);font-weight:900;text-align:center;background:linear-gradient(90deg,#ff0066,#00ffcc,#ff0066);background-size:200%;-webkit-background-clip:text;-webkit-text-fill-color:transparent;animation:sh 3s ease infinite;margin-bottom:2px}
-@keyframes sh{0%,100%{background-position:0%}50%{background-position:100%}}
-.glass{background:rgba(10,0,25,.9);border:2px solid rgba(255,0,102,.4);border-radius:18px;padding:clamp(12px,4vw,22px);backdrop-filter:blur(12px);margin-bottom:16px}
-.entry{font-family:'Orbitron';font-size:clamp(3rem,12vw,5rem);font-weight:900;text-align:center;color:#ff0066;text-shadow:0 0 30px #ff0066;margin:16px 0}
-.prob{font-size:clamp(2.5rem,10vw,4rem);font-weight:900;font-family:'Orbitron';text-align:center;color:#00ffcc;margin:10px 0}
-.sig-u{text-align:center;font-family:'Orbitron';font-size:clamp(1rem,3.5vw,1.6rem);font-weight:900;color:#ff0066;text-shadow:0 0 20px #ff0066;padding:10px}
-.sig-s{text-align:center;font-family:'Orbitron';font-size:clamp(.9rem,3vw,1.4rem);font-weight:700;color:#00ffcc;padding:10px}
-.sig-w{text-align:center;font-family:'Orbitron';font-size:clamp(.9rem,3vw,1.3rem);color:#ff6600;padding:10px}
-.tbox{background:rgba(255,255,255,.05);border-radius:14px;padding:14px;text-align:center;margin:4px}
-.tv{font-size:clamp(1.4rem,5vw,2.2rem);font-weight:900;font-family:'Orbitron'}
-.mbox{background:rgba(255,0,102,.06);border:1px solid rgba(255,0,102,.2);border-radius:10px;padding:10px;text-align:center;margin:4px 0}
-.mv{font-size:1.4rem;font-weight:900;font-family:'Orbitron';color:#ff0066}
-.stButton>button{background:linear-gradient(135deg,#ff0066,#ff3399)!important;color:#fff!important;font-weight:900!important;border-radius:11px!important;height:52px!important;border:none!important;width:100%!important;transition:all .2s!important}
-.stButton>button:hover{transform:scale(1.02);box-shadow:0 0 22px rgba(255,0,102,.5)!important}
-.stTextInput input,.stNumberInput input{background:rgba(255,0,102,.04)!important;border:2px solid rgba(255,0,102,.22)!important;color:#e0fbfc!important;border-radius:11px!important;font-size:.9rem!important;padding:10px 13px!important}
-.stTextInput input:focus,.stNumberInput input:focus{border-color:rgba(255,0,102,.65)!important}
-.stSelectbox>div>div{background:rgba(255,0,102,.04)!important;border:2px solid rgba(255,0,102,.22)!important;border-radius:11px!important;color:#e0fbfc!important}
-@media(max-width:768px){.glass{padding:11px!important}}
+
+/* Fototra sy loko matanjaka ho an'ny soratra */
+.stApp {
+    background: radial-gradient(ellipse at 50% 0%,#1a0033 0%,#000008 60%,#001a1a 100%);
+    color: #ffffff !important; /* Fotsy tanteraka */
+    font-family: 'Rajdhani', sans-serif;
+}
+
+.ttl {
+    font-family: 'Orbitron';
+    font-size: clamp(1.8rem, 7vw, 3rem);
+    font-weight: 900;
+    text-align: center;
+    background: linear-gradient(90deg, #ff0066, #00ffcc, #ff0066);
+    background-size: 200%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: sh 3s ease infinite;
+    margin-bottom: 2px;
+}
+
+@keyframes sh { 0%, 100% { background-position: 0% } 50% { background-position: 100% } }
+
+.glass {
+    background: rgba(10,0,25,0.95); /* Maizina kokoa ny glass mba hampisongadina ny soratra */
+    border: 2px solid rgba(255,0,102,0.6);
+    border-radius: 18px;
+    padding: clamp(12px, 4vw, 22px);
+    backdrop-filter: blur(15px);
+    margin-bottom: 16px;
+    color: #ffffff !important;
+}
+
+.entry {
+    font-family: 'Orbitron';
+    font-size: clamp(3rem, 12vw, 5rem);
+    font-weight: 900;
+    text-align: center;
+    color: #ff0066;
+    text-shadow: 0 0 35px #ff0066, 0 0 5px #ffffff; /* Nampiako aloka fotsy kely */
+    margin: 16px 0;
+}
+
+.prob {
+    font-size: clamp(2.5rem, 10vw, 4rem);
+    font-weight: 900;
+    font-family: 'Orbitron';
+    text-align: center;
+    color: #00ffcc;
+    text-shadow: 0 0 20px #00ffcc;
+    margin: 10px 0;
+}
+
+/* Natao fotsy be ny soratra madinika */
+.tbox { background: rgba(255,255,255,0.1); border-radius: 14px; padding: 14px; text-align:center; margin:4px; }
+.tv { font-size: clamp(1.4rem, 5vw, 2.2rem); font-weight: 900; font-family: 'Orbitron'; color: #ffffff !important; }
+.mbox { background: rgba(255,0,102,0.15); border: 1px solid rgba(255,0,102,0.4); border-radius: 10px; padding: 10px; text-align: center; margin: 4px 0; }
+.mv { font-size: 1.4rem; font-weight: 900; font-family: 'Orbitron'; color: #ff0066; }
+
+/* Input field: Soratra mainty tsara sady misongadina */
+.stTextInput input, .stNumberInput input {
+    background: #000000 !important; /* Fond mainty */
+    border: 2px solid #ff0066 !important;
+    color: #ffffff !important; /* Soratra fotsy be */
+    font-weight: 700 !important;
+    border-radius: 11px !important;
+}
+
+.stButton>button {
+    background: linear-gradient(135deg,#ff0066,#ff3399)!important;
+    color: #ffffff !important;
+    font-weight: 900 !important;
+    text-shadow: 0px 1px 5px rgba(0,0,0,0.5);
+}
+
+label p { color: #ffffff !important; font-weight: 700 !important; font-size: 1rem !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -136,10 +193,10 @@ def run_engine(hash_in, time_in, last_cote):
     shift=max(20,min(110,48+(h_num%90)-45+int(strength*0.35)+int(last_cote*4)-int((48-bayes_p)*0.45)))
     entry=(now_mg+timedelta(seconds=shift)).strftime("%H:%M:%S")
 
-    if strength>=88 and bayes_p>=44:   sig,sc="💎💎💎 ULTRA X3+","sig-u"
-    elif strength>=76 and bayes_p>=36: sig,sc="🔥🔥 STRONG X3+","sig-s"
+    if strength>=88 and bayes_p>=44:   sig,sc="💎 ULTRA X3+","sig-u"
+    elif strength>=76 and bayes_p>=36: sig,sc="🔥 STRONG X3+","sig-s"
     elif strength>=62 and bayes_p>=28: sig,sc="🟢 GOOD X3+","sig-s"
-    else:                               sig,sc="⚠️ SKIP","sig-w"
+    else:                              sig,sc="⚠️ SKIP","sig-w"
 
     return {"hash":hash_in[:14]+"...","time":time_in,"last_cote":last_cote,
             "entry":entry,"signal":sig,"sig_class":sc,
@@ -156,52 +213,25 @@ if not st.session_state.auth:
     _,cb,_=st.columns([1,1.2,1])
     with cb:
         st.markdown("<div class='glass'>", unsafe_allow_html=True)
-        # Placeholder mazava ho an'ny Password
-        pw=st.text_input("🔑 PASSWORD",type="password",placeholder="SORATY_ETO_NY_PASSWORD")
+        pw=st.text_input("🔑 PASSWORD",type="password",placeholder="JET2026")
         if st.button("ACTIVER",use_container_width=True):
             if pw=="JET2026": st.session_state.auth=True; st.rerun()
-            else: st.error("❌ Diso ny teny miafina")
+            else: st.error("❌ Password diso")
         st.markdown("</div>", unsafe_allow_html=True)
     st.stop()
 
-# SIDEBAR
-with st.sidebar:
-    st.markdown("### 📊 STATS")
-    s=st.session_state.stats
-    tot,w,l=s.get("total",0),s.get("wins",0),s.get("losses",0)
-    wr=round(w/tot*100,1) if tot>0 else 0
-    st.markdown(f"<div class='mbox'><div class='mv'>{wr}%</div><div style='font-size:.6rem;color:#fff4'>WIN RATE</div></div>",unsafe_allow_html=True)
-    c1,c2=st.columns(2)
-    with c1: st.markdown(f"<div class='mbox'><div class='mv'>{w}</div><div style='font-size:.58rem;color:#fff3'>WINS</div></div>",unsafe_allow_html=True)
-    with c2: st.markdown(f"<div class='mbox'><div class='mv'>{l}</div><div style='font-size:.58rem;color:#fff3'>LOSS</div></div>",unsafe_allow_html=True)
-    st.markdown("---")
-    if st.button("🗑️ RESET",use_container_width=True):
-        st.session_state.history=[]; st.session_state.stats={"total":0,"wins":0,"losses":0}
-        st.session_state.result=None
-        for f in [HISTORY_FILE,STATS_FILE]:
-            try:
-                if f.exists(): f.unlink()
-            except: pass
-        st.success("✅ Reset vita!"); st.rerun()
-
-# MAIN
+# MAIN UI
 st.markdown("<div class='ttl'>🚀 JETX V20 BAYES</div>", unsafe_allow_html=True)
-st.markdown("<p style='text-align:center;color:#ff006699;letter-spacing:.2em;margin-bottom:1rem;'>MARKOV + BAYESIAN • 350K SIMS</p>", unsafe_allow_html=True)
 
 ci,co=st.columns([1,2],gap="medium")
 
 with ci:
     st.markdown("<div class='glass'>", unsafe_allow_html=True)
-    st.markdown("### 📥 INPUT DATA")
+    st.markdown("<p style='color:#00ffcc; font-weight:900;'>📥 DATA INPUT</p>", unsafe_allow_html=True)
     
-    # Placeholder: HASH (Server)
-    h_in=st.text_input("🔐 HASH (Server)",placeholder="ADIKAO_ETO_NY_HASH")
-    
-    # Placeholder: ORA (HH:MM:SS)
-    t_in=st.text_input("⏰ TIME (HH:MM:SS)",placeholder="ORA:MINITRA:SEKONDRA")
-    
-    # Last Cote: Nataoko 0.00 mba hanerena anao hanova azy
-    lc=st.number_input("📊 LAST COTE",value=0.00,step=0.01,format="%.2f")
+    h_in=st.text_input("🔐 HASH SHA512", placeholder="ADIKAO_NY_HASH_ETO")
+    t_in=st.text_input("⏰ ORA (HH:MM:SS)", placeholder="SORATY_NY_ORA_ETO")
+    lc=st.number_input("📊 COTE FARANY", value=0.00, step=0.01, format="%.2f")
     
     st.markdown("</div>", unsafe_allow_html=True)
     if st.button("🚀 ANALYSER",use_container_width=True):
@@ -209,51 +239,40 @@ with ci:
             r=run_engine(h_in.strip(),t_in.strip(),lc)
             st.session_state.result=r
             st.session_state.history.append(dict(r))
-            if len(st.session_state.history)>200: st.session_state.history.pop(0)
             save_json(HISTORY_FILE,st.session_state.history)
-            st.session_state.ck+=1; st.rerun()
-        else: st.error("FENOY_DAHOLO_NY_INPUT")
+            st.rerun()
+        else: st.error("Fenoy daholo ny banga")
 
 with co:
     r=st.session_state.result
     if r:
         st.markdown("<div class='glass'>", unsafe_allow_html=True)
-        st.markdown(f"<div class='{r['sig_class']}'>{r['signal']}</div>",unsafe_allow_html=True)
-        st.markdown("<p style='text-align:center;color:#ffffff55;margin-top:16px;font-size:.75rem;'>▸ ENTRY TIME</p>",unsafe_allow_html=True)
+        st.markdown(f"<div class='{r['sig_class']}' style='font-size:2rem; font-weight:900;'>{r['signal']}</div>",unsafe_allow_html=True)
+        st.markdown("<p style='text-align:center;color:#ffffff; margin-top:16px;'>▸ ENTRY TIME</p>",unsafe_allow_html=True)
         st.markdown(f"<div class='entry'>{r['entry']}</div>",unsafe_allow_html=True)
         st.markdown(f"<div class='prob'>{r['p3']}%</div>",unsafe_allow_html=True)
-        st.markdown("<p style='text-align:center;color:#ffffff55;font-size:.72rem;'>X3+ BAYESIAN PROB</p>",unsafe_allow_html=True)
-        st.markdown(f"""
-        <div style='display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin:10px 0;'>
-        <span style='background:rgba(255,0,102,.1);border:1px solid rgba(255,0,102,.3);border-radius:8px;padding:4px 12px;font-size:.82rem;'>🔄 {r['cur_state']}</span>
-        <span style='background:rgba(0,255,204,.1);border:1px solid rgba(0,255,204,.3);border-radius:8px;padding:4px 12px;font-size:.82rem;'>🔥 {r['hot_p']}%</span>
-        <span style='background:rgba(255,0,102,.1);border:1px solid rgba(255,0,102,.3);border-radius:8px;padding:4px 12px;font-size:.82rem;'>💪 {r['strength']}</span>
-        </div>""",unsafe_allow_html=True)
+        
         c1,c2,c3=st.columns(3)
-        with c1: st.markdown(f"<div class='tbox'><div style='font-size:.65rem;color:#ffffff55;'>MIN</div><div class='tv' style='color:#00ffcc;'>{r['tmin']}×</div></div>",unsafe_allow_html=True)
-        with c2: st.markdown(f"<div class='tbox'><div style='font-size:.65rem;color:#ffffff55;'>MOYEN</div><div class='tv' style='color:#ffd700;'>{r['tmoy']}×</div></div>",unsafe_allow_html=True)
-        with c3: st.markdown(f"<div class='tbox'><div style='font-size:.65rem;color:#ffffff55;'>MAX</div><div class='tv' style='color:#ff3366;'>{r['tmax']}×</div></div>",unsafe_allow_html=True)
-        st.markdown("<br>",unsafe_allow_html=True)
-        cw,cl2=st.columns(2)
-        with cw:
-            if st.button("✅ WIN",use_container_width=True,key="bw"):
-                idx=r.get("hist_idx",-1)
-                if 0<=idx<len(st.session_state.history): st.session_state.history[idx]["res"]="WIN"; save_json(HISTORY_FILE,st.session_state.history)
-                st.session_state.stats["total"]+=1; st.session_state.stats["wins"]+=1; save_json(STATS_FILE,st.session_state.stats); st.success("🎯 Win!"); st.rerun()
-        with cl2:
-            if st.button("❌ LOSS",use_container_width=True,key="bl"):
-                idx=r.get("hist_idx",-1)
-                if 0<=idx<len(st.session_state.history): st.session_state.history[idx]["res"]="LOSS"; save_json(HISTORY_FILE,st.session_state.history)
+        with c1: st.markdown(f"<div class='tbox'><div style='color:#ffffff;'>MIN</div><div class='tv'>{r['tmin']}×</div></div>",unsafe_allow_html=True)
+        with c2: st.markdown(f"<div class='tbox'><div style='color:#ffffff;'>MOYEN</div><div class='tv'>{r['tmoy']}×</div></div>",unsafe_allow_html=True)
+        with c3: st.markdown(f"<div class='tbox'><div style='color:#ffffff;'>MAX</div><div class='tv'>{r['tmax']}×</div></div>",unsafe_allow_html=True)
+
+        st.markdown("<br>", unsafe_allow_html=True)
+        cw, cl = st.columns(2)
+        with cw: 
+            if st.button("✅ WIN", use_container_width=True):
+                st.session_state.stats["total"]+=1; st.session_state.stats["wins"]+=1; save_json(STATS_FILE,st.session_state.stats); st.rerun()
+        with cl:
+            if st.button("❌ LOSS", use_container_width=True):
                 st.session_state.stats["total"]+=1; st.session_state.stats["losses"]+=1; save_json(STATS_FILE,st.session_state.stats); st.rerun()
         st.markdown("</div>",unsafe_allow_html=True)
     else:
-        st.markdown("""<div class='glass' style='min-height:380px;display:flex;align-items:center;justify-content:center;'>
-        <div style='text-align:center;'><div style='font-size:3rem;'>🚀</div>
-        <div style='color:#ffffff22;font-family:Orbitron;margin-top:12px;'>MIANDRY...</div></div></div>""",unsafe_allow_html=True)
+        st.markdown("<div class='glass' style='height:300px; display:flex; align-items:center; justify-content:center;'>MIANDRY ANALYSE...</div>", unsafe_allow_html=True)
 
-if st.session_state.history:
-    st.markdown("---"); st.markdown("### 📜 LOGS")
-    df=pd.DataFrame([{"Entry":h.get("entry",""),"X3%":h.get("p3",""),"State":h.get("cur_state",""),"Hot%":h.get("hot_p",""),"Res":h.get("res","PENDING")} for h in reversed(st.session_state.history[-10:])])
-    st.dataframe(df,use_container_width=True,hide_index=True)
-
-st.markdown("<div style='text-align:center;margin-top:30px;color:#fff1;font-size:.58rem;'>JETX V20 • MARKOV + BAYESIAN • 350K SIMS</div>",unsafe_allow_html=True)
+# SIDEBAR STATS
+with st.sidebar:
+    st.markdown("## 📊 STATISTIQUES")
+    s=st.session_state.stats
+    st.metric("TOTAL", s['total'])
+    st.metric("WINS", s['wins'], delta=f"{s['wins']} ✅")
+    st.metric("LOSS", s['losses'], delta=f"-{s['losses']} ❌", delta_color="inverse")
