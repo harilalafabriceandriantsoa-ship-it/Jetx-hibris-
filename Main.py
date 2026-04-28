@@ -139,7 +139,7 @@ def run_engine(hash_in, time_in, last_cote):
     if strength>=88 and bayes_p>=44:   sig,sc="💎💎💎 ULTRA X3+","sig-u"
     elif strength>=76 and bayes_p>=36: sig,sc="🔥🔥 STRONG X3+","sig-s"
     elif strength>=62 and bayes_p>=28: sig,sc="🟢 GOOD X3+","sig-s"
-    else:                              sig,sc="⚠️ SKIP","sig-w"
+    else:                               sig,sc="⚠️ SKIP","sig-w"
 
     return {"hash":hash_in[:14]+"...","time":time_in,"last_cote":last_cote,
             "entry":entry,"signal":sig,"sig_class":sc,
@@ -156,10 +156,11 @@ if not st.session_state.auth:
     _,cb,_=st.columns([1,1.2,1])
     with cb:
         st.markdown("<div class='glass'>", unsafe_allow_html=True)
-        pw=st.text_input("🔑 PASSWORD",type="password",placeholder="JET2026")
+        # Placeholder mazava ho an'ny Password
+        pw=st.text_input("🔑 PASSWORD",type="password",placeholder="SORATY_ETO_NY_PASSWORD")
         if st.button("ACTIVER",use_container_width=True):
             if pw=="JET2026": st.session_state.auth=True; st.rerun()
-            else: st.error("❌ Diso")
+            else: st.error("❌ Diso ny teny miafina")
         st.markdown("</div>", unsafe_allow_html=True)
     st.stop()
 
@@ -181,7 +182,7 @@ with st.sidebar:
             try:
                 if f.exists(): f.unlink()
             except: pass
-        st.success("✅ Reset!"); st.rerun()
+        st.success("✅ Reset vita!"); st.rerun()
 
 # MAIN
 st.markdown("<div class='ttl'>🚀 JETX V20 BAYES</div>", unsafe_allow_html=True)
@@ -191,20 +192,27 @@ ci,co=st.columns([1,2],gap="medium")
 
 with ci:
     st.markdown("<div class='glass'>", unsafe_allow_html=True)
-    st.markdown("### 📥 INPUT")
-    h_in=st.text_input("🔐 HASH (Server)",placeholder="7db8e01413d6d...")
-    t_in=st.text_input("⏰ TIME (HH:MM:SS)",placeholder="20:22:24")
-    lc=st.number_input("📊 LAST COTE",value=1.88,step=0.01,format="%.2f")
+    st.markdown("### 📥 INPUT DATA")
+    
+    # Placeholder: HASH (Server)
+    h_in=st.text_input("🔐 HASH (Server)",placeholder="ADIKAO_ETO_NY_HASH")
+    
+    # Placeholder: ORA (HH:MM:SS)
+    t_in=st.text_input("⏰ TIME (HH:MM:SS)",placeholder="ORA:MINITRA:SEKONDRA")
+    
+    # Last Cote: Nataoko 0.00 mba hanerena anao hanova azy
+    lc=st.number_input("📊 LAST COTE",value=0.00,step=0.01,format="%.2f")
+    
     st.markdown("</div>", unsafe_allow_html=True)
     if st.button("🚀 ANALYSER",use_container_width=True):
-        if h_in and t_in:
+        if h_in and t_in and lc > 0:
             r=run_engine(h_in.strip(),t_in.strip(),lc)
             st.session_state.result=r
             st.session_state.history.append(dict(r))
             if len(st.session_state.history)>200: st.session_state.history.pop(0)
             save_json(HISTORY_FILE,st.session_state.history)
             st.session_state.ck+=1; st.rerun()
-        else: st.error("HASH et TIME obligatoires")
+        else: st.error("FENOY_DAHOLO_NY_INPUT")
 
 with co:
     r=st.session_state.result
@@ -241,7 +249,7 @@ with co:
     else:
         st.markdown("""<div class='glass' style='min-height:380px;display:flex;align-items:center;justify-content:center;'>
         <div style='text-align:center;'><div style='font-size:3rem;'>🚀</div>
-        <div style='color:#ffffff22;font-family:Orbitron;margin-top:12px;'>EN ATTENTE...</div></div></div>""",unsafe_allow_html=True)
+        <div style='color:#ffffff22;font-family:Orbitron;margin-top:12px;'>MIANDRY...</div></div></div>""",unsafe_allow_html=True)
 
 if st.session_state.history:
     st.markdown("---"); st.markdown("### 📜 LOGS")
