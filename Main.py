@@ -38,7 +38,7 @@ st.markdown("""
 /* Fototra sy loko matanjaka ho an'ny soratra */
 .stApp {
     background: radial-gradient(ellipse at 50% 0%,#1a0033 0%,#000008 60%,#001a1a 100%);
-    color: #ffffff !important; /* Fotsy tanteraka */
+    color: #ffffff !important;
     font-family: 'Rajdhani', sans-serif;
 }
 
@@ -58,7 +58,7 @@ st.markdown("""
 @keyframes sh { 0%, 100% { background-position: 0% } 50% { background-position: 100% } }
 
 .glass {
-    background: rgba(10,0,25,0.95); /* Maizina kokoa ny glass mba hampisongadina ny soratra */
+    background: rgba(10,0,25,0.95); 
     border: 2px solid rgba(255,0,102,0.6);
     border-radius: 18px;
     padding: clamp(12px, 4vw, 22px);
@@ -73,7 +73,7 @@ st.markdown("""
     font-weight: 900;
     text-align: center;
     color: #ff0066;
-    text-shadow: 0 0 35px #ff0066, 0 0 5px #ffffff; /* Nampiako aloka fotsy kely */
+    text-shadow: 0 0 35px #ff0066, 0 0 5px #ffffff;
     margin: 16px 0;
 }
 
@@ -87,19 +87,26 @@ st.markdown("""
     margin: 10px 0;
 }
 
-/* Natao fotsy be ny soratra madinika */
 .tbox { background: rgba(255,255,255,0.1); border-radius: 14px; padding: 14px; text-align:center; margin:4px; }
 .tv { font-size: clamp(1.4rem, 5vw, 2.2rem); font-weight: 900; font-family: 'Orbitron'; color: #ffffff !important; }
 .mbox { background: rgba(255,0,102,0.15); border: 1px solid rgba(255,0,102,0.4); border-radius: 10px; padding: 10px; text-align: center; margin: 4px 0; }
 .mv { font-size: 1.4rem; font-weight: 900; font-family: 'Orbitron'; color: #ff0066; }
 
-/* Input field: Soratra mainty tsara sady misongadina */
+/* INPUT FIELD: Natao mazava tsara ny soratra fa tsy mangarahara */
 .stTextInput input, .stNumberInput input {
-    background: #000000 !important; /* Fond mainty */
+    background: #000000 !important;
     border: 2px solid #ff0066 !important;
-    color: #ffffff !important; /* Soratra fotsy be */
+    color: #ffffff !important;
     font-weight: 700 !important;
+    font-size: 1.1rem !important;
     border-radius: 11px !important;
+    opacity: 1 !important; /* Mba tsy ho transparent ny soratra */
+}
+
+/* Natao mazava ny placeholder */
+::placeholder {
+    color: rgba(255, 255, 255, 0.5) !important;
+    opacity: 1 !important;
 }
 
 .stButton>button {
@@ -107,6 +114,9 @@ st.markdown("""
     color: #ffffff !important;
     font-weight: 900 !important;
     text-shadow: 0px 1px 5px rgba(0,0,0,0.5);
+    border-radius: 11px !important;
+    height: 52px !important;
+    width: 100% !important;
 }
 
 label p { color: #ffffff !important; font-weight: 700 !important; font-size: 1rem !important; }
@@ -220,28 +230,49 @@ if not st.session_state.auth:
         st.markdown("</div>", unsafe_allow_html=True)
     st.stop()
 
-# MAIN UI
+# SIDEBAR
+with st.sidebar:
+    st.markdown("### 📊 STATS")
+    s=st.session_state.stats
+    tot,w,l=s.get("total",0),s.get("wins",0),s.get("losses",0)
+    wr=round(w/tot*100,1) if tot>0 else 0
+    st.markdown(f"<div class='mbox'><div class='mv'>{wr}%</div><div style='font-size:.6rem;color:#fff4'>WIN RATE</div></div>",unsafe_allow_html=True)
+    c1,c2=st.columns(2)
+    with c1: st.markdown(f"<div class='mbox'><div class='mv'>{w}</div><div style='font-size:.58rem;color:#fff3'>WINS</div></div>",unsafe_allow_html=True)
+    with c2: st.markdown(f"<div class='mbox'><div class='mv'>{l}</div><div style='font-size:.58rem;color:#fff3'>LOSS</div></div>",unsafe_allow_html=True)
+    st.markdown("---")
+    if st.button("🗑️ RESET",use_container_width=True):
+        st.session_state.history=[]; st.session_state.stats={"total":0,"wins":0,"losses":0}
+        st.session_state.result=None
+        for f in [HISTORY_FILE,STATS_FILE]:
+            try:
+                if f.exists(): f.unlink()
+            except: pass
+        st.success("✅ Reset!"); st.rerun()
+
+# MAIN
 st.markdown("<div class='ttl'>🚀 JETX V20 BAYES</div>", unsafe_allow_html=True)
 
 ci,co=st.columns([1,2],gap="medium")
 
 with ci:
     st.markdown("<div class='glass'>", unsafe_allow_html=True)
-    st.markdown("<p style='color:#00ffcc; font-weight:900;'>📥 DATA INPUT</p>", unsafe_allow_html=True)
-    
-    h_in=st.text_input("🔐 HASH SHA512", placeholder="ADIKAO_NY_HASH_ETO")
-    t_in=st.text_input("⏰ ORA (HH:MM:SS)", placeholder="SORATY_NY_ORA_ETO")
-    lc=st.number_input("📊 COTE FARANY", value=0.00, step=0.01, format="%.2f")
+    st.markdown("### 📥 INPUT DATA")
+    # Novana ny Placeholder eto
+    h_in=st.text_input("🔐 HASH SHA512", placeholder="ADIKAO_NY_HASH_SERVER_ETO")
+    t_in=st.text_input("⏰ TIME (HH:MM:SS)", placeholder="SORATY_NY_ORA_ETO")
+    lc=st.number_input("📊 LAST COTE", value=1.88, step=0.01, format="%.2f")
     
     st.markdown("</div>", unsafe_allow_html=True)
     if st.button("🚀 ANALYSER",use_container_width=True):
-        if h_in and t_in and lc > 0:
+        if h_in and t_in:
             r=run_engine(h_in.strip(),t_in.strip(),lc)
             st.session_state.result=r
             st.session_state.history.append(dict(r))
+            if len(st.session_state.history)>200: st.session_state.history.pop(0)
             save_json(HISTORY_FILE,st.session_state.history)
-            st.rerun()
-        else: st.error("Fenoy daholo ny banga")
+            st.session_state.ck+=1; st.rerun()
+        else: st.error("HASH et TIME obligatoires")
 
 with co:
     r=st.session_state.result
@@ -256,23 +287,28 @@ with co:
         with c1: st.markdown(f"<div class='tbox'><div style='color:#ffffff;'>MIN</div><div class='tv'>{r['tmin']}×</div></div>",unsafe_allow_html=True)
         with c2: st.markdown(f"<div class='tbox'><div style='color:#ffffff;'>MOYEN</div><div class='tv'>{r['tmoy']}×</div></div>",unsafe_allow_html=True)
         with c3: st.markdown(f"<div class='tbox'><div style='color:#ffffff;'>MAX</div><div class='tv'>{r['tmax']}×</div></div>",unsafe_allow_html=True)
-
+        
         st.markdown("<br>", unsafe_allow_html=True)
-        cw, cl = st.columns(2)
-        with cw: 
-            if st.button("✅ WIN", use_container_width=True):
+        cw,cl2=st.columns(2)
+        with cw:
+            if st.button("✅ WIN",use_container_width=True,key="bw"):
+                idx=r.get("hist_idx",-1)
+                if 0<=idx<len(st.session_state.history): st.session_state.history[idx]["res"]="WIN"; save_json(HISTORY_FILE,st.session_state.history)
                 st.session_state.stats["total"]+=1; st.session_state.stats["wins"]+=1; save_json(STATS_FILE,st.session_state.stats); st.rerun()
-        with cl:
-            if st.button("❌ LOSS", use_container_width=True):
+        with cl2:
+            if st.button("❌ LOSS",use_container_width=True,key="bl"):
+                idx=r.get("hist_idx",-1)
+                if 0<=idx<len(st.session_state.history): st.session_state.history[idx]["res"]="LOSS"; save_json(HISTORY_FILE,st.session_state.history)
                 st.session_state.stats["total"]+=1; st.session_state.stats["losses"]+=1; save_json(STATS_FILE,st.session_state.stats); st.rerun()
         st.markdown("</div>",unsafe_allow_html=True)
     else:
-        st.markdown("<div class='glass' style='height:300px; display:flex; align-items:center; justify-content:center;'>MIANDRY ANALYSE...</div>", unsafe_allow_html=True)
+        st.markdown("""<div class='glass' style='min-height:380px;display:flex;align-items:center;justify-content:center;'>
+        <div style='text-align:center;'><div style='font-size:3rem;'>🚀</div>
+        <div style='color:#ffffff; font-family:Orbitron; margin-top:12px;'>EN ATTENTE...</div></div></div>""",unsafe_allow_html=True)
 
-# SIDEBAR STATS
-with st.sidebar:
-    st.markdown("## 📊 STATISTIQUES")
-    s=st.session_state.stats
-    st.metric("TOTAL", s['total'])
-    st.metric("WINS", s['wins'], delta=f"{s['wins']} ✅")
-    st.metric("LOSS", s['losses'], delta=f"-{s['losses']} ❌", delta_color="inverse")
+if st.session_state.history:
+    st.markdown("---"); st.markdown("### 📜 LOGS")
+    df=pd.DataFrame([{"Entry":h.get("entry",""),"X3%":h.get("p3",""),"State":h.get("cur_state",""),"Hot%":h.get("hot_p",""),"Res":h.get("res","PENDING")} for h in reversed(st.session_state.history[-10:])])
+    st.dataframe(df,use_container_width=True,hide_index=True)
+
+st.markdown("<div style='text-align:center;margin-top:30px;color:#fff1;font-size:.58rem;'>JETX V20 • MARKOV + BAYESIAN • 350K SIMS</div>",unsafe_allow_html=True)
