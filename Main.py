@@ -55,10 +55,13 @@ CSS="""
 .stButton>button:hover{transform:scale(1.02);box-shadow:0 0 24px rgba(0,255,204,.5)!important}
 .stTextInput label,.stNumberInput label{color:#aaffee!important;font-weight:700!important;font-size:.88rem!important;font-family:'Rajdhani'!important}
 .stTextInput input{background:rgba(255,255,255,.1)!important;border:2px solid rgba(0,255,204,.5)!important;color:#fff!important;border-radius:11px!important;font-size:.95rem!important;padding:11px 14px!important;font-family:'Rajdhani'!important}
-.stTextInput input::placeholder{color:rgba(255,255,255,.6)!important;font-style:italic!important}
-.stTextInput input:focus{border-color:#00ffcc!important;box-shadow:0 0 14px rgba(0,255,204,.3)!important;background:rgba(255,255,255,.14)!important}
-.stNumberInput input{background:rgba(255,255,255,.1)!important;border:2px solid rgba(0,255,204,.5)!important;color:#fff!important;border-radius:11px!important;font-size:.95rem!important;padding:11px 14px!important}
-.stNumberInput input:focus{border-color:#00ffcc!important;box-shadow:0 0 14px rgba(0,255,204,.3)!important}
+
+/* --- FANITSIA AO AMIN'NY PLACEHOLDER --- */
+.stTextInput input::placeholder{color:rgba(255,255,255,0.75)!important;font-style:normal!important;opacity:1!important}
+
+.stTextInput input:focus{border-color:#00ffcc!important;box-shadow:0 0 14px rgba(0,255,204,0.3)!important;background:rgba(255,255,255,0.14)!important}
+.stNumberInput input{background:rgba(255,255,255,0.1)!important;border:2px solid rgba(0,255,204,0.5)!important;color:#fff!important;border-radius:11px!important;font-size:0.95rem!important;padding:11px 14px!important}
+.stNumberInput input:focus{border-color:#00ffcc!important;box-shadow:0 0 14px rgba(0,255,204,0.3)!important}
 @media(max-width:768px){.card{padding:12px!important}}
 </style>
 """
@@ -118,15 +121,11 @@ def engine(hash_in, tin, lc):
     str_=round(bp*0.50+p35*0.20+p4*0.10+(hn%200)/12+(hp/100)*15,1)
     str_=max(30.0,min(99.0,str_))
 
-    # ── HEURE D'ENTRÉE ULTRA PRÉCIS ──
-    # Base = ORA ANKEHITRINY MADAGASCAR (tsy time_in!)
-    # time_in = référence entropy fotsiny
-    # Shift dynamique: 15-90 secondes
     now=datetime.now(TZ)
-    hs=(hn%60)-30         # hash variabilité
-    sb=int(str_*0.28)     # strength → entry mialoha raha fort
-    cf=int(lc*3)          # last cote avo → mialoha kely
-    pp=int((48-bp)*0.38)  # prob ambany → miandry
+    hs=(hn%60)-30         
+    sb=int(str_*0.28)     
+    cf=int(lc*3)          
+    pp=int((48-bp)*0.38)  
     shift=max(15,min(90,38+hs+sb+cf-pp))
     ent=(now+timedelta(seconds=shift)).strftime("%H:%M:%S")
 
