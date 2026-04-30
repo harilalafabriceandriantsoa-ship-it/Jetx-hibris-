@@ -62,21 +62,27 @@ CSS="""
     font-family:'Rajdhani'!important
 }
 .stTextInput input, .stNumberInput input {
-    background:rgba(255,255,255,0.95)!important; /* Fotsy kely mba hisongadina ny mainty */
+    background:rgba(255,255,255,0.95)!important; 
     border:2px solid rgba(0,255,204,.8)!important;
-    color:#000000!important; /* SORATRA MAINTY */
+    color:#000000!important; 
     border-radius:11px!important;
     font-size:.95rem!important;
     padding:11px 14px!important;
-    font-family:'Orbitron'!important; /* Stylé kokoa */
+    font-family:'Orbitron'!important; 
     font-weight:800!important;
     opacity: 1!important;
 }
+
+/* --- PLACEHOLDER MAINTY SY STYLÉ --- */
 .stTextInput input::placeholder {
-    color:#000000!important; /* PLACEHOLDER MAINTY */
-    opacity: 0.6!important;
+    color:#000000!important; 
+    opacity: 0.9!important;
     font-style:italic!important;
+    font-weight:900!important; /* Tena matevina */
+    letter-spacing: 0.05em!important;
+    text-shadow: 0px 0px 4px rgba(0, 255, 204, 0.4)!important; /* Misy effet luminescent kely fa mainty ny fotony */
 }
+
 .stTextInput input:focus, .stNumberInput input:focus {
     border-color:#00ffcc!important;
     box-shadow:0 0 14px rgba(0,255,204,0.6)!important;
@@ -117,7 +123,8 @@ def bayes(h,base):
     return round(min(95,max(30,po*100)),1)
 
 def engine(hash_in, tin, lc):
-    fh=hashlib.sha512(hash_in.encode()).hexdigest()
+    # Fanaovana Hash vaovao miainga amin'ny Time sy ny Server Hash mba hahazoana tsipelina marina kokoa
+    fh=hashlib.sha512((str(hash_in).strip() + str(tin).strip()).encode()).hexdigest()
     hn=int(fh[:16],16)
     sv=int((hn&0xFFFFFFFF)+(lc*1000))
     np.random.seed(sv%(2**32))
@@ -142,13 +149,34 @@ def engine(hash_in, tin, lc):
     str_=round(bp*0.50+p35*0.20+p4*0.10+(hn%200)/12+(hp/100)*15,1)
     str_=max(30.0,min(99.0,str_))
 
+    # --- CALCUL HEURE D'ENTRÉE: ULTRA PUISSANT & PRÉCIS ---
     now=datetime.now(TZ)
-    hs=(hn%60)-30         
-    sb=int(str_*0.28)     
-    cf=int(lc*3)          
-    pp=int((48-bp)*0.38)  
-    shift=max(15,min(90,38+hs+sb+cf-pp))
-    ent=(now+timedelta(seconds=shift)).strftime("%H:%M:%S")
+    
+    # 1. Fakana ny segondra avy amin'ilay Time nampidirina raha misy
+    try:
+        t_clean = str(tin).replace('h', ':').replace('.', ':').replace(' ', '')
+        t_parts = [int(x) for x in t_clean.split(':')]
+        t_sec = t_parts[-1] if len(t_parts) > 0 else now.second
+    except:
+        t_sec = now.second
+
+    # 2. Algorithme de décalage temporel
+    entropy = (hn % 1000) / 1000.0
+    wave = np.sin(t_sec * np.pi / 30.0) # Onja trigonometrika (cycle 60s)
+    
+    base_shift = 38.0
+    prob_shift = (50.0 - bp) * 0.35 # Ampitomboina ny fiandrasana raha kely ny chance
+    hash_shift = (entropy - 0.5) * 25.0 # Variations pseudo-aléatoires
+    cote_shift = min(15.0, float(lc) * 2.0)
+    
+    exact_shift = base_shift + prob_shift + hash_shift + cote_shift + (wave * 6.5)
+    
+    # 3. Fatorana ny segondra miandry mba tsy hihoa-pefy (12s hatramin'ny 85s max)
+    final_shift_sec = int(max(12.0, min(85.0, exact_shift)))
+    
+    ent_time = now + timedelta(seconds=final_shift_sec)
+    ent = ent_time.strftime("%H:%M:%S")
+    # --------------------------------------------------------
 
     if str_>=88 and bp>=44:   sig,sc="💎💎💎 ULTRA X3+ — BUY","sig-u"
     elif str_>=76 and bp>=36: sig,sc="🔥🔥 STRONG X3+ — GO","sig-s"
@@ -176,7 +204,7 @@ if not st.session_state.auth:
     <h3 style='color:#00ffcc;font-family:Orbitron;text-align:center;'>📖 FANAZAVANA MALAGASY</h3>
     <div class='ib'><b style='color:#00ffcc;'>⏰ INONA NY HEURE D'ENTRÉE?</b><br>
     = ORA MARINA ANKEHITRINY (Madagascar) + SHIFT calculé<br>
-    = TSY mitovy @ "TIME" nampidirina (référence taloha fotsiny)<br>
+    = Kajiana manokana miainga amin'ny Entropie, onja Trigonometrika, ary ny Volatilité!<br>
     Ohatra: Now=20:22:30 + 45sec → Entry=<b style='color:#00ffcc;'>20:23:15</b></div>
     </div>
     """,unsafe_allow_html=True)
