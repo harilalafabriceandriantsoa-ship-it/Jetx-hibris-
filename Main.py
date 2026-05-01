@@ -6,7 +6,10 @@ from datetime import datetime, timedelta
 import pytz, json
 from pathlib import Path
 
+# Configuration de la page
 st.set_page_config(page_title="JETX X3 V22", layout="wide", initial_sidebar_state="collapsed")
+
+# Gestion des dossiers de données
 try:    D = Path(__file__).parent / "jx22_data"
 except: D = Path.cwd() / "jx22_data"
 D.mkdir(exist_ok=True, parents=True)
@@ -26,6 +29,7 @@ def lj(p,d):
 
 TZ = pytz.timezone("Indian/Antananarivo")
 
+# CSS DESIGN - PLACEHOLDER AMBOARINA HO MAINTY SY STYLÉ
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Rajdhani:wght@600;700&display=swap');
@@ -53,25 +57,19 @@ st.markdown("""
 .stButton>button{background:linear-gradient(135deg,#00ffcc,#00aaaa)!important;color:#000!important;font-weight:900!important;border-radius:12px!important;height:52px!important;border:none!important;width:100%!important;font-family:'Rajdhani'!important;font-size:.95rem!important;transition:all .2s!important}
 .stButton>button:hover{transform:scale(1.02);box-shadow:0 0 24px rgba(0,255,204,.5)!important}
 .stTextInput label,.stNumberInput label{color:#aaffee!important;font-weight:700!important;font-size:.87rem!important;font-family:'Rajdhani'!important}
+
+/* PLACEHOLDER OPTIMISATION: MAINTY SY STYLÉ */
 .stTextInput input{background:rgba(255,255,255,.1)!important;border:2px solid rgba(0,255,204,.5)!important;color:#fff!important;border-radius:11px!important;font-size:.93rem!important;padding:11px 14px!important;font-family:'Rajdhani'!important}
-
-/* --- OVANA ETO NY PLACEHOLDER --- */
-.stTextInput input::placeholder{
-    color: #000000 !important; 
-    opacity: 1 !important; 
-    font-weight: 900 !important;
-    font-style: italic !important;
-    text-shadow: 0 0 10px rgba(0,255,204,0.2);
-}
-/* -------------------------------- */
-
+.stTextInput input::placeholder{color:#000000!important; opacity:1!important; font-style:italic!important; font-weight:900!important; text-shadow: 0 0 5px rgba(0,255,204,0.3)!important;}
 .stTextInput input:focus{border-color:#00ffcc!important;box-shadow:0 0 14px rgba(0,255,204,.3)!important;background:rgba(255,255,255,.14)!important}
+
 .stNumberInput input{background:rgba(255,255,255,.1)!important;border:2px solid rgba(0,255,204,.5)!important;color:#fff!important;border-radius:11px!important;font-size:.93rem!important;padding:11px 14px!important}
 .stNumberInput input:focus{border-color:#00ffcc!important;box-shadow:0 0 14px rgba(0,255,204,.3)!important}
 @media(max-width:768px){.card{padding:12px!important}}
 </style>
 """, unsafe_allow_html=True)
 
+# Session States
 for k,v in [("auth",False),("H",lj(HF,[])),("S",lj(SF,{"t":0,"w":0,"l":0})),("R",None),("ck",0)]:
     if k not in st.session_state: st.session_state[k]=v
 
@@ -140,27 +138,21 @@ def engine(h_in, tin, lc):
             "cur":cur,"hp":hp,"tmin":tmin,"tmoy":tmoy,"tmax":tmax,
             "res":None,"hi":len(st.session_state.H)}
 
+# Ecran d'authentification
 if not st.session_state.auth:
     st.markdown("<div class='ttl'>🚀 JETX X3 V22</div>",unsafe_allow_html=True)
     st.markdown("<div class='sub'>MARKOV + BAYESIAN • ENTRY ULTRA PRÉCIS</div>",unsafe_allow_html=True)
     _,cb,_=st.columns([1,1.2,1])
     with cb:
         st.markdown("<div class='card'>",unsafe_allow_html=True)
-        pw=st.text_input("🔑 MOT DE PASSE",type="password",placeholder="Entrez: JET2026")
+        pw=st.text_input("🔑 MOT DE PASSE",type="password",placeholder="CODE: JET2026")
         if st.button("🔓 ACTIVER",use_container_width=True):
             if pw=="JET2026": st.session_state.auth=True; st.rerun()
             else: st.error("❌ Code incorrect")
         st.markdown("</div>",unsafe_allow_html=True)
-    st.markdown("""
-    <div class='card' style='max-width:780px;margin:20px auto;'>
-    <h3 style='color:#00ffcc;font-family:Orbitron;text-align:center;font-size:1.1rem;'>📖 FANAZAVANA</h3>
-    <div class='ib'><b style='color:#00ffcc;'>⏰ HEURE D'ENTRÉE:</b><br>
-    = ORA ANKEHITRINY Madagascar + SHIFT (15-85 sec)<br>
-    Signal ULTRA → shift kely → entry mialoha</div>
-    </div>
-    """,unsafe_allow_html=True)
     st.stop()
 
+# Sidebar Stats
 with st.sidebar:
     st.markdown("### 🚀 JETX V22")
     S=st.session_state.S; t,w,l=S.get("t",0),S.get("w",0),S.get("l",0)
@@ -178,15 +170,18 @@ with st.sidebar:
             except: pass
         st.success("✅"); st.rerun()
 
+# Main Interface
 st.markdown("<div class='ttl'>🚀 JETX X3 V22</div>",unsafe_allow_html=True)
 st.markdown("<div class='sub'>MARKOV + BAYESIAN • 400K SIMS</div>",unsafe_allow_html=True)
 ci,co=st.columns([1,2],gap="medium")
 
 with ci:
     st.markdown("<div class='card'>",unsafe_allow_html=True)
-    h_in=st.text_input("🔐 SERVER HASH",placeholder="Ex: 7db8e01413d6d8c6...")
-    t_in=st.text_input("⏰ TIME ROUND PRÉCÉDENT",placeholder="Ex: 20:22:24")
-    lc=st.number_input("📊 LAST COTE",value=1.88,step=0.01,format="%.2f")
+    # Placeholder amboarina eto
+    h_in=st.text_input("🔐 SERVER HASH", placeholder="HASH: Paste seed here...")
+    t_in=st.text_input("⏰ TIME ROUND", placeholder="TIME: Ex: 20:22:24")
+    lc=st.number_input("📊 LAST COTE", value=1.88, step=0.01, format="%.2f")
+    
     if lc<1.5: sl,sc2="🔵 COLD","#4488ff"
     elif lc<2.5: sl,sc2="⚪ NORMAL","#aaa"
     elif lc<3.5: sl,sc2="🟡 WARM","#ffcc00"
@@ -237,8 +232,10 @@ with co:
     else:
         st.markdown("<div class='card' style='min-height:350px;display:flex;align-items:center;justify-content:center;'><div style='text-align:center;'><div style='font-size:3rem;'>🚀</div><div style='color:rgba(255,255,255,.15);font-family:Orbitron;margin-top:10px;'>EN ATTENTE...</div></div></div>",unsafe_allow_html=True)
 
+# Tableau historique
 if st.session_state.H:
     st.markdown("---")
     df=pd.DataFrame([{"Entry":x.get("ent",""),"Shift":f"+{x.get('sh',0)}s","X3%":x.get("bp",""),"State":x.get("cur",""),"Min":x.get("tmin",""),"Max":x.get("tmax",""),"Res":"WIN" if x.get("res")=="W" else "LOSS" if x.get("res")=="L" else "—"} for x in reversed(st.session_state.H[-10:])])
     st.dataframe(df,use_container_width=True,hide_index=True)
+
 st.markdown("<div style='text-align:center;margin-top:18px;color:rgba(255,255,255,.07);font-size:.54rem;'>JETX X3 V22 • MARKOV+BAYESIAN • 400K SIMS</div>",unsafe_allow_html=True)
