@@ -53,9 +53,12 @@ st.markdown("""
 .stButton>button{background:linear-gradient(135deg,#00ffcc,#00aaaa)!important;color:#000!important;font-weight:900!important;border-radius:12px!important;height:52px!important;border:none!important;width:100%!important;font-family:'Rajdhani'!important;font-size:.95rem!important;transition:all .2s!important}
 .stButton>button:hover{transform:scale(1.02);box-shadow:0 0 24px rgba(0,255,204,.5)!important}
 .stTextInput label,.stNumberInput label{color:#aaffee!important;font-weight:700!important;font-size:.87rem!important;font-family:'Rajdhani'!important}
-.stTextInput input{background:rgba(255,255,255,.1)!important;border:2px solid rgba(0,255,204,.5)!important;color:#fff!important;border-radius:11px!important;font-size:.93rem!important;padding:11px 14px!important}
-.stTextInput input::placeholder{color:rgba(255,255,255,.55)!important;font-style:italic!important}
-.stTextInput input:focus{border-color:#00ffcc!important;box-shadow:0 0 14px rgba(0,255,204,.3)!important;background:rgba(255,255,255,.14)!important}
+
+/* FANITSIANA: Soratra mainty sady tsy transparent */
+.stTextInput input{background:rgba(255,255,255,.9)!important;border:2px solid rgba(0,255,204,.5)!important;color:#000000!important;border-radius:11px!important;font-size:.93rem!important;padding:11px 14px!important;font-weight:700!important}
+.stTextInput input::placeholder{color:#000000!important;opacity:1!important;font-weight:700!important}
+.stTextInput input:focus{border-color:#00ffcc!important;box-shadow:0 0 14px rgba(0,255,204,.3)!important;background:rgba(255,255,255,1)!important}
+
 .stNumberInput input{background:rgba(255,255,255,.1)!important;border:2px solid rgba(0,255,204,.5)!important;color:#fff!important;border-radius:11px!important;font-size:.93rem!important;padding:11px 14px!important}
 .stNumberInput input:focus{border-color:#00ffcc!important;box-shadow:0 0 14px rgba(0,255,204,.3)!important}
 @media(max-width:768px){.card{padding:12px!important}}
@@ -90,22 +93,6 @@ def bayes(h,base):
     return round(min(95,max(30,po*100)),1)
 
 def calc_entry(hn, bp, str_, lc, last_time_str):
-    """
-    ENTRY TIME ULTRA PRÉCIS V23
-    ============================
-    PRINCIPE: Entry time = LAST TIME + shift calculé
-    (TSY ora ankehitriny — satria last time no sehon'ny cible)
-
-    LAST TIME = Ora nilanihan'ny round taloha (nahazo last cote)
-    SHIFT = fotoana andehanana mialoha ny cible X3+
-
-    Factors:
-    - hash_var   : variabilité hash deterministe (-25..+25)
-    - prob_boost : prob X3+ avo → entry mialoha
-    - str_boost  : signal matanjaka → mialoha
-    - cote_boost : HOT → round haingana
-    Range: 20 - 95 secondes aorian'ny last time
-    """
     try:
         parts = last_time_str.strip().split(":")
         if len(parts) == 2:
@@ -147,7 +134,6 @@ def engine(h_in, last_time, lc):
     sx   = sm[sm >= 3.0]
     x3c  = len(sx)
 
-    # Targets avec accuracy précis
     tmin = max(2.0, round(float(np.percentile(sm, 30)), 2))
     tmoy = max(2.5, round(float(np.percentile(sm, 50)), 2))
     tmax = max(3.0, round(float(np.percentile(sx, 85)), 2)) if x3c > 0 else 3.8
@@ -162,7 +148,6 @@ def engine(h_in, last_time, lc):
 
     ent, sh = calc_entry(hn, bp, str_, lc, last_time)
 
-    # Signal dynamique basé sur strength + prob
     if   str_ >= 90 and bp >= 46: sig, sc = "💎💎💎 ULTRA X3+ — BUY MAX", "sig-u"
     elif str_ >= 80 and bp >= 40: sig, sc = "💎💎 STRONG X3+ — BUY", "sig-u"
     elif str_ >= 70 and bp >= 34: sig, sc = "🔥 GOOD X3+ — GO", "sig-s"
@@ -176,7 +161,6 @@ def engine(h_in, last_time, lc):
             "acc_min": acc_min, "acc_moy": acc_moy, "acc_max": acc_max,
             "res": None, "hi": len(st.session_state.H)}
 
-# LOGIN
 if not st.session_state.auth:
     st.markdown("<div class='ttl'>🚀 JETX X3 V23</div>", unsafe_allow_html=True)
     st.markdown("<div class='sub'>MARKOV + BAYESIAN • ENTRY ULTRA PRÉCIS</div>", unsafe_allow_html=True)
