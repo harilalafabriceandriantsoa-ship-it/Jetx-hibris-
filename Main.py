@@ -29,14 +29,18 @@ def lj(p,d):
 
 TZ = pytz.timezone("Indian/Antananarivo")
 
-# CSS DESIGN - FIX PLACEHOLDER LAST COTE SY NY REHETRA
+# CSS DESIGN - PLACEHOLDER FIX (MAINTY SY STYLÉ)
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Rajdhani:wght@600;700&display=swap');
+
+/* Fototra */
 .stApp{background:radial-gradient(ellipse at 60% 0%,#00111a88 0%,#030008 65%);color:#e8fff8;font-family:'Rajdhani',sans-serif}
 .ttl{font-family:'Orbitron';font-size:clamp(2rem,8vw,3rem);font-weight:900;text-align:center;background:linear-gradient(90deg,#00ffcc,#00ddff,#ff00ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:4px}
 .sub{text-align:center;color:#00ffcc55;font-size:.8rem;letter-spacing:.3em;margin-bottom:1.5rem}
 .card{background:rgba(0,12,20,.92);border:2px solid rgba(0,255,204,.35);border-radius:18px;padding:clamp(14px,4vw,22px);backdrop-filter:blur(14px);margin-bottom:16px}
+
+/* Animation sy Signal */
 .etime{font-family:'Orbitron';font-size:clamp(3rem,12vw,5rem);font-weight:900;text-align:center;color:#00ffcc;text-shadow:0 0 40px #00ffcc;margin:18px 0;animation:ep 2s ease-in-out infinite}
 @keyframes ep{0%,100%{text-shadow:0 0 30px #00ffcc}50%{text-shadow:0 0 60px #00ffcc,0 0 90px #00ffcc88}}
 .pct{font-size:clamp(2.8rem,10vw,4.2rem);font-weight:900;font-family:'Orbitron';text-align:center;color:#00ffcc;margin:8px 0}
@@ -44,6 +48,8 @@ st.markdown("""
 .sig-s{text-align:center;font-family:'Orbitron';font-size:clamp(.9rem,3vw,1.3rem);font-weight:700;color:#00ddff;padding:10px}
 .sig-w{text-align:center;font-family:'Orbitron';font-size:clamp(.85rem,2.8vw,1.15rem);color:#ffaa00;padding:10px}
 .sig-x{text-align:center;font-family:'Orbitron';font-size:clamp(.85rem,2.8vw,1.1rem);color:#555;padding:8px}
+
+/* Boite kely sy Tags */
 .tbox{background:rgba(255,255,255,.06);border-radius:14px;padding:14px;text-align:center;margin:4px}
 .tv{font-size:clamp(1.4rem,5vw,2.2rem);font-weight:900;font-family:'Orbitron'}
 .tl{font-size:.6rem;color:rgba(255,255,255,.38);letter-spacing:.12em;text-transform:uppercase;margin-top:3px}
@@ -54,33 +60,38 @@ st.markdown("""
 .sv{font-size:1.3rem;font-weight:900;font-family:'Orbitron';color:#00ffcc}
 .sl{font-size:.56rem;color:rgba(255,255,255,.35);letter-spacing:.12em;text-transform:uppercase;margin-top:2px}
 .ib{background:rgba(0,255,204,.05);border-left:3px solid #00ffcc;border-radius:0 10px 10px 0;padding:11px 15px;margin:8px 0;font-size:.88rem;line-height:1.8}
+
+/* Boutons */
 .stButton>button{background:linear-gradient(135deg,#00ffcc,#00aaaa)!important;color:#000!important;font-weight:900!important;border-radius:12px!important;height:52px!important;border:none!important;width:100%!important;font-family:'Rajdhani'!important;font-size:.95rem!important;transition:all .2s!important}
 .stButton>button:hover{transform:scale(1.02);box-shadow:0 0 24px rgba(0,255,204,.5)!important}
-.stTextInput label,.stNumberInput label{color:#aaffee!important;font-weight:700!important;font-size:.87rem!important;font-family:'Rajdhani'!important}
 
-/* FIX TANTERAKA NY PLACEHOLDER (MAINTY BE) */
-.stTextInput input::placeholder, .stNumberInput input::placeholder {
+/* FIX PLACEHOLDER & INPUT TEXT (MAINTY SY MATEVINA) */
+input::placeholder {
     color: #000000 !important;
     opacity: 1 !important;
     font-weight: 900 !important;
     font-style: italic !important;
+    font-family: 'Rajdhani', sans-serif !important;
     -webkit-text-fill-color: #000000 !important;
 }
 
+/* Rehefa manoratra ianao dia lasa mainty ihany koa ho hita tsara */
 .stTextInput input, .stNumberInput input {
-    background: rgba(255,255,255,.1) !important;
-    border: 2px solid rgba(0,255,204,.5) !important;
-    color: #fff !important;
+    background: rgba(255,255,255,0.9) !important; /* Lasa fotsy mangarahara ny lamosina mba hivoaka ny mainty */
+    border: 2px solid #00ffcc !important;
+    color: #000000 !important; /* Soratra mainty rehefa manoratra */
     border-radius: 11px !important;
-    font-size: .93rem !important;
+    font-size: .95rem !important;
+    font-weight: 800 !important;
     padding: 11px 14px !important;
     font-family: 'Rajdhani', sans-serif !important;
 }
 
-.stTextInput input:focus, .stNumberInput input:focus {
-    border-color: #00ffcc !important;
-    box-shadow: 0 0 14px rgba(0,255,204,.3) !important;
-    background: rgba(255,255,255,0.14) !important;
+.stTextInput label, .stNumberInput label {
+    color: #00ffcc !important;
+    font-weight: 700 !important;
+    text-transform: uppercase;
+    letter-spacing: 1px;
 }
 
 @media(max-width:768px){.card{padding:12px!important}}
@@ -195,19 +206,17 @@ ci,co=st.columns([1,2],gap="medium")
 
 with ci:
     st.markdown("<div class='card'>",unsafe_allow_html=True)
-    h_in=st.text_input("🔐 SERVER HASH", placeholder="HASH: Paste seed here...")
-    t_in=st.text_input("⏰ TIME ROUND", placeholder="TIME: Ex: 20:22:24")
-    # Number input misy placeholder mainty ankehitriny
-    lc=st.number_input("📊 LAST COTE", value=0.0, step=0.01, format="%.2f", placeholder="COTE: Ex: 1.88")
+    h_in=st.text_input("🔐 SERVER HASH", placeholder="ATSOFO ETO NY HASH...")
+    t_in=st.text_input("⏰ TIME ROUND", placeholder="OHATRA: 20:22:24")
+    lc=st.number_input("📊 LAST COTE", value=0.0, step=0.01, format="%.2f", placeholder="OHATRA: 1.88")
     
-    if lc < 0.1: sc2="#555"
+    if lc < 0.1: sl,sc2="---","rgba(255,255,255,.2)"
     elif lc<1.5: sl,sc2="🔵 COLD","#4488ff"
     elif lc<2.5: sl,sc2="⚪ NORMAL","#aaa"
     elif lc<3.5: sl,sc2="🟡 WARM","#ffcc00"
     else: sl,sc2="🔴 HOT","#ff3366"
     
-    if lc >= 0.1:
-        st.markdown(f"<div style='text-align:center;margin:6px 0;'><span style='background:rgba(255,255,255,.07);border-radius:8px;padding:4px 14px;color:{sc2};font-size:.82rem;'>{sl}</span></div>",unsafe_allow_html=True)
+    st.markdown(f"<div style='text-align:center;margin:6px 0;'><span style='background:rgba(255,255,255,.07);border-radius:8px;padding:4px 14px;color:{sc2};font-size:.82rem;'>{sl}</span></div>",unsafe_allow_html=True)
     st.markdown("</div>",unsafe_allow_html=True)
 
     if st.button("🚀 ANALYSER",use_container_width=True):
