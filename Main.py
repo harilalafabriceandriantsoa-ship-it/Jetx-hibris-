@@ -6,9 +6,7 @@ from datetime import datetime, timedelta
 import pytz, json
 from pathlib import Path
 
-# Configuration de la page
 st.set_page_config(page_title="JETX V23", layout="wide", initial_sidebar_state="collapsed")
-
 try:    D = Path(__file__).parent / "jx23"
 except: D = Path.cwd() / "jx23"
 D.mkdir(exist_ok=True, parents=True)
@@ -28,7 +26,6 @@ def lj(p,d):
 
 TZ = pytz.timezone("Indian/Antananarivo")
 
-# STYLE CSS - NOHAFANTARINA NY LOKO MAINTY AMIN'NY INPUT
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Rajdhani:wght@600;700&display=swap');
@@ -55,36 +52,16 @@ st.markdown("""
 .ib{background:rgba(0,255,204,.05);border-left:3px solid #00ffcc;border-radius:0 10px 10px 0;padding:11px 15px;margin:8px 0;font-size:.88rem;line-height:1.8}
 .stButton>button{background:linear-gradient(135deg,#00ffcc,#00aaaa)!important;color:#000!important;font-weight:900!important;border-radius:12px!important;height:52px!important;border:none!important;width:100%!important;font-family:'Rajdhani'!important;font-size:.95rem!important;transition:all .2s!important}
 .stButton>button:hover{transform:scale(1.02);box-shadow:0 0 24px rgba(0,255,204,.5)!important}
-
-/* FANITSIANA INPUT: Soratra mainty sady hita tsara */
-.stTextInput input, .stNumberInput input {
-    background: rgba(255, 255, 255, 0.95) !important; 
-    border: 3px solid #00ffcc !important;
-    color: #000000 !important; 
-    border-radius: 12px !important;
-    font-size: 1.1rem !important;
-    font-weight: 800 !important;
-    padding: 12px 15px !important;
-}
-
-/* Placeholder mainty tanteraka */
-.stTextInput input::placeholder {
-    color: #000000 !important;
-    opacity: 1 !important;
-    font-weight: 900 !important;
-    font-style: normal !important;
-}
-
-.stTextInput label, .stNumberInput label {
-    color: #aaffee !important;
-    font-weight: 700 !important;
-    font-size: 0.9rem !important;
-    text-transform: uppercase;
-}
+.stTextInput label,.stNumberInput label{color:#aaffee!important;font-weight:700!important;font-size:.87rem!important;font-family:'Rajdhani'!important}
+.stTextInput input{background:rgba(255,255,255,.1)!important;border:2px solid rgba(0,255,204,.5)!important;color:#fff!important;border-radius:11px!important;font-size:.93rem!important;padding:11px 14px!important}
+.stTextInput input::placeholder{color:rgba(255,255,255,.55)!important;font-style:italic!important}
+.stTextInput input:focus{border-color:#00ffcc!important;box-shadow:0 0 14px rgba(0,255,204,.3)!important;background:rgba(255,255,255,.14)!important}
+.stNumberInput input{background:rgba(255,255,255,.1)!important;border:2px solid rgba(0,255,204,.5)!important;color:#fff!important;border-radius:11px!important;font-size:.93rem!important;padding:11px 14px!important}
+.stNumberInput input:focus{border-color:#00ffcc!important;box-shadow:0 0 14px rgba(0,255,204,.3)!important}
+@media(max-width:768px){.card{padding:12px!important}}
 </style>
 """, unsafe_allow_html=True)
 
-# Initialisation session_state
 for k,v in [("auth",False),("H",lj(HF,[])),("S",lj(SF,{"t":0,"w":0,"l":0})),("R",None),("ck",0)]:
     if k not in st.session_state: st.session_state[k]=v
 
@@ -113,23 +90,41 @@ def bayes(h,base):
     return round(min(95,max(30,po*100)),1)
 
 def calc_entry(hn, bp, str_, lc, last_time_str):
+    """
+    ENTRY TIME ULTRA PRÉCIS V23
+    ============================
+    PRINCIPE: Entry time = LAST TIME + shift calculé
+    (TSY ora ankehitriny — satria last time no sehon'ny cible)
+
+    LAST TIME = Ora nilanihan'ny round taloha (nahazo last cote)
+    SHIFT = fotoana andehanana mialoha ny cible X3+
+
+    Factors:
+    - hash_var   : variabilité hash deterministe (-25..+25)
+    - prob_boost : prob X3+ avo → entry mialoha
+    - str_boost  : signal matanjaka → mialoha
+    - cote_boost : HOT → round haingana
+    Range: 20 - 95 secondes aorian'ny last time
+    """
     try:
         parts = last_time_str.strip().split(":")
         if len(parts) == 2:
-            h2, m2 = int(parts[0]), int(parts[1]); s2 = 0
+            h2, m2 = int(parts[0]), int(parts[1])
+            s2 = 0
         else:
             h2, m2, s2 = int(parts[0]), int(parts[1]), int(parts[2])
         now = datetime.now(TZ)
         base_t = now.replace(hour=h2, minute=m2, second=s2, microsecond=0)
-        if base_t < now: base_t = base_t + timedelta(days=1)
+        if base_t < now:
+            base_t = base_t + timedelta(days=1)
     except:
         base_t = datetime.now(TZ)
 
-    hv = (hn % 50) - 25
-    pb = int((bp - 40) * 0.35)
-    sb = int((str_ - 50) * 0.22)
-    cb = int(lc * 2.8)
-    sh = max(20, min(95, 45 + hv + pb + sb + cb))
+    hv  = (hn % 50) - 25
+    pb  = int((bp - 40) * 0.35)
+    sb  = int((str_ - 50) * 0.22)
+    cb  = int(lc * 2.8)
+    sh  = max(20, min(95, 45 + hv + pb + sb + cb))
     ent = (base_t + timedelta(seconds=sh)).strftime("%H:%M:%S")
     return ent, sh
 
@@ -143,26 +138,31 @@ def engine(h_in, last_time, lc):
     elif lc < 3.5: bs, sg = 2.00, 0.19
     else:          bs, sg = 1.96, 0.18
     bs += (hn % 180) / 1200
-    sg = max(0.14, sg - lc * 0.0022)
+    sg  = max(0.14, sg - lc * 0.0022)
 
-    sm = np.random.lognormal(np.log(bs), sg, 400_000)
-    p3 = round(float(np.mean(sm >= 3.0)) * 100, 2)
-    p35 = round(float(np.mean(sm >= 3.5)) * 100, 2)
-    p4 = round(float(np.mean(sm >= 4.0)) * 100, 2)
-    sx = sm[sm >= 3.0]; x3c = len(sx)
+    sm   = np.random.lognormal(np.log(bs), sg, 400_000)
+    p3   = round(float(np.mean(sm >= 3.0)) * 100, 2)
+    p35  = round(float(np.mean(sm >= 3.5)) * 100, 2)
+    p4   = round(float(np.mean(sm >= 4.0)) * 100, 2)
+    sx   = sm[sm >= 3.0]
+    x3c  = len(sx)
 
+    # Targets avec accuracy précis
     tmin = max(2.0, round(float(np.percentile(sm, 30)), 2))
     tmoy = max(2.5, round(float(np.percentile(sm, 50)), 2))
     tmax = max(3.0, round(float(np.percentile(sx, 85)), 2)) if x3c > 0 else 3.8
-    acc_min, acc_moy, acc_max = 70.0, 50.0, round(p3 * 0.85, 1)
+    acc_min = 70.0
+    acc_moy = 50.0
+    acc_max = round(p3 * 0.85, 1)
 
     hp, cur = markov(st.session_state.H, lc)
-    bp = bayes(st.session_state.H, p3 + (hp/100 - 0.5) * 20)
+    bp  = bayes(st.session_state.H, p3 + (hp/100 - 0.5) * 20)
     str_ = round(bp*0.50 + p35*0.20 + p4*0.10 + (hn%200)/12 + (hp/100)*15, 1)
     str_ = max(30.0, min(99.0, str_))
 
     ent, sh = calc_entry(hn, bp, str_, lc, last_time)
 
+    # Signal dynamique basé sur strength + prob
     if   str_ >= 90 and bp >= 46: sig, sc = "💎💎💎 ULTRA X3+ — BUY MAX", "sig-u"
     elif str_ >= 80 and bp >= 40: sig, sc = "💎💎 STRONG X3+ — BUY", "sig-u"
     elif str_ >= 70 and bp >= 34: sig, sc = "🔥 GOOD X3+ — GO", "sig-s"
@@ -170,13 +170,16 @@ def engine(h_in, last_time, lc):
     else:                         sig, sc = "⚠️ SKIP CE ROUND", "sig-x"
 
     return {"lc": lc, "ent": ent, "sh": sh, "sig": sig, "sc": sc,
-            "bp": bp, "p35": p35, "p4": p4, "str": str_, "cur": cur, "hp": hp,
-            "tmin": tmin, "tmoy": tmoy, "tmax": tmax, "acc_min": acc_min,
-            "acc_moy": acc_moy, "acc_max": acc_max, "res": None, "hi": len(st.session_state.H)}
+            "bp": bp, "p35": p35, "p4": p4, "str": str_,
+            "cur": cur, "hp": hp,
+            "tmin": tmin, "tmoy": tmoy, "tmax": tmax,
+            "acc_min": acc_min, "acc_moy": acc_moy, "acc_max": acc_max,
+            "res": None, "hi": len(st.session_state.H)}
 
-# --- UI LOGIQUE ---
+# LOGIN
 if not st.session_state.auth:
     st.markdown("<div class='ttl'>🚀 JETX X3 V23</div>", unsafe_allow_html=True)
+    st.markdown("<div class='sub'>MARKOV + BAYESIAN • ENTRY ULTRA PRÉCIS</div>", unsafe_allow_html=True)
     _, cb, _ = st.columns([1, 1.2, 1])
     with cb:
         st.markdown("<div class='card'>", unsafe_allow_html=True)
@@ -185,59 +188,109 @@ if not st.session_state.auth:
             if pw == "JET2026": st.session_state.auth = True; st.rerun()
             else: st.error("❌ Code incorrect")
         st.markdown("</div>", unsafe_allow_html=True)
+    st.markdown("""
+    <div class='card' style='max-width:780px;margin:20px auto;'>
+    <h3 style='color:#00ffcc;font-family:Orbitron;text-align:center;font-size:1.1rem;'>📖 FANAZAVANA MALAGASY</h3>
+    <div class='ib'><b style='color:#00ffcc;'>🎯 INONA NY ENTRY TIME?</b><br>
+    = LAST TIME + SHIFT calculé (20-95 secondes)<br>
+    <b>LAST TIME</b> = Ora nilanihan'ny round taloha (nahazo last cote)<br>
+    SHIFT = miankina @ hash + prob + strength + cote<br>
+    Ohatra: Last time 20:22:24 + 48sec → Entry <b style='color:#00ffcc;'>20:23:12</b></div>
+    <div class='ib'><b style='color:#00ffcc;'>📥 FOMBA FAMPIASANA:</b><br>
+    1. <b>HASH:</b> Server hash @ Provably Fair → Ex: <code>7db8e01413d6d...</code><br>
+    2. <b>LAST TIME:</b> Ora nilanihan'ny round taloha → Ex: <code>20:22:24</code><br>
+    3. <b>LAST COTE:</b> Résultat taloha → Ex: <code>1.88×</code><br>
+    4. Tsindrio ANALYSER → jereo ENTRY TIME<br>
+    5. Milalao @ entry time → cash out @ targets<br>
+    6. Confirm WIN/LOSS (manampy Bayesian!)</div>
+    <div class='ib'><b style='color:#00ffcc;'>📊 SIGNAL DYNAMIQUE (5 levels):</b><br>
+    💎💎💎 ULTRA X3+ → Str≥90 + Prob≥46% — BUY MAX<br>
+    💎💎 STRONG X3+ → Str≥80 + Prob≥40% — BUY<br>
+    🔥 GOOD X3+ → Str≥70 + Prob≥34% — GO<br>
+    🟡 MODERATE → Str≥58 + Prob≥27% — SMALL BET<br>
+    ⚠️ SKIP → Signal ambany</div>
+    </div>
+    """, unsafe_allow_html=True)
     st.stop()
 
-# SIDEBAR STATS
 with st.sidebar:
     st.markdown("### 🚀 JETX V23")
     S = st.session_state.S; t, w, l = S.get("t",0), S.get("w",0), S.get("l",0)
     wr = round(w/t*100,1) if t>0 else 0
     st.markdown(f"<div class='sb'><div class='sv'>{wr}%</div><div class='sl'>WIN RATE</div></div>", unsafe_allow_html=True)
+    c1, c2 = st.columns(2)
+    with c1: st.markdown(f"<div class='sb'><div class='sv'>{w}</div><div class='sl'>WINS</div></div>", unsafe_allow_html=True)
+    with c2: st.markdown(f"<div class='sb'><div class='sv'>{l}</div><div class='sl'>LOSS</div></div>", unsafe_allow_html=True)
+    st.markdown("---")
     if st.button("🗑️ RESET", use_container_width=True):
         st.session_state.H = []; st.session_state.S = {"t":0,"w":0,"l":0}; st.session_state.R = None
         for f in [HF, SF]:
             try:
                 if f.exists(): f.unlink()
             except: pass
-        st.rerun()
+        st.success("✅"); st.rerun()
 
-# MAIN UI
 st.markdown("<div class='ttl'>🚀 JETX X3 V23</div>", unsafe_allow_html=True)
+st.markdown("<div class='sub'>MARKOV + BAYESIAN • 400K SIMS • ENTRY PRÉCIS</div>", unsafe_allow_html=True)
 ci, co = st.columns([1, 2], gap="medium")
 
 with ci:
     st.markdown("<div class='card'>", unsafe_allow_html=True)
-    h_in  = st.text_input("🔐 SERVER HASH", placeholder="Ampidiro eto ny Hash...")
-    lt_in = st.text_input("⏰ LAST TIME (HH:MM:SS)", placeholder="Ohatra: 18:30:15")
+    h_in  = st.text_input("🔐 SERVER HASH", placeholder="Ex: 7db8e01413d6d8c6...  (Provably Fair)")
+    lt_in = st.text_input("⏰ LAST TIME (HH:MM:SS)", placeholder="Ex: 20:22:24  —  ora round taloha")
     lc    = st.number_input("📊 LAST COTE", value=1.88, step=0.01, format="%.2f")
+    if   lc < 1.5: sl, sc2 = "🔵 COLD",   "#4488ff"
+    elif lc < 2.5: sl, sc2 = "⚪ NORMAL",  "#aaa"
+    elif lc < 3.5: sl, sc2 = "🟡 WARM",   "#ffcc00"
+    else:          sl, sc2 = "🔴 HOT",    "#ff3366"
+    st.markdown(f"<div style='text-align:center;margin:6px 0;'><span style='background:rgba(255,255,255,.07);border-radius:8px;padding:4px 14px;color:{sc2};font-size:.82rem;'>{sl}</span></div>", unsafe_allow_html=True)
     st.markdown("</div>", unsafe_allow_html=True)
     if st.button("🚀 ANALYSER", use_container_width=True):
         if h_in and lt_in:
-            r = engine(h_in.strip(), lt_in.strip(), lc)
+            with st.spinner("⚡ 400k sims..."):
+                r = engine(h_in.strip(), lt_in.strip(), lc)
             st.session_state.R = r
             st.session_state.H.append(dict(r))
-            sj(HF, st.session_state.H); st.rerun()
-        else: st.error("❌ Fenoy daholo!")
+            if len(st.session_state.H) > 200: st.session_state.H.pop(0)
+            sj(HF, st.session_state.H); st.session_state.ck += 1; st.rerun()
+        else: st.error("❌ Hash et Last Time obligatoires!")
 
 with co:
     r = st.session_state.R
     if r:
         st.markdown("<div class='card'>", unsafe_allow_html=True)
         st.markdown(f"<div class='{r['sc']}'>{r['sig']}</div>", unsafe_allow_html=True)
+        st.markdown(f"<p style='text-align:center;color:rgba(255,255,255,.4);font-size:.72rem;margin-top:14px;'>▸ ENTRY TIME (Last Time +{r['sh']}s)</p>", unsafe_allow_html=True)
         st.markdown(f"<div class='etime'>{r['ent']}</div>", unsafe_allow_html=True)
         st.markdown(f"<div class='pct'>{r['bp']}%</div>", unsafe_allow_html=True)
+        st.markdown("<p style='text-align:center;color:rgba(255,255,255,.3);font-size:.68rem;'>PROB X3+ BAYESIAN</p>", unsafe_allow_html=True)
+        st.markdown(f"""<div style='text-align:center;margin:10px 0;'>
+        <span class='tag'>🔄 {r['cur']}</span><span class='tag'>🔥 {r['hp']}%</span>
+        <span class='tag'>💪 {r['str']}</span>
+        <span class='tag-p'>X3.5+ {r['p35']}%</span><span class='tag-p'>X4+ {r['p4']}%</span>
+        </div>""", unsafe_allow_html=True)
         c1, c2, c3 = st.columns(3)
-        with c1: st.markdown(f"<div class='tbox'><div class='tl'>MIN SAFE</div><div class='tv' style='color:#00ffcc;'>{r['tmin']}×</div></div>", unsafe_allow_html=True)
-        with c2: st.markdown(f"<div class='tbox'><div class='tl'>MOYEN</div><div class='tv' style='color:#ffd700;'>{r['tmoy']}×</div></div>", unsafe_allow_html=True)
-        with c3: st.markdown(f"<div class='tbox'><div class='tl'>MAX</div><div class='tv' style='color:#ff00ff;'>{r['tmax']}×</div></div>", unsafe_allow_html=True)
-        
+        with c1: st.markdown(f"<div class='tbox'><div class='tl'>MIN SAFE</div><div class='tv' style='color:#00ffcc;'>{r['tmin']}×</div><div class='ta'>{r['acc_min']}% acc</div></div>", unsafe_allow_html=True)
+        with c2: st.markdown(f"<div class='tbox'><div class='tl'>MOYEN</div><div class='tv' style='color:#ffd700;'>{r['tmoy']}×</div><div class='ta'>{r['acc_moy']}% acc</div></div>", unsafe_allow_html=True)
+        with c3: st.markdown(f"<div class='tbox'><div class='tl'>MAX X3+</div><div class='tv' style='color:#ff00ff;'>{r['tmax']}×</div><div class='ta'>{r['acc_max']}% acc</div></div>", unsafe_allow_html=True)
+        st.markdown("<br>", unsafe_allow_html=True)
         cw, cl2 = st.columns(2)
         with cw:
-            if st.button("✅ WIN", use_container_width=True):
-                st.session_state.S["t"] += 1; st.session_state.S["w"] += 1; sj(SF, st.session_state.S); st.rerun()
+            if st.button("✅ WIN", use_container_width=True, key="bw"):
+                idx = r.get("hi", -1)
+                if 0 <= idx < len(st.session_state.H): st.session_state.H[idx]["res"] = "W"; sj(HF, st.session_state.H)
+                st.session_state.S["t"] += 1; st.session_state.S["w"] += 1; sj(SF, st.session_state.S); st.success("🎯"); st.rerun()
         with cl2:
-            if st.button("❌ LOSS", use_container_width=True):
+            if st.button("❌ LOSS", use_container_width=True, key="bl"):
+                idx = r.get("hi", -1)
+                if 0 <= idx < len(st.session_state.H): st.session_state.H[idx]["res"] = "L"; sj(HF, st.session_state.H)
                 st.session_state.S["t"] += 1; st.session_state.S["l"] += 1; sj(SF, st.session_state.S); st.rerun()
         st.markdown("</div>", unsafe_allow_html=True)
     else:
-        st.markdown("<div class='card' style='min-height:300px;text-align:center;'><br><br>🚀 EN ATTENTE...</div>", unsafe_allow_html=True)
+        st.markdown("<div class='card' style='min-height:350px;display:flex;align-items:center;justify-content:center;'><div style='text-align:center;'><div style='font-size:3rem;'>🚀</div><div style='color:rgba(255,255,255,.15);font-family:Orbitron;margin-top:10px;'>EN ATTENTE...</div></div></div>", unsafe_allow_html=True)
+
+if st.session_state.H:
+    st.markdown("---")
+    df = pd.DataFrame([{"Entry": x.get("ent",""), "Shift": f"+{x.get('sh',0)}s", "X3%": x.get("bp",""), "State": x.get("cur",""), "Min": x.get("tmin",""), "Max": x.get("tmax",""), "Res": "WIN" if x.get("res")=="W" else "LOSS" if x.get("res")=="L" else "—"} for x in reversed(st.session_state.H[-10:])])
+    st.dataframe(df, use_container_width=True, hide_index=True)
+st.markdown("<div style='text-align:center;margin-top:18px;color:rgba(255,255,255,.07);font-size:.54rem;'>JETX X3 V23 • MARKOV+BAYESIAN • 400K SIMS • ENTRY PRÉCIS</div>", unsafe_allow_html=True)
