@@ -29,7 +29,7 @@ def lj(p,d):
 
 TZ = pytz.timezone("Indian/Antananarivo")
 
-# CSS DESIGN - PLACEHOLDER AMBOARINA HO MAINTY SY STYLÉ
+# CSS DESIGN - FIX PLACEHOLDER LAST COTE SY NY REHETRA
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Rajdhani:wght@600;700&display=swap');
@@ -58,13 +58,31 @@ st.markdown("""
 .stButton>button:hover{transform:scale(1.02);box-shadow:0 0 24px rgba(0,255,204,.5)!important}
 .stTextInput label,.stNumberInput label{color:#aaffee!important;font-weight:700!important;font-size:.87rem!important;font-family:'Rajdhani'!important}
 
-/* PLACEHOLDER OPTIMISATION: MAINTY SY STYLÉ */
-.stTextInput input{background:rgba(255,255,255,.1)!important;border:2px solid rgba(0,255,204,.5)!important;color:#fff!important;border-radius:11px!important;font-size:.93rem!important;padding:11px 14px!important;font-family:'Rajdhani'!important}
-.stTextInput input::placeholder{color:#000000!important; opacity:1!important; font-style:italic!important; font-weight:900!important; text-shadow: 0 0 5px rgba(0,255,204,0.3)!important;}
-.stTextInput input:focus{border-color:#00ffcc!important;box-shadow:0 0 14px rgba(0,255,204,.3)!important;background:rgba(255,255,255,.14)!important}
+/* FIX TANTERAKA NY PLACEHOLDER (MAINTY BE) */
+.stTextInput input::placeholder, .stNumberInput input::placeholder {
+    color: #000000 !important;
+    opacity: 1 !important;
+    font-weight: 900 !important;
+    font-style: italic !important;
+    -webkit-text-fill-color: #000000 !important;
+}
 
-.stNumberInput input{background:rgba(255,255,255,.1)!important;border:2px solid rgba(0,255,204,.5)!important;color:#fff!important;border-radius:11px!important;font-size:.93rem!important;padding:11px 14px!important}
-.stNumberInput input:focus{border-color:#00ffcc!important;box-shadow:0 0 14px rgba(0,255,204,.3)!important}
+.stTextInput input, .stNumberInput input {
+    background: rgba(255,255,255,.1) !important;
+    border: 2px solid rgba(0,255,204,.5) !important;
+    color: #fff !important;
+    border-radius: 11px !important;
+    font-size: .93rem !important;
+    padding: 11px 14px !important;
+    font-family: 'Rajdhani', sans-serif !important;
+}
+
+.stTextInput input:focus, .stNumberInput input:focus {
+    border-color: #00ffcc !important;
+    box-shadow: 0 0 14px rgba(0,255,204,.3) !important;
+    background: rgba(255,255,255,0.14) !important;
+}
+
 @media(max-width:768px){.card{padding:12px!important}}
 </style>
 """, unsafe_allow_html=True)
@@ -177,26 +195,30 @@ ci,co=st.columns([1,2],gap="medium")
 
 with ci:
     st.markdown("<div class='card'>",unsafe_allow_html=True)
-    # Placeholder amboarina eto
     h_in=st.text_input("🔐 SERVER HASH", placeholder="HASH: Paste seed here...")
     t_in=st.text_input("⏰ TIME ROUND", placeholder="TIME: Ex: 20:22:24")
-    lc=st.number_input("📊 LAST COTE", value=1.88, step=0.01, format="%.2f")
+    # Number input misy placeholder mainty ankehitriny
+    lc=st.number_input("📊 LAST COTE", value=0.0, step=0.01, format="%.2f", placeholder="COTE: Ex: 1.88")
     
-    if lc<1.5: sl,sc2="🔵 COLD","#4488ff"
+    if lc < 0.1: sc2="#555"
+    elif lc<1.5: sl,sc2="🔵 COLD","#4488ff"
     elif lc<2.5: sl,sc2="⚪ NORMAL","#aaa"
     elif lc<3.5: sl,sc2="🟡 WARM","#ffcc00"
     else: sl,sc2="🔴 HOT","#ff3366"
-    st.markdown(f"<div style='text-align:center;margin:6px 0;'><span style='background:rgba(255,255,255,.07);border-radius:8px;padding:4px 14px;color:{sc2};font-size:.82rem;'>{sl}</span></div>",unsafe_allow_html=True)
+    
+    if lc >= 0.1:
+        st.markdown(f"<div style='text-align:center;margin:6px 0;'><span style='background:rgba(255,255,255,.07);border-radius:8px;padding:4px 14px;color:{sc2};font-size:.82rem;'>{sl}</span></div>",unsafe_allow_html=True)
     st.markdown("</div>",unsafe_allow_html=True)
+
     if st.button("🚀 ANALYSER",use_container_width=True):
-        if h_in and t_in:
+        if h_in and t_in and lc >= 1.0:
             with st.spinner("⚡ 400k sims..."):
                 r=engine(h_in.strip(),t_in.strip(),lc)
             st.session_state.R=r
             st.session_state.H.append(dict(r))
             if len(st.session_state.H)>200: st.session_state.H.pop(0)
             sj(HF,st.session_state.H); st.session_state.ck+=1; st.rerun()
-        else: st.error("❌ Hash et TIME obligatoires!")
+        else: st.error("❌ Hash, TIME et LAST COTE obligatoires!")
 
 with co:
     r=st.session_state.R
