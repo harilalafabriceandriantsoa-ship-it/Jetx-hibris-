@@ -54,7 +54,17 @@ st.markdown("""
 .stButton>button:hover{transform:scale(1.02);box-shadow:0 0 24px rgba(0,255,204,.5)!important}
 .stTextInput label,.stNumberInput label{color:#aaffee!important;font-weight:700!important;font-size:.87rem!important;font-family:'Rajdhani'!important}
 .stTextInput input{background:rgba(255,255,255,.1)!important;border:2px solid rgba(0,255,204,.5)!important;color:#fff!important;border-radius:11px!important;font-size:.93rem!important;padding:11px 14px!important;font-family:'Rajdhani'!important}
-.stTextInput input::placeholder{color:rgba(255,255,255,.55)!important;font-style:italic!important}
+
+/* --- OVANA ETO NY PLACEHOLDER --- */
+.stTextInput input::placeholder{
+    color: #000000 !important; 
+    opacity: 1 !important; 
+    font-weight: 900 !important;
+    font-style: italic !important;
+    text-shadow: 0 0 10px rgba(0,255,204,0.2);
+}
+/* -------------------------------- */
+
 .stTextInput input:focus{border-color:#00ffcc!important;box-shadow:0 0 14px rgba(0,255,204,.3)!important;background:rgba(255,255,255,.14)!important}
 .stNumberInput input{background:rgba(255,255,255,.1)!important;border:2px solid rgba(0,255,204,.5)!important;color:#fff!important;border-radius:11px!important;font-size:.93rem!important;padding:11px 14px!important}
 .stNumberInput input:focus{border-color:#00ffcc!important;box-shadow:0 0 14px rgba(0,255,204,.3)!important}
@@ -90,17 +100,6 @@ def bayes(h,base):
     return round(min(95,max(30,po*100)),1)
 
 def calc_entry(hn, bp, str_, lc):
-    """
-    HEURE D'ENTRÉE ULTRA PRÉCIS V22
-    Base: ORA ANKEHITRINY Madagascar
-    5 facteurs déterministes:
-      hash_var   (-25..+25) : variabilité hash unique
-      prob_boost (0..+19)   : prob X3+ avo → entry mialoha
-      str_boost  (0..+11)   : signal fort → entry mialoha
-      cote_boost (2..+12)   : HOT state → haingana
-      base 42sec
-    Range final: 15 - 85 secondes
-    """
     now = datetime.now(TZ)
     hv  = (hn % 50) - 25
     pb  = int((bp - 40) * 0.35)
@@ -157,12 +156,7 @@ if not st.session_state.auth:
     <h3 style='color:#00ffcc;font-family:Orbitron;text-align:center;font-size:1.1rem;'>📖 FANAZAVANA</h3>
     <div class='ib'><b style='color:#00ffcc;'>⏰ HEURE D'ENTRÉE:</b><br>
     = ORA ANKEHITRINY Madagascar + SHIFT (15-85 sec)<br>
-    Signal ULTRA → shift kely → entry mialoha<br>
-    Ohatra: Now 20:22:30 + 45sec → <b style='color:#00ffcc;'>20:23:15</b></div>
-    <div class='ib'><b style='color:#00ffcc;'>📥 INPUTS:</b><br>
-    • <b>HASH:</b> Server seed @ Provably Fair → Ex: <code>7db8e01413d6d...</code><br>
-    • <b>TIME:</b> Ora round taloha → Ex: <code>20:22:24</code><br>
-    • <b>LAST COTE:</b> Résultat taloha → Ex: <code>1.88</code></div>
+    Signal ULTRA → shift kely → entry mialoha</div>
     </div>
     """,unsafe_allow_html=True)
     st.stop()
@@ -190,8 +184,8 @@ ci,co=st.columns([1,2],gap="medium")
 
 with ci:
     st.markdown("<div class='card'>",unsafe_allow_html=True)
-    h_in=st.text_input("🔐 SERVER HASH",placeholder="Ex: 7db8e01413d6d8c6...  (Provably Fair)")
-    t_in=st.text_input("⏰ TIME ROUND PRÉCÉDENT",placeholder="Ex: 20:22:24  —  HH:MM:SS")
+    h_in=st.text_input("🔐 SERVER HASH",placeholder="Ex: 7db8e01413d6d8c6...")
+    t_in=st.text_input("⏰ TIME ROUND PRÉCÉDENT",placeholder="Ex: 20:22:24")
     lc=st.number_input("📊 LAST COTE",value=1.88,step=0.01,format="%.2f")
     if lc<1.5: sl,sc2="🔵 COLD","#4488ff"
     elif lc<2.5: sl,sc2="⚪ NORMAL","#aaa"
