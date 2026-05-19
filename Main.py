@@ -129,10 +129,10 @@ def engine(h_in,lt,lc):
     hn=int(fh[:16],16)
     sv=int((hn&0xFFFFFFFF)+(lc*1000))
     np.random.seed(sv%(2**32))
-    if lc<1.5:   bs,sg=2.12,0.24
+    if lc<1.5:    bs,sg=2.12,0.24
     elif lc<2.5: bs,sg=2.06,0.21
     elif lc<3.5: bs,sg=2.00,0.19
-    else:        bs,sg=1.96,0.18
+    else:         bs,sg=1.96,0.18
     bs+=(hn%180)/1200; sg=max(0.14,sg-lc*0.0022)
     sm=np.random.lognormal(np.log(bs),sg,450_000)
     p3=round(float(np.mean(sm>=3.0))*100,2)
@@ -153,11 +153,11 @@ def engine(h_in,lt,lc):
     acc_moy=round(min(99,max(10,base_a*0.72+hb*0.8+(str_-50)*0.08)),1)
     acc_max=round(min(99,max(10,p3*0.82+hb*0.5)),1)
     t1,sh1,c1,t2,sh2,c2=calc_tours(hn,bp,str_,lc,lt)
-    if   str_>=90 and bp>=46: sig,sc="💎 ULTRA X3+ — FIRE MAX","sig-ultra"
+    if    str_>=90 and bp>=46: sig,sc="💎 ULTRA X3+ — FIRE MAX","sig-ultra"
     elif str_>=80 and bp>=40: sig,sc="💎 STRONG X3+ — BUY","sig-ultra"
     elif str_>=70 and bp>=34: sig,sc="🔥 GOOD X3+ — GO","sig-strong"
     elif str_>=58 and bp>=27: sig,sc="⚡ MODERATE — SMALL BET","sig-mod"
-    else:                     sig,sc="◎ SKIP — PAS DE SIGNAL","sig-skip"
+    else:                       sig,sc="◎ SKIP — PAS DE SIGNAL","sig-skip"
     return {"lc":lc,"t1":t1,"sh1":sh1,"c1":c1,"t2":t2,"sh2":sh2,"c2":c2,
             "sig":sig,"sc":sc,"bp":bp,"p3":p3,"p35":p35,"p4":p4,"str":str_,
             "cur":cur,"hp":hp,"tmin":tmin,"tmoy":tmoy,"tmax":tmax,
@@ -215,9 +215,9 @@ ci,co=st.columns([1,2],gap="large")
 with ci:
     st.markdown("<div class='card'>",unsafe_allow_html=True)
     st.markdown("<div class='section-lbl'>Paramètres</div>",unsafe_allow_html=True)
-    h_in = st.text_input("Server Hash — Provably Fair",placeholder="7db8e01413d6d8c6...  (server seed)")
-    ti   = st.text_input("Last Time — HH:MM:SS",placeholder="20:22:24  (ora round taloha)")
-    lc   = st.number_input("Last Cote — résultat précédent",value=1.88,step=0.01,format="%.2f",min_value=1.01)
+    h_in = st.text_input("Server Hash", placeholder="7db8e01413d6d8c6...")
+    ti   = st.text_input("Last Time", placeholder="20:22:24")
+    lc   = st.number_input("Last Cote", value=1.88, step=0.01, format="%.2f", min_value=1.01)
     cs=s2st(lc); cbg={"COLD":"rgba(68,136,255,.15)","NORMAL":"rgba(150,150,150,.12)","WARM":"rgba(255,200,0,.15)","HOT":"rgba(255,50,50,.15)"}[cs]; cc={"COLD":"#4488ff","NORMAL":"#888","WARM":"#ffcc00","HOT":"#ff3366"}[cs]
     st.markdown(f"<div style='text-align:center;margin:6px 0'><span style='background:{cbg};border:1px solid {cc}44;border-radius:20px;padding:5px 16px;color:{cc};font-size:.8rem;font-weight:700;'>⬤ {cs}</span></div>",unsafe_allow_html=True)
     st.markdown("</div>",unsafe_allow_html=True)
