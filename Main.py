@@ -66,10 +66,10 @@ html,body,.stApp{background:#010d0a!important;color:#eafffa;font-family:'Inter',
 .stat-l{font-size:.52rem;color:rgba(255,255,255,.3);letter-spacing:.12em;text-transform:uppercase;margin-top:2px}
 .stTextInput label,.stNumberInput label{color:#66ffdd!important;font-weight:600!important;font-size:.84rem!important;font-family:'Inter'!important}
 .stTextInput input{background:rgba(0,200,160,.07)!important;border:1.5px solid rgba(0,200,160,.35)!important;color:#eafffa!important;border-radius:13px!important;font-size:.92rem!important;padding:11px 14px!important}
-/* Eto ny fanitsiana: Natao mainty (opacity: 1) ny placeholder */
-.stTextInput input::placeholder{color:#777777!important;font-style:italic!important;opacity:1!important}
+.stTextInput input::placeholder{color: #000000 !important; font-style: italic !important; opacity: 1 !important; font-weight: 900 !important;}
 .stTextInput input:focus{border-color:rgba(0,221,187,.7)!important;box-shadow:0 0 0 3px rgba(0,221,187,.12)!important;background:rgba(0,200,160,.1)!important}
 .stNumberInput input{background:rgba(0,200,160,.07)!important;border:1.5px solid rgba(0,200,160,.35)!important;color:#eafffa!important;border-radius:13px!important;font-size:.92rem!important;padding:11px 14px!important}
+.stNumberInput input::placeholder{color: #000000 !important; font-style: italic !important; opacity: 1 !important; font-weight: 900 !important;}
 .stNumberInput input:focus{border-color:rgba(0,221,187,.7)!important;box-shadow:0 0 0 3px rgba(0,221,187,.12)!important}
 .stButton>button{background:linear-gradient(135deg,#007755,#005533)!important;color:#fff!important;font-weight:700!important;border-radius:14px!important;height:52px!important;border:none!important;width:100%!important;font-family:'Inter'!important;font-size:.93rem!important;transition:all .2s!important;box-shadow:0 4px 20px rgba(0,150,100,.35)!important}
 .stButton>button:hover{transform:translateY(-2px)!important;box-shadow:0 8px 28px rgba(0,180,120,.5)!important}
