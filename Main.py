@@ -29,6 +29,24 @@ st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Inter:wght@400;500;600;700&display=swap');
 html,body,.stApp{background:#010d0a!important;color:#eafffa;font-family:'Inter',sans-serif}
+
+/* FANITSIANA NY SORATRA AO ANATY INPUT HO MAINTY */
+.stTextInput input, .stNumberInput input {
+    background-color: #ffffff !important; 
+    color: #000000 !important;
+    font-weight: 900 !important;
+    border: 2px solid #00ddbb !important;
+    border-radius: 13px !important;
+    padding: 12px !important;
+}
+
+/* FANITSIANA NY PLACEHOLDER HO MAINTY TSARA */
+.stTextInput input::placeholder, .stNumberInput input::placeholder {
+    color: #000000 !important;
+    opacity: 1 !important;
+    font-weight: 900 !important;
+}
+
 [data-testid="stSidebar"]{background:#010d08!important;border-right:1px solid rgba(0,220,180,.15)!important}
 .block-container{padding-top:1.2rem!important;max-width:1100px}
 .main-title{font-family:'Orbitron';font-size:clamp(1.9rem,7vw,3rem);font-weight:900;text-align:center;letter-spacing:.04em;color:#ffffff;margin:0 0 2px}
@@ -65,12 +83,6 @@ html,body,.stApp{background:#010d0a!important;color:#eafffa;font-family:'Inter',
 .stat-v{font-family:'Orbitron';font-size:1.25rem;font-weight:900;color:#00ddbb}
 .stat-l{font-size:.52rem;color:rgba(255,255,255,.3);letter-spacing:.12em;text-transform:uppercase;margin-top:2px}
 .stTextInput label,.stNumberInput label{color:#66ffdd!important;font-weight:600!important;font-size:.84rem!important;font-family:'Inter'!important}
-.stTextInput input{background:rgba(0,200,160,.07)!important;border:1.5px solid rgba(0,200,160,.35)!important;color:#eafffa!important;border-radius:13px!important;font-size:.92rem!important;padding:11px 14px!important}
-.stTextInput input::placeholder{color:#000000!important;opacity:1!important;font-weight:900!important}
-.stTextInput input:focus{border-color:rgba(0,221,187,.7)!important;box-shadow:0 0 0 3px rgba(0,221,187,.12)!important;background:rgba(0,200,160,.1)!important}
-.stNumberInput input{background:rgba(0,200,160,.07)!important;border:1.5px solid rgba(0,200,160,.35)!important;color:#eafffa!important;border-radius:13px!important;font-size:.92rem!important;padding:11px 14px!important}
-.stNumberInput input::placeholder{color:#000000!important;opacity:1!important;font-weight:900!important}
-.stNumberInput input:focus{border-color:rgba(0,221,187,.7)!important;box-shadow:0 0 0 3px rgba(0,221,187,.12)!important}
 .stButton>button{background:linear-gradient(135deg,#007755,#005533)!important;color:#fff!important;font-weight:700!important;border-radius:14px!important;height:52px!important;border:none!important;width:100%!important;font-family:'Inter'!important;font-size:.93rem!important;transition:all .2s!important;box-shadow:0 4px 20px rgba(0,150,100,.35)!important}
 .stButton>button:hover{transform:translateY(-2px)!important;box-shadow:0 8px 28px rgba(0,180,120,.5)!important}
 @media(max-width:768px){.card,.card-accent{padding:14px!important}.tour-grid{grid-template-columns:1fr 1fr}}
@@ -181,16 +193,6 @@ if not st.session_state.auth:
             if pw=="JET2026": st.session_state.auth=True; st.rerun()
             else: st.error("❌ Code incorrect")
         st.markdown("</div>",unsafe_allow_html=True)
-    st.markdown("""<div class='card' style='max-width:680px;margin:16px auto;'>
-    <div class='section-lbl'>Fanazavana Malagasy</div>
-    <div style='line-height:1.9;font-size:.87rem;color:rgba(234,255,250,.7);'>
-    <b style='color:#00ddbb;'>Server Hash:</b> Hash @ Provably Fair → <code style='background:rgba(0,200,160,.1);padding:2px 7px;border-radius:6px;'>7db8e01413d6d...</code><br>
-    <b style='color:#00ddbb;'>Last Time:</b> Ora nilanihan'ny round TALOHA → <code style='background:rgba(0,200,160,.1);padding:2px 7px;border-radius:6px;'>20:22:24</code><br>
-    <b style='color:#00ddbb;'>Last Cote:</b> Résultat taloha → <code style='background:rgba(0,200,160,.1);padding:2px 7px;border-radius:6px;'>1.88×</code><br><br>
-    <b style='color:#66aaff;'>Tour 1</b> = Last Time + 40-120sec → round akaiky<br>
-    <b style='color:#66aaff;'>Tour 2</b> = Tour 1 + durée estimée → round faharoa<br>
-    Accuracy <b>variable 10-99%</b> miankina @ signal + historique
-    </div></div>""",unsafe_allow_html=True)
     st.stop()
 
 with st.sidebar:
@@ -219,8 +221,6 @@ with ci:
     h_in = st.text_input("Server Hash — Provably Fair",placeholder="7db8e01413d6d8c6...")
     ti   = st.text_input("Last Time — HH:MM:SS",placeholder="20:22:24")
     lc   = st.number_input("Last Cote — résultat précédent",value=1.88,step=0.01,format="%.2f",min_value=1.01)
-    cs=s2st(lc); cbg={"COLD":"rgba(68,136,255,.15)","NORMAL":"rgba(150,150,150,.12)","WARM":"rgba(255,200,0,.15)","HOT":"rgba(255,50,50,.15)"}[cs]; cc={"COLD":"#4488ff","NORMAL":"#888","WARM":"#ffcc00","HOT":"#ff3366"}[cs]
-    st.markdown(f"<div style='text-align:center;margin:6px 0'><span style='background:{cbg};border:1px solid {cc}44;border-radius:20px;padding:5px 16px;color:{cc};font-size:.8rem;font-weight:700;'>⬤ {cs}</span></div>",unsafe_allow_html=True)
     st.markdown("</div>",unsafe_allow_html=True)
     if st.button("Analyser X3+",use_container_width=True):
         if h_in and ti:
@@ -255,11 +255,6 @@ with co:
         st.markdown(f"""<div class='prob-center'>
         <div class='prob-val'>{r['bp']}%</div>
         <div class='prob-lbl'>Probabilité X3+ · Bayesian</div></div>""",unsafe_allow_html=True)
-        st.markdown(f"""<div class='tags-row'>
-        <span class='tag'>⬤ {r['cur']}</span><span class='tag'>🔥 Hot {r['hp']}%</span>
-        <span class='tag'>💪 Str {r['str']}</span>
-        <span class='tag-b'>X3.5+ {r['p35']}%</span><span class='tag-b'>X4+ {r['p4']}%</span>
-        </div>""",unsafe_allow_html=True)
         cw,cl3=st.columns(2)
         with cw:
             if st.button("✅  WIN X3+",use_container_width=True,key="bw"):
