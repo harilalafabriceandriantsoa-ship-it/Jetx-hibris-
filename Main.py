@@ -66,7 +66,7 @@ html,body,.stApp{background:#010d0a!important;color:#eafffa;font-family:'Inter',
 .stat-l{font-size:.52rem;color:rgba(255,255,255,.3);letter-spacing:.12em;text-transform:uppercase;margin-top:2px}
 .stTextInput label,.stNumberInput label{color:#66ffdd!important;font-weight:600!important;font-size:.84rem!important;font-family:'Inter'!important}
 .stTextInput input{background:rgba(0,200,160,.07)!important;border:1.5px solid rgba(0,200,160,.35)!important;color:#eafffa!important;border-radius:13px!important;font-size:.92rem!important;padding:11px 14px!important}
-.stTextInput input::placeholder{color:rgba(255,255,255,.3)!important;font-style:italic!important}
+.stTextInput input::placeholder{color:rgba(255,255,255,.4)!important;font-style:italic!important}
 .stTextInput input:focus{border-color:rgba(0,221,187,.7)!important;box-shadow:0 0 0 3px rgba(0,221,187,.12)!important;background:rgba(0,200,160,.1)!important}
 .stNumberInput input{background:rgba(0,200,160,.07)!important;border:1.5px solid rgba(0,200,160,.35)!important;color:#eafffa!important;border-radius:13px!important;font-size:.92rem!important;padding:11px 14px!important}
 .stNumberInput input:focus{border-color:rgba(0,221,187,.7)!important;box-shadow:0 0 0 3px rgba(0,221,187,.12)!important}
@@ -175,20 +175,17 @@ if not st.session_state.auth:
     _,cb,_=st.columns([1,1.1,1])
     with cb:
         st.markdown("<div class='card'>",unsafe_allow_html=True)
-        pw=st.text_input("Mot de passe",type="password",placeholder="JET2026")
+        pw=st.text_input("Mot de passe",type="password",placeholder="Midiry eto...")
         if st.button("Activer l'accès",use_container_width=True):
             if pw=="JET2026": st.session_state.auth=True; st.rerun()
             else: st.error("❌ Code incorrect")
         st.markdown("</div>",unsafe_allow_html=True)
     st.markdown("""<div class='card' style='max-width:680px;margin:16px auto;'>
-    <div class='section-lbl'>Fanazavana Malagasy</div>
+    <div class='section-lbl'>Fanazavana</div>
     <div style='line-height:1.9;font-size:.87rem;color:rgba(234,255,250,.7);'>
-    <b style='color:#00ddbb;'>Server Hash:</b> Hash @ Provably Fair → <code style='background:rgba(0,200,160,.1);padding:2px 7px;border-radius:6px;'>7db8e01413d6d...</code><br>
-    <b style='color:#00ddbb;'>Last Time:</b> Ora nilanihan'ny round TALOHA → <code style='background:rgba(0,200,160,.1);padding:2px 7px;border-radius:6px;'>20:22:24</code><br>
-    <b style='color:#00ddbb;'>Last Cote:</b> Résultat taloha → <code style='background:rgba(0,200,160,.1);padding:2px 7px;border-radius:6px;'>1.88×</code><br><br>
-    <b style='color:#66aaff;'>Tour 1</b> = Last Time + 40-120sec → round akaiky<br>
-    <b style='color:#66aaff;'>Tour 2</b> = Tour 1 + durée estimée → round faharoa<br>
-    Accuracy <b>variable 10-99%</b> miankina @ signal + historique
+    <b style='color:#00ddbb;'>Hash:</b> Hash @ Provably Fair<br>
+    <b style='color:#00ddbb;'>Last Time:</b> Ora @ round taloha<br>
+    <b style='color:#00ddbb;'>Last Cote:</b> Résultat taloha
     </div></div>""",unsafe_allow_html=True)
     st.stop()
 
@@ -215,8 +212,8 @@ ci,co=st.columns([1,2],gap="large")
 with ci:
     st.markdown("<div class='card'>",unsafe_allow_html=True)
     st.markdown("<div class='section-lbl'>Paramètres</div>",unsafe_allow_html=True)
-    h_in = st.text_input("Server Hash", placeholder="7db8e01413d6d8c6...")
-    ti   = st.text_input("Last Time", placeholder="20:22:24")
+    h_in = st.text_input("Server Hash", placeholder="Ohatra: 7db8e01413d6d...")
+    ti   = st.text_input("Last Time", placeholder="Ohatra: 20:22:24")
     lc   = st.number_input("Last Cote", value=1.88, step=0.01, format="%.2f", min_value=1.01)
     cs=s2st(lc); cbg={"COLD":"rgba(68,136,255,.15)","NORMAL":"rgba(150,150,150,.12)","WARM":"rgba(255,200,0,.15)","HOT":"rgba(255,50,50,.15)"}[cs]; cc={"COLD":"#4488ff","NORMAL":"#888","WARM":"#ffcc00","HOT":"#ff3366"}[cs]
     st.markdown(f"<div style='text-align:center;margin:6px 0'><span style='background:{cbg};border:1px solid {cc}44;border-radius:20px;padding:5px 16px;color:{cc};font-size:.8rem;font-weight:700;'>⬤ {cs}</span></div>",unsafe_allow_html=True)
